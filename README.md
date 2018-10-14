@@ -4,7 +4,7 @@ Library for direct translation from Scratch to Javascript. Automatic translator 
 ## Usage
 ```
 git clone https://github.com/PullJosh/scratch-js.git
-cd example-project
+cd scratch-js/example-project
 npm install
 npm run watch
 ```
