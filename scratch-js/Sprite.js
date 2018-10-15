@@ -49,7 +49,7 @@ export default class Sprite {
   }
 
   set direction(dir) {
-    this._direction = this.normalizeDeg(dir)
+    this._direction = this.normalizeScratch(dir)
   }
 
   degToScratch(deg) {
@@ -65,10 +65,13 @@ export default class Sprite {
   }
 
   normalizeDeg(deg) {
-    while(deg <= -180) deg += 360
-    while(deg > 180) deg -= 360
+    return ((deg - 180) % 360) + 180
+  }
 
-    return deg
+  normalizeScratch(scratchDir) {
+    const deg = this.scratchToDeg(scratchDir)
+    const normalized = this.normalizeDeg(deg)
+    return this.degToScratch(normalized)
   }
 
   move(dist) {
