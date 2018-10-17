@@ -1,9 +1,12 @@
 import Event from './Event'
+import Renderer from './Renderer';
 
 export default class Project {
   constructor(sprites = [], globalVars = {}) {
     this.sprites = sprites
     this._vars = globalVars
+
+    this.renderer = new Renderer('#project')
 
     this.greenFlag = document.querySelector('#greenFlag')
   }
@@ -23,19 +26,9 @@ export default class Project {
       return !script.next().done
     })
 
-    this._updateScreen()
+    this.renderer.update(this.sprites)
 
     window.requestAnimationFrame(this.runFrame.bind(this))
-  }
-
-  _updateScreen() {
-    const output = document.querySelector('#project')
-    output.innerHTML = ''
-    this.sprites.forEach(sprite => {
-      output.innerHTML += `<h2>${sprite.constructor.name}</h2>`
-      output.innerHTML += `<div style="width: 100px; transform: rotate(${sprite.direction - 90}deg) translate(${sprite.x}px, ${sprite.y}px);">${sprite.costume.image}</div>`
-      output.innerHTML += `<div>(${sprite.x}, ${sprite.y}) @ ${sprite.direction}&deg;</div>`
-    })
   }
 
   _fireEvent(event) {
