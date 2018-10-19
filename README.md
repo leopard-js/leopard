@@ -1,5 +1,5 @@
 # scratch-js
-Library for direct translation from Scratch to Javascript. Automatic translator coming soon.
+Library for making Scratch-like projects with Javascript. Automatic translator coming soon.
 
 ## Usage
 ```
