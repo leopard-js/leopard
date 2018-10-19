@@ -1,9 +1,11 @@
 export default class Costume {
-  constructor (name, image, width, height) {
+  constructor (name, url, center = { x: 0, y: 0 }) {
     this.name = name
-    this.image = image
-  
-    this.width = width
-    this.height = height
+    this.url = url
+
+    this.img = new Image
+    this.img.src = this.url
+
+    this.center = center
   }
 }

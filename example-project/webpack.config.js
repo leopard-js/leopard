@@ -9,8 +9,8 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.svg$/,
-        loader: 'svg-inline-loader'
+        test: /\.(png|jpg|gif|svg)$/i,
+        loader: 'url-loader'
       }
     ]
   },

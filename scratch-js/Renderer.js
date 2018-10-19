@@ -5,30 +5,32 @@ export default class Renderer {
     }
     this.container = container
 
-    this.stage = document.createElement('div')
+    this.stage = document.createElement('canvas')
     this.stage.style.border = '1px solid black'
-    this.stage.style.overflow = 'hidden'
-    this.stage.style.width = '480px' // TODO: Allow changing stage size
-    this.stage.style.height = '360px'
+    this.stage.width = 480
+    this.stage.height = 360
+
+    this.ctx = this.stage.getContext('2d')
 
     this.container.append(this.stage)
   }
 
   update(sprites) {
-    this.stage.innerHTML = ''
-    sprites.forEach(sprite => {
-      const elem = document.createElement('div')
-      elem.innerHTML = sprite.costume.image
+    this.ctx.clearRect(0, 0, this.stage.width, this.stage.height)
 
-      if (typeof sprite.costume.width !== 'undefined') {
-        elem.style.width = sprite.costume.width + 'px'
-      }
-      if (typeof sprite.costume.height !== 'undefined') {
-        elem.style.height = sprite.costume.height + 'px'
-      }
-      elem.style.transform = `rotate(${sprite.direction - 90}deg) translate(${sprite.x}px, ${sprite.y}px) scale(${sprite.size / 100})`
+    sprites.forEach(spr => {
+      this.ctx.save()
+
+      this.ctx.setTransform(1, 0, 0, 1, 0, 0)
+      this.ctx.translate(this.stage.width / 2, this.stage.height / 2)
+      this.ctx.translate(spr.x, -spr.y)
+      this.ctx.rotate(-spr.scratchToRad(spr.direction))
+      this.ctx.scale(spr.size / 100, spr.size / 100)
+      this.ctx.translate(-spr.costume.center.x, -spr.costume.center.y)
       
-      this.stage.append(elem)
+      this.ctx.drawImage(spr.costume.img, 0, 0)
+
+      this.ctx.restore()
     })
   }
 }
