@@ -2,8 +2,8 @@ export default class Sprite {
   constructor(initialConditions, vars = {}) {
     const { x, y, direction, costumeNumber, size } = initialConditions
 
-    this._x = x
-    this._y = y
+    this.x = x
+    this.y = y
     this._direction = direction
     this.costumeNumber = costumeNumber
     this.size = size
@@ -26,22 +26,6 @@ export default class Sprite {
 
   get costume() {
     return this.costumes[this.costumeNumber - 1]
-  }
-
-  set x(x) {
-    this._x = Math.round(x)
-  }
-
-  get x() {
-    return this._x
-  }
-
-  set y(y) {
-    this._y = Math.round(y)
-  }
-
-  get y() {
-    return this._y
   }
 
   get direction() {
