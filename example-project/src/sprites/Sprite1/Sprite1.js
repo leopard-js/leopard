@@ -9,8 +9,8 @@ export default class Sprite1 extends Sprite {
     super(...args)
 
     this.costumes = [
-      new Costume('costume1', costume1),
-      new Costume('costume2', costume2)
+      new Costume('costume1', costume1, { x: 47, y: 55 }),
+      new Costume('costume2', costume2, { x: 47, y: 55 })
     ]
 
     this.events = [
@@ -25,7 +25,7 @@ export default class Sprite1 extends Sprite {
     this.direction = 90
     
     while(true) {
-      this.direction += 3;
+      this.direction += 3
       this.move(3)
       yield
     }
@@ -40,6 +40,7 @@ export default class Sprite1 extends Sprite {
 
   * walk(speed) {
     this.costume = this.costumeNumber + 1
+    this.size *= 1.2
     yield* this.wait(speed)
   }
 }
