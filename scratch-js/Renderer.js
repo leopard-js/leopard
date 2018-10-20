@@ -24,10 +24,10 @@ export default class Renderer {
     this.ctx.fillStyle = '#aaa'
   }
 
-  createStage() {
+  createStage(w = 480, h = 360) {
     const stage = document.createElement('canvas')
-    stage.width = 480
-    stage.height = 360
+    stage.width = w
+    stage.height = h
 
     return stage
   }
@@ -35,7 +35,6 @@ export default class Renderer {
   renderSprite(spr, ctx) {
     ctx.save()
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0)
     ctx.translate(this.stage.width / 2, this.stage.height / 2)
     ctx.translate(spr.x, -spr.y)
     ctx.rotate(-spr.scratchToRad(spr.direction))
@@ -87,5 +86,49 @@ export default class Renderer {
       top: Math.round(Math.min.apply(Math, points.map(pt => pt.y))),
       bottom: Math.round(Math.max.apply(Math, points.map(pt => pt.y)))
     }
+  }
+
+  checkSpriteCollision(spr1, spr2, fast) {
+    const box1 = this.getBoundingBox(spr1)
+    const box2 = this.getBoundingBox(spr2)
+
+    if (box1.right <= box2.left) return false
+    if (box1.left >= box2.right) return false
+    if (box1.bottom <= box2.top) return false
+    if (box1.top >= box2.bottom) return false
+
+    if (fast) return true
+
+    const left = Math.max(box1.left, box2.left)
+    const right = Math.min(box1.right, box2.right)
+    const top = Math.max(box1.top, box2.top)
+    const bottom = Math.min(box1.bottom, box2.bottom)
+
+    const collisionStage = this.createStage(right - left, bottom - top)
+    collisionStage.style.border = '1px solid black'
+    const collisionCtx = collisionStage.getContext('2d')
+
+    collisionCtx.setTransform(1, 0, 0, 1, 0, 0)
+    collisionCtx.translate(-left, -top)
+
+    collisionCtx.globalCompositeOperation = 'source-over'
+    this.renderSprite(spr1, collisionCtx)
+    
+    collisionCtx.globalCompositeOperation = 'source-in'
+    this.renderSprite(spr2, collisionCtx)
+
+    // If collision stage contains any alpha > 0, there's a collision
+    const w = collisionStage.width
+    const h = collisionStage.height
+    const imgData = collisionCtx.getImageData(0, 0, w, h).data
+
+    const length = w * h * 4
+    for (let i = 0; i < length; i += 4) {
+      if (imgData[i + 3] > 0) {
+        return true
+      }
+    }
+
+    return false
   }
 }
