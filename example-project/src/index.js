@@ -1,8 +1,27 @@
 import { Project, Vars } from 'scratch-js'
-import Sprite1 from './sprites/Sprite1/Sprite1.js'
+
+import Player from './sprites/Player/Player'
+import Ground from './sprites/Ground/Ground'
 
 const sprites = [
-  new Sprite1(
+  new Player(
+    // Initial sprite conditions
+    {
+      x: -183,
+      y: -105,
+      direction: 90,
+      costumeNumber: 1,
+      size: 60
+    },
+
+    // Sprite variables
+    new Vars({
+      xVel: 0,
+      yVel: 0,
+      oldY: 0
+    })
+  ),
+  new Ground(
     // Initial sprite conditions
     {
       x: 0,
@@ -10,19 +29,10 @@ const sprites = [
       direction: 90,
       costumeNumber: 1,
       size: 100
-    },
-
-    // Sprite variables
-    new Vars({
-      myVar: 2
-    })
+    }
   )
 ]
 
-const globalVars = new Vars({
-  test: 0
-})
-
-const project = new Project(sprites, globalVars)
+const project = new Project(sprites)
 
 project.run()

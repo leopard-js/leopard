@@ -76,4 +76,75 @@ export default class Sprite {
       yield
     }
   }
+
+  touching(sprName, fast) {
+    const sprites = this._project.sprites
+    const matching = spr => spr.constructor.name === sprName
+    const matchingSprites = sprites.filter(matching)
+
+    const renderer = this._project.renderer
+
+    const ownBox = renderer.getBoundingBox(this)
+    const ownStage = renderer.createStage().getContext('2d')
+    renderer.renderSprite(this, ownStage)
+
+    for (let i = 0; i < matchingSprites.length; i++) {
+      const spr = matchingSprites[i]
+      const box = this._project.renderer.getBoundingBox(spr)
+
+      if (ownBox.right <= box.left) continue
+      if (ownBox.left >= box.right) continue
+      if (ownBox.bottom <= box.top) continue
+      if (ownBox.top >= box.bottom) continue
+
+      if (fast) return true
+
+      const stage = renderer.createStage().getContext('2d')
+      renderer.renderSprite(spr, stage)
+
+      let scanRegion = {
+        left: Math.max(ownBox.left, box.left),
+        right: Math.min(ownBox.right, box.right),
+        top: Math.max(ownBox.top, box.top),
+        bottom: Math.min(ownBox.bottom, box.bottom)
+      }
+      scanRegion.width = scanRegion.right - scanRegion.left
+      scanRegion.height = scanRegion.bottom - scanRegion.top
+
+      const getScanImageData = ctx => ctx.getImageData(
+        scanRegion.left,
+        scanRegion.top,
+        scanRegion.width,
+        scanRegion.height
+      )
+
+      const imgData = getScanImageData(stage)
+      const ownImgData = getScanImageData(ownStage)
+
+      const getPoint = (x, y, imgData) => {
+        const start = 4 * (y * imgData.width + x)
+        return imgData.data.slice(start, start + 4)
+      }
+
+      for (let x = 0; x < scanRegion.width; x++) {
+        for (let y = 0; y < scanRegion.height; y++) {
+          if (getPoint(x, y, imgData)[3] > 0) {
+            if (getPoint(x, y, ownImgData)[3] > 0) {
+              return true
+            }
+          }
+        }
+      }
+    }
+
+    return false
+  }
+
+  get mouse() {
+    return this._project.input.mouse
+  }
+
+  keyPressed(name) {
+    return this._project.input.keyPressed(name)
+  }
 }
