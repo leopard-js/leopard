@@ -79,7 +79,7 @@ export default class Sprite {
 
   touching(sprName, fast) {
     const sprites = this._project.sprites
-    const matching = spr => spr.constructor.name === sprName
+    const matching = spr => spr.name === sprName
     const matchingSprites = sprites.filter(matching)
 
     for (let i = 0; i < matchingSprites.length; i++) {

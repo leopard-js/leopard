@@ -8,6 +8,8 @@ export default class Player extends Sprite {
   constructor(...args) {
     super(...args)
 
+    this.name = 'Player'
+
     this.costumes = [
       new Costume('costume1', costume1, { x: 47, y: 55 }),
       new Costume('costume2', costume2, { x: 47, y: 55 })
@@ -17,22 +19,6 @@ export default class Player extends Sprite {
       new Event(Event.GREEN_FLAG, this.greenFlag.bind(this)),
     ]
   }
-
-  /*
-  * greenFlag(globalVars, spriteVars) {
-    while(true) {
-      this.x = this.mouse.x
-      this.y = this.mouse.y
-      if (this.touching('Ground')) {
-        console.log('Collision!')
-      }
-      if (this.keyPressed('up')) {
-        console.log('up')
-      }
-      yield
-    }
-  }
-  */
 
   * greenFlag(globalVars, spr) {
     spr.set('x vel', 0)
