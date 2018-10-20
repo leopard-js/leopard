@@ -21,7 +21,7 @@ class Var {
 }
 
 export default class Vars {
-  constructor(varValues) {
+  constructor(varValues = {}) {
     this.vars = {}
 
     for (let variable in varValues) {
