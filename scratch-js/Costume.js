@@ -8,4 +8,12 @@ export default class Costume {
 
     this.center = center
   }
+
+  get width() {
+    return this.img.naturalWidth
+  }
+
+  get height() {
+    return this.img.naturalHeight
+  }
 }

@@ -1,13 +1,19 @@
 import Event from './Event'
-import Renderer from './Renderer';
+import Renderer from './Renderer'
+import Input from './Input'
+import Vars from './Vars'
 
 export default class Project {
-  constructor(sprites = [], globalVars = {}) {
+  constructor(sprites = [], globalVars = new Vars()) {
     this.sprites = sprites
+    for (let i = 0; i < this.sprites.length; i++) {
+      this.sprites[i]._project = this
+    }
+
     this._vars = globalVars
 
     this.renderer = new Renderer('#project')
-
+    this.input = new Input(this.renderer.stage)
     this.greenFlag = document.querySelector('#greenFlag')
   }
 
