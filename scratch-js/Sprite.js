@@ -215,7 +215,7 @@ export class Sprite extends SpriteBase {
     if (!this.visible) return false
 
     const sprites = this._project.sprites
-    const matching = spr => spr.constructor.name === sprName
+    const matching = spr => spr.name === sprName
     const matchingSprites = sprites.filter(matching)
 
     for (let i = 0; i < matchingSprites.length; i++) {
