@@ -7,17 +7,25 @@ export default class Renderer {
 
     this.stage = this.createStage()
     this.stage.style.border = '1px solid black'
-
     this.ctx = this.stage.getContext('2d')
 
     this.container.append(this.stage)
+
+    this.penStage = this.createStage()
+    this.penLayer = this.penStage.getContext('2d')
   }
 
-  update(sprites) {
+  update(stage, sprites) {
     this.ctx.clearRect(0, 0, this.stage.width, this.stage.height)
 
+    this.renderSprite(stage, this.ctx)
+
+    this.ctx.drawImage(this.penStage, 0, 0)
+
     sprites.forEach(spr => {
-      this.renderSprite(spr, this.ctx)
+      if (spr.visible) {
+        this.renderSprite(spr, this.ctx)
+      }
     })
 
     this.ctx.font = '12px monospace'
@@ -130,5 +138,24 @@ export default class Renderer {
     }
 
     return false
+  }
+
+  penLine(pt1, pt2, color, size) {
+    this.penLayer.lineWidth = size
+    this.penLayer.strokeStyle = color
+    this.penLayer.lineCap = 'round'
+
+    this.penLayer.beginPath()
+    this.penLayer.moveTo(pt1.x + 240, 180 - pt1.y)
+    this.penLayer.lineTo(pt2.x + 240, 180 - pt2.y)
+    this.penLayer.stroke()
+  }
+
+  clearPen() {
+    this.penLayer.clearRect(0, 0, this.penStage.width, this.penStage.height)
+  }
+
+  stamp(sprite) {
+    this.renderSprite(sprite, this.penLayer)
   }
 }
