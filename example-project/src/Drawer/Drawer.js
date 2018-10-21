@@ -1,4 +1,4 @@
-import { Sprite, Event, Costume } from 'scratch-js'
+import { Sprite, Trigger, Costume } from 'scratch-js'
 
 import dot from './costumes/dot.png'
 import cat from './costumes/cat.svg'
@@ -14,8 +14,8 @@ export default class Drawer extends Sprite {
       new Costume('filled', filled, { x: 240, y: 180 })
     ]
 
-    this.events = [
-      new Event(Event.GREEN_FLAG, this.greenFlag.bind(this))
+    this.triggers = [
+      new Trigger(Trigger.GREEN_FLAG, this.greenFlag.bind(this))
     ]
   }
 

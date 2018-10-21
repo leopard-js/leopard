@@ -4,7 +4,7 @@ class SpriteBase {
 
     this.costumeNumber = costumeNumber
 
-    this.events = []
+    this.triggers = []
     this.costumes = []
   }
 
@@ -71,32 +71,20 @@ class SpriteBase {
   }
 
   restartTimer() {
-    console.log('restarting timer')
-    this._project.timerStart = new Date()
+    this._project.restartTimer()
   }
 
   * playSound(url) {
-    const audio = new Audio(url)
     let playing = true
-    audio.addEventListener('ended', () => {
-      playing = false
-      const soundIndex = this._project.playingSounds.findIndex(a => a === audio)
-      this._project.playingSounds.splice(soundIndex, 1)
-    })
-    audio.addEventListener('pause', () => {
+    this._project.playSound(url).then(() => {
       playing = false
     })
-    this._project.playingSounds.push(audio)
-    audio.play()
 
     while (playing) yield
   }
 
   stopAllSounds() {
-    for (let sound in this._project.playingSounds) {
-      sound.pause()
-    }
-    this._project.playingSounds = []
+    this._project.stopAllSounds()
   }
 }
 
@@ -116,9 +104,6 @@ export class Sprite extends SpriteBase {
     this._penDown = penDown || false
     this.penSize = penSize || 1
     this.penColor = penColor || 'blue'
-
-    this.events = []
-    this.costumes = []
 
     this._vars = vars
   }

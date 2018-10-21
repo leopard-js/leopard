@@ -1,5 +1,5 @@
 export default class Input {
-  constructor(stage) {
+  constructor(stage, onKeyDown) {
     this._stage = stage
 
     // Allow setting focus to canvas
@@ -12,6 +12,7 @@ export default class Input {
     this._stage.addEventListener('keydown', this._keydown.bind(this))
 
     this.keys = []
+    this._onKeyDown = onKeyDown
   }
 
   _updateMouse(e) {
@@ -37,6 +38,8 @@ export default class Input {
     if (this.keys.indexOf(key) === -1) {
       this.keys.push(key)
     }
+
+    this._onKeyDown(key)
   }
 
   _getKeyName(e) {

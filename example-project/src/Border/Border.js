@@ -1,4 +1,4 @@
-import { Sprite, Event, Costume } from 'scratch-js'
+import { Sprite, Trigger, Costume } from 'scratch-js'
 
 import border from './costumes/border.png'
 import filled from './costumes/filled.png'
@@ -14,8 +14,8 @@ export default class Border extends Sprite {
       new Costume('filled', filled, { x: 240, y: 180 })
     ]
 
-    this.events = [
-      new Event(Event.GREEN_FLAG, this.greenFlag.bind(this))
+    this.triggers = [
+      new Trigger(Trigger.GREEN_FLAG, this.greenFlag.bind(this))
     ]
   }
 
@@ -24,7 +24,7 @@ export default class Border extends Sprite {
     this.y = 0
     this.costume = 'filled'
     this.restartTimer()
-    while (!(this.timer > 4.2)) yield
+    while (!(this.timer > 4.1)) yield
     this.costume = 'border'
   }
 }
