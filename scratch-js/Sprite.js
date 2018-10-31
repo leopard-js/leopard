@@ -1,3 +1,5 @@
+import Trigger from './Trigger'
+
 class SpriteBase {
   constructor(initialConditions) {
     const { costumeNumber } = initialConditions
@@ -85,6 +87,20 @@ class SpriteBase {
 
   stopAllSounds() {
     this._project.stopAllSounds()
+  }
+
+  broadcast(name) {
+    return this._project.fireTrigger(Trigger.BROADCAST, { name })
+  }
+
+  * broadcastAndWait(name) {
+    let running = true
+    this.broadcast(name).then(() => {
+      console.log('Finished broadcast', name)
+      running = false
+    })
+
+    while(running) { console.log('still running', name, running); yield }
   }
 }
 
