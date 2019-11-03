@@ -1,4 +1,4 @@
-import Trigger from './Trigger'
+import Trigger from './Trigger.mjs'
 
 class SpriteBase {
   constructor(initialConditions) {

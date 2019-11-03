@@ -1,7 +1,7 @@
-import Trigger from './Trigger'
-import Renderer from './Renderer'
-import Input from './Input'
-import Vars from './Vars'
+import Trigger from './Trigger.mjs'
+import Renderer from './Renderer.mjs'
+import Input from './Input.mjs'
+import Vars from './Vars.mjs'
 
 export default class Project {
   constructor(stage, sprites = [], globalVars = new Vars()) {
