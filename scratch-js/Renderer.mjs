@@ -6,7 +6,7 @@ export default class Renderer {
     this.container = container
 
     this.stage = this.createStage()
-    this.stage.style.border = '1px solid black'
+    this.stage.style.border = '3px solid grey'
     this.ctx = this.stage.getContext('2d')
 
     this.container.append(this.stage)
