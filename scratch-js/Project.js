@@ -55,6 +55,13 @@ export default class Project {
   }
 
   fireTrigger(trigger, options) {
+    // Special trigger behaviors
+    if (trigger === Trigger.GREEN_FLAG) {
+      this.restartTimer()
+      this.stopAllSounds()
+      this.runningTriggers = []
+    }
+    
     // Find triggers which match conditions
     let matchingTriggers = []
     for (let i = 0; i < this.spritesAndStage.length; i++) {
@@ -65,30 +72,9 @@ export default class Project {
       matchingTriggers = [...matchingTriggers, ...spriteTriggers]
     }
 
-    // Cancel triggers if they are already running
-    for (let i = 0; i < matchingTriggers.length; i++) {
-      const trigger = matchingTriggers[i]
-
-      // Run stop callback
-      trigger.stop()
-    }
-
     this.runningTriggers = [...this.runningTriggers, ...matchingTriggers]
 
-    // Special trigger behaviors
-    if (trigger === Trigger.GREEN_FLAG) {
-      this.restartTimer()
-      this.stopAllSounds()
-    }
-
-    return Promise.all(matchingTriggers.map(trigger => trigger.start(this._removeTrigger.bind(this))))
-  }
-
-  _removeTrigger(trigger) {
-    console.log('Stopping:', trigger)
-
-    const triggerIndex = this.runningTriggers.findIndex(t => t === trigger)
-    this.runningTriggers.splice(triggerIndex, 1)
+    return Promise.all(matchingTriggers.map(trigger => trigger.start()))
   }
 
   get spritesAndStage() {

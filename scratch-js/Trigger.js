@@ -27,16 +27,15 @@ export default class Trigger {
     return true
   }
 
-  start(removeTrigger, ...args) {
-    console.log(this.done)
-
+  start(...args) {
     this.stop()
 
     this.done = false
     this._scriptRunning = this._script(...args)
-    return new Promise((resolve, reject) => {
+
+    return new Promise(resolve => {
       this.stop = () => {
-        removeTrigger(this)
+        this.done = true
         resolve()
       }
     })

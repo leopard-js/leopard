@@ -16,7 +16,6 @@ export default class Cat extends Sprite {
   }
 
   * turn() {
-    console.log('Turn cat!')
     for(let i = 0; i < 36; i++) {
       yield* this.broadcastAndWait('turn dog')
       this.direction += 10

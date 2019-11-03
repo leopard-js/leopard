@@ -96,11 +96,10 @@ class SpriteBase {
   * broadcastAndWait(name) {
     let running = true
     this.broadcast(name).then(() => {
-      console.log('Finished broadcast', name)
       running = false
     })
 
-    while(running) { console.log('still running', name, running); yield }
+    while(running) { yield }
   }
 }
 
