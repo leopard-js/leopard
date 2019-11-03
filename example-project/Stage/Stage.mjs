@@ -1,13 +1,11 @@
-import { Stage as StageBase, Costume, Trigger } from 'scratch-js'
-
-import backdrop1 from './costumes/backdrop1.png'
+import { Stage as StageBase, Costume, Trigger } from '../../scratch-js/index.mjs'
 
 export default class Stage extends StageBase {
   constructor(...args) {
     super(...args)
 
     this.costumes = [
-      new Costume('backdrop1', backdrop1, { x: 240, y: 180 })
+      new Costume('backdrop1', './Stage/costumes/backdrop1.png', { x: 240, y: 180 })
     ]
 
     this.triggers = [

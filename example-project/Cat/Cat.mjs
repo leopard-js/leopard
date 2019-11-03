@@ -1,13 +1,11 @@
-import { Sprite, Trigger, Costume } from 'scratch-js'
-
-import cat from './costumes/cat.svg'
+import { Sprite, Trigger, Costume } from '../../scratch-js/index.mjs'
 
 export default class Cat extends Sprite {
   constructor(...args) {
     super(...args)
 
     this.costumes = [
-      new Costume('cat', cat, { x: 47, y: 55 })
+      new Costume('cat', './Cat/costumes/cat.svg', { x: 47, y: 55 })
     ]
 
     this.triggers = [

@@ -2,16 +2,23 @@
 Library for making Scratch-like projects with Javascript. Automatic translator coming soon.
 
 ## Usage
+### Step 1: Get the code
 ```
-git clone https://github.com/PullJosh/scratch-js.git
-cd scratch-js/example-project
-npm install
-npm run watch
+> git clone https://github.com/PullJosh/scratch-js.git
+> cd scratch-js
 ```
-Open http://localhost:8080/ to see development build (automatically reloads after changes).
+(Note that the `cd` command takes us into the repo directory, **NOT** the `scratch-js` folder within it!)
 
-* For production build, use `npm run build` in place of `npm run watch`.
-* To launch dev server on a different port, use `npm run watch -- --port [your_port_number]`
+### Step 2: Serve the files
+Everything in this repo can be opened in a browser directly. Unfortunately for us, javascript modules must come from a server like `localhost` rather than straight from the file system, so **we need to serve the repo's files on localhost.**
+
+There are plenty of different ways to do this. If you have `node` installed, you can use [`http-server`](https://www.npmjs.com/package/http-server):
+```
+> npm i -g http-server
+> http-server -p 3000
+```
+
+Once you start the server, open http://localhost:3000/example-project/index.html to see the example project in action!
 
 ## What is this? (In more words.)
 There are two main components to `scratch-js`. Right now, only one of them exists.

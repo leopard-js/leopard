@@ -1,8 +1,8 @@
-import { Project, Vars } from 'scratch-js'
+import { Project } from '../scratch-js/index.mjs'
 
-import Stage from './Stage/Stage'
-import Dog from './Dog/Dog'
-import Cat from './Cat/Cat'
+import Stage from './Stage/Stage.mjs'
+import Dog from './Dog/Dog.mjs'
+import Cat from './Cat/Cat.mjs'
 
 const stage = new Stage({
   costumeNumber: 1
