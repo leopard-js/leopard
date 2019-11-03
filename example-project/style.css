@@ -1,0 +1,17 @@
+button {
+  background-color: #ffffff; /* White */
+  border: none;
+  padding: 0px 0px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 20px;
+}
+
+.fa-stop {
+  color: red;
+}
+
+.fa-flag {
+  color: green;
+}
