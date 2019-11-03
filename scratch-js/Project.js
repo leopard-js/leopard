@@ -32,8 +32,6 @@ export default class Project {
 
     this.step()
 
-    this.stopAllSounds();
-
     this.greenFlag.addEventListener('click', () => {
       this.fireTrigger(Trigger.GREEN_FLAG)
     })
