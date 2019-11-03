@@ -28,6 +28,7 @@ export default class Project {
 
   run() {
     this.runningTriggers = []
+    this._newTriggers = []
 
     this.step()
 
@@ -39,9 +40,14 @@ export default class Project {
   }
 
   step() {
-    this.runningTriggers = this.runningTriggers.filter(trigger => {
-      return !trigger.step().done
-    })
+    // Step all triggers
+    const alreadyRunningTriggers = this.runningTriggers
+    for (let i = 0; i < alreadyRunningTriggers.length; i++) {
+      alreadyRunningTriggers[i].step()
+    }
+
+    // Remove finished triggers
+    this.runningTriggers = this.runningTriggers.filter(trigger => !trigger.done)
 
     this.renderer.update(this.stage, this.sprites)
 
@@ -49,26 +55,26 @@ export default class Project {
   }
 
   fireTrigger(trigger, options) {
-    // Stop existing triggers which match
-    this.runningTriggers = this.runningTriggers.filter(
-      tr => !tr.matches(trigger, options)
-    )
-
-    const spritesAndStage = this.spritesAndStage
-    for (let i = 0; i < spritesAndStage.length; i++) {
-      const sprite = spritesAndStage[i]
-      const triggers = sprite.triggers
-        .filter(tr => tr.matches(trigger, options))
-        .map(tr => tr.start(this._vars, sprite._vars))
-      
-      this.runningTriggers = [...this.runningTriggers, ...triggers]
-    }
-
     // Special trigger behaviors
     if (trigger === Trigger.GREEN_FLAG) {
       this.restartTimer()
       this.stopAllSounds()
+      this.runningTriggers = []
     }
+    
+    // Find triggers which match conditions
+    let matchingTriggers = []
+    for (let i = 0; i < this.spritesAndStage.length; i++) {
+      const sprite = this.spritesAndStage[i]
+      const spriteTriggers = sprite.triggers
+        .filter(tr => tr.matches(trigger, options))
+      
+      matchingTriggers = [...matchingTriggers, ...spriteTriggers]
+    }
+
+    this.runningTriggers = [...this.runningTriggers, ...matchingTriggers]
+
+    return Promise.all(matchingTriggers.map(trigger => trigger.start()))
   }
 
   get spritesAndStage() {
