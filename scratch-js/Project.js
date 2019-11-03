@@ -31,6 +31,8 @@ export default class Project {
 
     this.step()
 
+    this.stopAllSounds();
+
     this.greenFlag.addEventListener('click', () => {
       this.fireTrigger(Trigger.GREEN_FLAG)
     })
@@ -96,25 +98,25 @@ export default class Project {
   
   _stopSound(sound) {
     if (sound.hasStarted) {
-      // Stop audio from playing
       sound.audio.pause()
-
-      // Remove from playingSounds
-      const index = this.playingSounds.findIndex(s => s === sound)
-      if (index > -1) {
-        this.playingSounds.splice(index, 1)
-      }
     } else {
       // Audio can't be paused because it hasn't started yet
       // (audio.play() is async; can't pause until play starts)
       sound.audio.addEventListener('playing', () => {
         // Stop for real ASAP
-        this._stopSound(sound)
+        sound.audio.pause()
       })
+    }
+
+    // Remove from playingSounds
+    const index = this.playingSounds.findIndex(s => s === sound)
+    if (index > -1) {
+      this.playingSounds.splice(index, 1)
     }
   }
   
   stopAllSounds() {
+    console.log('Need to stop:', this.playingSounds)
     const playingSoundsCopy = this.playingSounds.slice()
     for(let i = 0; i < playingSoundsCopy.length; i++) {
       this._stopSound(playingSoundsCopy[i])
