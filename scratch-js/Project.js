@@ -116,7 +116,6 @@ export default class Project {
   }
   
   stopAllSounds() {
-    console.log('Need to stop:', this.playingSounds)
     const playingSoundsCopy = this.playingSounds.slice()
     for(let i = 0; i < playingSoundsCopy.length; i++) {
       this._stopSound(playingSoundsCopy[i])
