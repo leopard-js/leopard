@@ -131,23 +131,28 @@ export class Sprite extends SpriteBase {
     this._direction = this.normalizeScratch(dir)
   }
 
+  goto(x, y) {
+    if (x === this.x && y === this.y) return
+    
+    if (this.penDown) {
+      this._project.renderer.penLine(
+        { x: this._x, y: this._y },
+        { x, y },
+        this.penColor,
+        this.penSize
+      )
+    }
+
+    this._x = x
+    this._y = y
+  }
+
   get x() {
     return this._x
   }
 
   set x(x) {
-    if (this.penDown) {
-      if (x !== this.x) {
-        this._project.renderer.penLine(
-          { x: this.x, y: this.y },
-          { x, y: this.y },
-          this.penColor,
-          this.penSize
-        )
-      }
-    }
-
-    this._x = x
+    this.goto(x, this._y)
   }
 
   get y() {
@@ -155,18 +160,16 @@ export class Sprite extends SpriteBase {
   }
 
   set y(y) {
-    if (this.penDown) {
-      if (y !== this.y) {
-        this._project.renderer.penLine(
-          { x: this.x, y: this.y },
-          { x: this.x, y },
-          this.penColor,
-          this.penSize
-        )
-      }
-    }
-    
-    this._y = y
+    this.goto(this._x, y)
+  }
+
+  move(dist) {
+    const moveDir = this.scratchToRad(this.direction)
+
+    this.goto(
+      this._x + dist * Math.cos(moveDir),
+      this._y + dist * Math.sin(moveDir)
+    )
   }
 
   get penDown() {
@@ -183,24 +186,6 @@ export class Sprite extends SpriteBase {
       )
     }
     this._penDown = penDown
-  }
-
-  move(dist) {
-    const oldX = this.x
-    const oldY = this.y
-
-    const moveDir = this.scratchToRad(this.direction)
-    this.x += dist * Math.cos(moveDir)
-    this.y += dist * Math.sin(moveDir)
-
-    if (this.penDown) {
-      this._project.renderer.penLine(
-        { x: oldX, y: oldY },
-        { x: this.x, y: this.y },
-        this.penColor,
-        this.penSize
-      )
-    }
   }
 
   stamp() {

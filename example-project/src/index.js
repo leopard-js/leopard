@@ -15,7 +15,8 @@ const sprites = [
     direction: 90,
     costumeNumber: 1,
     size: 100,
-    visible: true
+    visible: true,
+    penDown: true
   }),
   new Dog({
     x: 100,
