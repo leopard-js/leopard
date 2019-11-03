@@ -11,8 +11,13 @@ export default class Dog extends Sprite {
     ]
 
     this.triggers = [
+      new Trigger(Trigger.GREEN_FLAG, this.greenFlag.bind(this)),
       new Trigger(Trigger.BROADCAST, { name: 'turn dog' }, this.turn.bind(this))
     ]
+  }
+
+  * greenFlag() {
+    yield* this.glide(1, (Math.random() - 0.5) * 480, (Math.random() - 0.5) * 360)
   }
 
   * turn() {

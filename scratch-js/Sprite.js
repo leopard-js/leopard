@@ -172,6 +172,24 @@ export class Sprite extends SpriteBase {
     )
   }
 
+  * glide(seconds, x, y) {
+    const interpolate = (a, b, t) => a + (b - a) * t
+
+    const startTime = new Date()
+    const startX = this._x
+    const startY = this._y
+
+    let t
+    do {
+      t = (new Date() - startTime) / (seconds * 1000)
+      this.goto(
+        interpolate(startX, x, t),
+        interpolate(startY, y, t)
+      )
+      yield
+    } while (t < 1)
+  }
+
   get penDown() {
     return this._penDown
   }
