@@ -4,6 +4,8 @@ export default class Cat extends Sprite {
   constructor(...args) {
     super(...args)
 
+    this.name = 'Cat'
+
     this.costumes = [
       new Costume('cat', './Cat/costumes/cat.svg', { x: 47, y: 55 })
     ]

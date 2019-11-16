@@ -250,5 +250,7 @@ export class Sprite extends SpriteBase {
 export class Stage extends SpriteBase {
   constructor(...args) {
     super(...args)
+
+    this.name = 'Stage'
   }
 }
