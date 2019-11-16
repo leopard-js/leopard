@@ -54,8 +54,12 @@ class SpriteBase {
   }
 
   random(a, b) {
-    // TODO: Replicate rounding of Scratch
-    return Math.floor(Math.random() * (b - a)) + a
+    const min = Math.min(a, b)
+    const max = Math.max(a, b)
+    if (min % 1 === 0 && max % 1 === 0) {
+      return Math.floor(Math.random() * (max - min + 1)) + min
+    }
+    return Math.random() * (max - min) + min
   }
 
   * wait(secs) {
