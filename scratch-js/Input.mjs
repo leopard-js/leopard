@@ -5,8 +5,10 @@ export default class Input {
     // Allow setting focus to canvas
     this._stage.tabIndex = '1'
 
-    this.mouse = { x: 0, y: 0 }
-    this._stage.addEventListener('mousemove', this._updateMouse.bind(this))
+    this.mouse = { x: 0, y: 0, down: false }
+    this._stage.addEventListener('mousemove', this._mouseMove.bind(this))
+    this._stage.addEventListener('mousedown', this._mouseDown.bind(this))
+    this._stage.addEventListener('mouseup', this._mouseUp.bind(this))
 
     this._stage.addEventListener('keyup', this._keyup.bind(this))
     this._stage.addEventListener('keydown', this._keydown.bind(this))
@@ -15,7 +17,7 @@ export default class Input {
     this._onKeyDown = onKeyDown
   }
 
-  _updateMouse(e) {
+  _mouseMove(e) {
     const rect = this._stage.getBoundingClientRect()
     const realCoords = {
       x: e.clientX - rect.left,
@@ -23,8 +25,23 @@ export default class Input {
     }
 
     this.mouse = {
+      ...this.mouse,
       x: realCoords.x - this._stage.width / 2,
       y: -realCoords.y + this._stage.height / 2
+    }
+  }
+
+  _mouseDown() {
+    this.mouse = {
+      ...this.mouse,
+      down: true
+    }
+  }
+
+  _mouseUp() {
+    this.mouse = {
+      ...this.mouse,
+      down: false
     }
   }
 
