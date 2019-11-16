@@ -25,6 +25,9 @@ export default class Renderer {
     sprites.forEach(spr => {
       if (spr.visible) {
         this.renderSprite(spr, this.ctx)
+        if (spr._speechBubble.text) {
+          this.renderSpriteSpeechBubble(spr, this.ctx)
+        }
       }
     })
 
@@ -52,6 +55,67 @@ export default class Renderer {
     ctx.drawImage(spr.costume.img, 0, 0)
 
     ctx.restore()
+  }
+
+  renderSpriteSpeechBubble(spr, ctx) {
+    const renderBubble = (x, y, w, h, r, style) => {
+      if (r > w / 2) r = w / 2
+      if (r > h / 2) r = h / 2
+      if (r < 0) return
+      
+      ctx.beginPath()
+      ctx.moveTo(x + r, y)
+      ctx.arcTo(x + w, y, x + w, y + h, r)
+      ctx.arcTo(x + w, y + h, x + r, y + h, r)
+      if (style === 'say') {
+        ctx.lineTo(Math.min(x + 3 * r, x + w - r), y + h)
+        ctx.lineTo(x + r / 2, y + h + r)
+        ctx.lineTo(x + r, y + h)
+      } else if (style === 'think') {
+        ctx.ellipse(x + r * 2.25, y + h, r * 3 / 4, r / 2, 0, 0, Math.PI)
+      }
+      ctx.arcTo(x, y + h, x, y, r)
+      ctx.arcTo(x, y, x + w, y, r)
+      ctx.closePath()
+      ctx.fill()
+      ctx.stroke()
+
+      if (style === 'think') {
+        ctx.beginPath()
+        ctx.ellipse(x + r, y + h + r * 3 / 4, r / 3, r / 3, 0, 0, 2 * Math.PI)
+        ctx.fill()
+        ctx.stroke()
+      }
+    }
+    
+    const box = this.getBoundingBox(spr)
+
+    ctx.font = '16px sans-serif'
+    ctx.textBaseline = 'hanging'
+
+    const { text, style } = spr._speechBubble
+    let { width } = ctx.measureText(text)
+
+    const maxWidth = this.stage.width - box.right
+    const padding = 12
+
+    width = Math.min(width + 2 * padding, maxWidth)
+    const height = 10 + 2 * padding
+    const x = box.right
+    const y = box.top - height
+
+    ctx.fillStyle = '#fff'
+    ctx.strokeStyle = '#ccc'
+    ctx.lineWidth = 2
+    renderBubble(x, y, width, height, 12, style)
+
+    ctx.fillStyle = '#444'
+    ctx.fillText(
+      text,
+      x + padding,
+      y + padding,
+      maxWidth - 2 * padding
+    )
   }
 
   getBoundingBox(sprite) {

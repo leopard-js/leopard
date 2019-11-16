@@ -130,6 +130,12 @@ export class Sprite extends SpriteBase {
     this._penDown = penDown || false
     this.penSize = penSize || 1
     this.penColor = penColor || 'blue'
+
+    this._speechBubble = {
+      text: '',
+      style: 'say',
+      timeout: null
+    }
   }
 
   get stage() {
@@ -244,6 +250,50 @@ export class Sprite extends SpriteBase {
     }
 
     return false
+  }
+
+  say(text) {
+    clearTimeout(this._speechBubble.timeout)
+    this._speechBubble = { text, style: 'say', timeout: null }
+  }
+
+  think(text) {
+    clearTimeout(this._speechBubble.timeout)
+    this._speechBubble = { text, style: 'think', timeout: null }
+  }
+
+  * sayAndWait(text, seconds) {
+    clearTimeout(this._speechBubble.timeout)
+
+    let done = false
+    const timeout = setTimeout(
+      () => {
+        this._speechBubble.text = ''
+        this.timeout = null
+        done = true
+      },
+      seconds * 1000
+    )
+    
+    this._speechBubble = { text, style: 'say', timeout }
+    while (!done) yield
+  }
+
+  * thinkAndWait(text, seconds) {
+    clearTimeout(this._speechBubble.timeout)
+
+    let done = false
+    const timeout = setTimeout(
+      () => {
+        this._speechBubble.text = ''
+        this.timeout = null
+        done = true
+      },
+      seconds * 1000
+    )
+    
+    this._speechBubble = { text, style: 'think', timeout }
+    while (!done) yield
   }
 }
 

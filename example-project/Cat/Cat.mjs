@@ -23,22 +23,27 @@ export default class Cat extends Sprite {
   }
 
   * keyRight() {
+    this.say('Going right!')
     this.x += 10
   }
 
   * keyLeft() {
+    this.say('Going left!')
     this.x -= 10
   }
 
   * keyUp() {
+    this.say('Going up!')
     this.y += 10
   }
 
   * keyDown() {
+    this.say('Going down!')
     this.y -= 10
   }
 
   * keySpace() {
+    this.say('')
     this.goto(0, 0)
   }
 
