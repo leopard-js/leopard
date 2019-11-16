@@ -1,13 +1,20 @@
 import Trigger from './Trigger.mjs'
 
 class SpriteBase {
-  constructor(initialConditions) {
+  constructor(initialConditions, vars = {}) {
+    this._project = null
+    
     const { costumeNumber } = initialConditions
-
     this.costumeNumber = costumeNumber
 
     this.triggers = []
     this.costumes = []
+
+    this._vars = vars
+  }
+
+  get vars() {
+    return this._vars
   }
 
   set costume(costume) {
@@ -104,8 +111,8 @@ class SpriteBase {
 }
 
 export class Sprite extends SpriteBase {
-  constructor(initialConditions, vars = {}) {
-    super(initialConditions)
+  constructor(initialConditions, ...args) {
+    super(initialConditions, ...args)
 
     const { x, y, direction, costumeNumber, size, visible, penDown, penSize, penColor } = initialConditions
 
@@ -119,8 +126,10 @@ export class Sprite extends SpriteBase {
     this._penDown = penDown || false
     this.penSize = penSize || 1
     this.penColor = penColor || 'blue'
+  }
 
-    this._vars = vars
+  get stage() {
+    return this._project.stage
   }
 
   get direction() {
@@ -235,7 +244,7 @@ export class Sprite extends SpriteBase {
 }
 
 export class Stage extends SpriteBase {
-  constructor(initialConditions) {
-    super(initialConditions)
+  constructor(...args) {
+    super(...args)
   }
 }

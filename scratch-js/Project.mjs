@@ -1,10 +1,9 @@
 import Trigger from './Trigger.mjs'
 import Renderer from './Renderer.mjs'
 import Input from './Input.mjs'
-import Vars from './Vars.mjs'
 
 export default class Project {
-  constructor(stage, sprites = [], globalVars = new Vars()) {
+  constructor(stage, sprites = []) {
     this.stage = stage
     this.sprites = sprites
 
@@ -12,8 +11,6 @@ export default class Project {
       this.sprites[i]._project = this
     }
     this.stage._project = this
-
-    this._vars = globalVars
 
     this.renderer = new Renderer('#project')
     this.input = new Input(this.renderer.stage, key => {

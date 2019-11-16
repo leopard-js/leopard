@@ -50,8 +50,10 @@ export default class Cat extends Sprite {
 
   * turn() {
     for(let i = 0; i < 36; i++) {
+      console.log(this.stage.vars.myGlobalVar)
       yield* this.broadcastAndWait('turn dog')
-      this.direction += 10
+      this.direction += this.vars.speed
+      this.vars.speed += 1
     }
   }
 }

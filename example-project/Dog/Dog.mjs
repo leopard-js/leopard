@@ -21,6 +21,7 @@ export default class Dog extends Sprite {
   * turn() {
     for(let i = 0; i < 36; i++) {
       this.direction += 10
+      this.stage.vars.myGlobalVar = this.random(0, 100)
       yield
     }
   }

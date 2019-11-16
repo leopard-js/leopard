@@ -27,11 +27,11 @@ export default class Trigger {
     return true
   }
 
-  start(...args) {
+  start() {
     this.stop()
 
     this.done = false
-    this._scriptRunning = this._script(...args)
+    this._scriptRunning = this._script()
 
     return new Promise(resolve => {
       this.stop = () => {
