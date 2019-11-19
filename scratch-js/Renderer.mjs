@@ -1,17 +1,18 @@
 export default class Renderer {
-  constructor(container) {
+  constructor(container, { w = 480, h = 360 } = {}) {
     if (typeof container === 'string') {
       container = document.querySelector(container)
     }
     this.container = container
+    this.container.style.width = `${w}px`
+    this.container.style.height = `${h}px`
 
-    this.stage = this.createStage()
-    this.stage.style.border = '1px solid black'
+    this.stage = this.createStage(w, h)
     this.ctx = this.stage.getContext('2d')
 
     this.container.append(this.stage)
 
-    this.penStage = this.createStage()
+    this.penStage = this.createStage(w, h)
     this.penLayer = this.penStage.getContext('2d')
   }
 
@@ -35,7 +36,7 @@ export default class Renderer {
     this.ctx.fillStyle = '#aaa'
   }
 
-  createStage(w = 480, h = 360) {
+  createStage(w, h) {
     const stage = document.createElement('canvas')
     stage.width = w
     stage.height = h

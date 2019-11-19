@@ -3,7 +3,9 @@ export default class Input {
     this._stage = stage
 
     // Allow setting focus to canvas
-    this._stage.tabIndex = '1'
+    if (this._stage.tabIndex < 0) {
+      this._stage.tabIndex = 0
+    }
 
     this.mouse = { x: 0, y: 0, down: false }
     this._stage.addEventListener('mousemove', this._mouseMove.bind(this))
@@ -73,5 +75,9 @@ export default class Input {
   keyPressed(name) {
     if (name === 'any') return this.keys.length > 0
     return this.keys.indexOf(name) > -1
+  }
+
+  focus() {
+    this._stage.focus()
   }
 }

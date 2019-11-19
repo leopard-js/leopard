@@ -32,6 +32,11 @@ const sprites = [
   })
 ]
 
-const project = new Project(stage, sprites)
+const project = new Project('#project', stage, sprites)
 
-project.run()
+document.querySelector('#greenFlag').addEventListener('click', () => {
+  project.greenFlag()
+})
+
+// Play on load
+project.greenFlag()

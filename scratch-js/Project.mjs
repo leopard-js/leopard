@@ -3,7 +3,7 @@ import Renderer from './Renderer.mjs'
 import Input from './Input.mjs'
 
 export default class Project {
-  constructor(stage, sprites = []) {
+  constructor(renderTarget, stage, sprites = []) {
     this.stage = stage
     this.sprites = sprites
 
@@ -12,26 +12,23 @@ export default class Project {
     }
     this.stage._project = this
 
-    this.renderer = new Renderer('#project')
+    this.renderer = new Renderer(renderTarget)
     this.input = new Input(this.renderer.stage, key => {
       this.fireTrigger(Trigger.KEY_PRESSED, { key })
     })
-    this.greenFlag = document.querySelector('#greenFlag')
+
+    this.runningTriggers = []
 
     this.restartTimer()
 
     this.playingSounds = []
-  }
-
-  run() {
-    this.runningTriggers = []
-    this._newTriggers = []
 
     this.step()
+  }
 
-    this.greenFlag.addEventListener('click', () => {
-      this.fireTrigger(Trigger.GREEN_FLAG)
-    })
+  greenFlag() {
+    this.fireTrigger(Trigger.GREEN_FLAG)
+    this.input.focus()
   }
 
   step() {
