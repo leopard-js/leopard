@@ -3,7 +3,7 @@ import Renderer from './Renderer.mjs'
 import Input from './Input.mjs'
 
 export default class Project {
-  constructor(renderTarget, stage, sprites = []) {
+  constructor(stage, sprites = []) {
     this.stage = stage
     this.sprites = sprites
 
@@ -12,7 +12,7 @@ export default class Project {
     }
     this.stage._project = this
 
-    this.renderer = new Renderer(renderTarget)
+    this.renderer = new Renderer()
     this.input = new Input(this.renderer.stage, key => {
       this.fireTrigger(Trigger.KEY_PRESSED, { key })
     })
@@ -24,6 +24,10 @@ export default class Project {
     this.playingSounds = []
 
     this.step()
+  }
+
+  attach(renderTarget) {
+    this.renderer.setRenderTarget(renderTarget)
   }
 
   greenFlag() {

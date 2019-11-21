@@ -1,19 +1,27 @@
 export default class Renderer {
-  constructor(container, { w = 480, h = 360 } = {}) {
-    if (typeof container === 'string') {
-      container = document.querySelector(container)
-    }
-    this.container = container
-    this.container.style.width = `${w}px`
-    this.container.style.height = `${h}px`
-
+  constructor(renderTarget, { w = 480, h = 360 } = {}) {
     this.stage = this.createStage(w, h)
     this.ctx = this.stage.getContext('2d')
 
-    this.container.append(this.stage)
+    if (renderTarget !== undefined) {
+      this.setRenderTarget(renderTarget)
+    } else {
+      this.renderTarget = null
+    }
 
     this.penStage = this.createStage(w, h)
     this.penLayer = this.penStage.getContext('2d')
+  }
+
+  setRenderTarget(renderTarget) {
+    if (typeof renderTarget === 'string') {
+      renderTarget = document.querySelector(renderTarget)
+    }
+    this.renderTarget = renderTarget
+    this.renderTarget.style.width = `${this.stage.width}px`
+    this.renderTarget.style.height = `${this.stage.height}px`
+
+    this.renderTarget.append(this.stage)
   }
 
   update(stage, sprites) {
