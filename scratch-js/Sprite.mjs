@@ -31,6 +31,14 @@ class SpriteBase {
     return this.costumes[this.costumeNumber - 1]
   }
 
+  degToRad(deg) {
+    return deg * Math.PI / 180
+  }
+
+  radToDeg(rad) {
+    return rad * 180 / Math.PI
+  }
+
   degToScratch(deg) {
     return -deg + 90
   }
@@ -39,8 +47,12 @@ class SpriteBase {
     return -scratchDir + 90
   }
 
+  radToScratch(rad) {
+    return this.degToScratch(this.radToDeg(rad))
+  }
+
   scratchToRad(scratchDir) {
-    return this.scratchToDeg(scratchDir) * Math.PI / 180
+    return this.degToRad(this.scratchToDeg(scratchDir))
   }
 
   normalizeDeg(deg) {
