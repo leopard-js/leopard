@@ -5,6 +5,7 @@ export default class Costume {
 
     this.img = new Image
     this.img.src = this.url
+    this.img.crossOrigin = 'Anonymous'
 
     this.center = center
   }
