@@ -32,7 +32,9 @@ const sprites = [
   })
 ]
 
-const project = new Project('#project', stage, sprites)
+const project = new Project(stage, sprites)
+
+project.attach('#project')
 
 document.querySelector('#greenFlag').addEventListener('click', () => {
   project.greenFlag()

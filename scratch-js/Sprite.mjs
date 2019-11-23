@@ -124,6 +124,10 @@ class SpriteBase {
 
     while(running) { yield }
   }
+
+  clearPen() {
+    this._project.renderer.clearPen()
+  }
 }
 
 export class Sprite extends SpriteBase {
@@ -141,7 +145,7 @@ export class Sprite extends SpriteBase {
 
     this._penDown = penDown || false
     this.penSize = penSize || 1
-    this.penColor = penColor || 'blue'
+    this._penColor = penColor || 'black'
 
     this._speechBubble = {
       text: '',
@@ -169,7 +173,7 @@ export class Sprite extends SpriteBase {
       this._project.renderer.penLine(
         { x: this._x, y: this._y },
         { x, y },
-        this.penColor,
+        this._penColor,
         this.penSize
       )
     }
@@ -230,32 +234,57 @@ export class Sprite extends SpriteBase {
       this._project.renderer.penLine(
         { x: this.x, y: this.y },
         { x: this.x, y: this.y },
-        this.penColor,
+        this._penColor,
         this.penSize
       )
     }
     this._penDown = penDown
   }
 
+  get penColor() {
+    return this._penColor
+  }
+
+  set penColor(color) {
+    if (typeof color === "number") {
+      // Match Scratch rgba system
+      // https://github.com/LLK/scratch-vm/blob/0dffc65ce99307d048f6b9a10b1c31b01ab0133d/src/util/color.js#L45
+      const a = (color >> 24) & 0xFF
+      const r = (color >> 16) & 0xFF
+      const g = (color >> 8) & 0xFF
+      const b = color & 0xFF
+      this._penColor = `rgba(${r}, ${g}, ${b}, ${a / 255})`
+    } else {
+      this._penColor = color
+    }
+  }
+
   stamp() {
     this._project.renderer.stamp(this)
   }
 
-  clearPen() {
-    this._project.renderer.clearPen()
-  }
+  touching(target, fast = false) {
+    if (typeof target === 'string') {
+      switch (target) {
+        case 'mouse':
+          return this._project.renderer.checkPointCollision(
+            this,
+            {
+              x: this.mouse.x + 240,
+              y: 180 - this.mouse.y
+            },
+            fast
+          )
+        default:
+          console.error(`Cannot find target "${target}" in "touching". Did you mean to pass a sprite class instead?`)
+          return false
+      }
+    }
 
-  touching(sprName, fast) {
-    if (!this.visible) return false
+    const sprites = this._project.sprites.filter(spr => spr.constructor === target)
 
-    const sprites = this._project.sprites
-    const matching = spr => spr.name === sprName
-    const matchingSprites = sprites.filter(matching)
-
-    for (let i = 0; i < matchingSprites.length; i++) {
-      const spr = matchingSprites[i]
-
-      if (!spr.visible) continue
+    for (let i = 0; i < sprites.length; i++) {
+      const spr = sprites[i]
 
       const collision = this._project.renderer.checkSpriteCollision(this, spr, fast)
       if (collision) return true

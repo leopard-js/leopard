@@ -23,7 +23,7 @@ export default class Dog extends Sprite {
 
   * greenFlag2() {
     while (true) {
-      if (this.mouse.down) {
+      if (this.touching('mouse')) {
         this.size = 150
       } else {
         this.size = 100

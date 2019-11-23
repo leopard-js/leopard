@@ -170,6 +170,9 @@ export default class Renderer {
   }
 
   checkSpriteCollision(spr1, spr2, fast) {
+    if (!spr1.visible) return false
+    if (!spr2.visible) return false
+    
     const box1 = this.getBoundingBox(spr1)
     const box2 = this.getBoundingBox(spr2)
 
@@ -186,7 +189,6 @@ export default class Renderer {
     const bottom = Math.min(box1.bottom, box2.bottom)
 
     const collisionStage = this.createStage(right - left, bottom - top)
-    collisionStage.style.border = '1px solid black'
     const collisionCtx = collisionStage.getContext('2d')
 
     collisionCtx.setTransform(1, 0, 0, 1, 0, 0)
@@ -211,6 +213,36 @@ export default class Renderer {
     }
 
     return false
+  }
+
+  checkPointCollision(spr, point, fast) {
+    if (!spr.visible) return false
+
+    const box = this.getBoundingBox(spr)
+
+    if (box.right < point.x) return false
+    if (box.left > point.x) return false
+    if (box.top > point.y) return false
+    if (box.bottom < point.y) return false
+
+    if (fast) return true
+
+    const collisionStage = this.createStage(box.right - box.left, box.bottom - box.top)
+    const collisionCtx = collisionStage.getContext('2d')
+
+    collisionCtx.setTransform(1, 0, 0, 1, 0, 0)
+    collisionCtx.translate(-box.left, -box.top)
+
+    this.renderSprite(spr, collisionCtx)
+
+    const w = collisionStage.width
+    const h = collisionStage.height
+    const imgData = collisionCtx.getImageData(0, 0, w, h).data
+
+    // Check if point has alpha > 0
+    const x = point.x - box.left
+    const y = point.y - box.top
+    return imgData[(y * w + x) * 4 + 3] > 0
   }
 
   penLine(pt1, pt2, color, size) {
