@@ -5,7 +5,7 @@ class SpriteBase {
     this._project = null
     
     const { costumeNumber } = initialConditions
-    this.costumeNumber = costumeNumber
+    this._costumeNumber = costumeNumber
 
     this.triggers = []
     this.costumes = []
@@ -17,9 +17,17 @@ class SpriteBase {
     return this._vars
   }
 
+  get costumeNumber() {
+    return this._costumeNumber
+  }
+
+  set costumeNumber(number) {
+    this._costumeNumber = (number - 1) % this.costumes.length + 1
+  }
+
   set costume(costume) {
     if (typeof costume === 'number') {
-      this.costumeNumber = (costume - 1) % this.costumes.length + 1
+      this.costumeNumber = costume
     }
     if (typeof costume === 'string') {
       const index = this.costumes.findIndex(c => c.name === costume)
@@ -139,7 +147,7 @@ export class Sprite extends SpriteBase {
     this._x = x
     this._y = y
     this._direction = direction
-    this.costumeNumber = costumeNumber
+    this._costumeNumber = costumeNumber
     this.size = size
     this.visible = visible
 
