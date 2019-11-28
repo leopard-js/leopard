@@ -1,6 +1,7 @@
 const GREEN_FLAG = Symbol('GREEN_FLAG')
 const KEY_PRESSED = Symbol('KEY_PRESSED')
 const BROADCAST = Symbol('BROADCAST')
+const CLICKED = Symbol('CLICKED')
 
 export default class Trigger {
   constructor(trigger, options, script) {
@@ -49,4 +50,5 @@ export default class Trigger {
   static get GREEN_FLAG() { return GREEN_FLAG }
   static get KEY_PRESSED() { return KEY_PRESSED }
   static get BROADCAST() { return BROADCAST }
+  static get CLICKED() { return CLICKED }
 }

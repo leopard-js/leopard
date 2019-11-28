@@ -1,6 +1,7 @@
 import Trigger from './Trigger.mjs'
 import Renderer from './Renderer.mjs'
 import Input from './Input.mjs'
+import { Stage } from './Sprite.mjs'
 
 export default class Project {
   constructor(stage, sprites = []) {
@@ -28,6 +29,35 @@ export default class Project {
 
   attach(renderTarget) {
     this.renderer.setRenderTarget(renderTarget)
+    this.renderer.stage.addEventListener('click', () => {
+      const wasClicked = sprite => {
+        if (sprite instanceof Stage) {
+          return true
+        }
+
+        return this.renderer.checkPointCollision(
+          sprite,
+          {
+            x: this.input.mouse.x + 240,
+            y: 180 - this.input.mouse.y
+          },
+          false
+        )
+      }
+
+      let matchingTriggers = []
+      for (let i = 0; i < this.spritesAndStage.length; i++) {
+        const sprite = this.spritesAndStage[i]
+        const spriteClickedTriggers = sprite.triggers.filter(tr => tr.matches(Trigger.CLICKED, {}))
+        if (spriteClickedTriggers.length > 0) {
+          if (wasClicked(sprite)) {
+            matchingTriggers = [...matchingTriggers, ...spriteClickedTriggers]
+          }
+        }
+      }
+
+      this._startTriggers(matchingTriggers)
+    })
   }
 
   greenFlag() {
@@ -68,9 +98,12 @@ export default class Project {
       matchingTriggers = [...matchingTriggers, ...spriteTriggers]
     }
 
-    this.runningTriggers = [...this.runningTriggers, ...matchingTriggers]
+    return this._startTriggers(matchingTriggers)
+  }
 
-    return Promise.all(matchingTriggers.map(trigger => trigger.start()))
+  _startTriggers(triggers) {
+    this.runningTriggers = [...this.runningTriggers, ...triggers]
+    return Promise.all(triggers.map(trigger => trigger.start()))
   }
 
   get spritesAndStage() {
