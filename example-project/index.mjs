@@ -9,8 +9,8 @@ const stage = new Stage(
   { myGlobalVar: "hello" }
 )
 
-const sprites = [
-  new Cat(
+const sprites = {
+  cat: new Cat(
     {
       x: -100,
       y: 0,
@@ -22,7 +22,7 @@ const sprites = [
     },
     { speed: 1 }
   ),
-  new Dog({
+  dog: new Dog({
     x: 100,
     y: 0,
     direction: 45,
@@ -30,7 +30,7 @@ const sprites = [
     size: 100,
     visible: true
   })
-]
+}
 
 const project = new Project(stage, sprites)
 

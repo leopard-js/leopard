@@ -4,12 +4,12 @@ import Input from './Input.mjs'
 import { Stage } from './Sprite.mjs'
 
 export default class Project {
-  constructor(stage, sprites = []) {
+  constructor(stage, sprites = {}) {
     this.stage = stage
     this.sprites = sprites
 
-    for (let i = 0; i < this.sprites.length; i++) {
-      this.sprites[i]._project = this
+    for (const sprite of Object.values(this.sprites)) {
+      sprite._project = this
     }
     this.stage._project = this
 
@@ -107,7 +107,7 @@ export default class Project {
   }
 
   get spritesAndStage() {
-    return [...this.sprites, this.stage]
+    return [...Object.values(this.sprites), this.stage]
   }
   
   playSound(url) {

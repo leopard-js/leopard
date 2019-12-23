@@ -1,7 +1,5 @@
 import { Sprite, Trigger, Costume } from '../../scratch-js/index.mjs'
 
-import Dog from '../Dog/Dog.mjs'
-
 export default class Cat extends Sprite {
   constructor(...args) {
     super(...args)
@@ -21,7 +19,7 @@ export default class Cat extends Sprite {
   * greenFlag() {
     while (true) {
       this.goto(this.mouse.x, this.mouse.y)
-      if (this.touching(Dog)) {
+      if (this.touching(this.sprites.dog)) {
         console.log('Touching!')
       }
       yield

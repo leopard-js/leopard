@@ -13,6 +13,14 @@ class SpriteBase {
     this._vars = vars
   }
 
+  get stage() {
+    return this._project.stage
+  }
+
+  get sprites() {
+    return this._project.sprites
+  }
+
   get vars() {
     return this._vars
   }
@@ -162,10 +170,6 @@ export class Sprite extends SpriteBase {
     }
   }
 
-  get stage() {
-    return this._project.stage
-  }
-
   get direction() {
     return this._direction
   }
@@ -289,16 +293,7 @@ export class Sprite extends SpriteBase {
       }
     }
 
-    const sprites = this._project.sprites.filter(spr => spr.constructor === target)
-
-    for (let i = 0; i < sprites.length; i++) {
-      const spr = sprites[i]
-
-      const collision = this._project.renderer.checkSpriteCollision(this, spr, fast)
-      if (collision) return true
-    }
-
-    return false
+    return this._project.renderer.checkSpriteCollision(this, target, fast)
   }
 
   say(text) {

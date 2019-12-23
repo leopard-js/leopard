@@ -31,14 +31,14 @@ export default class Renderer {
 
     this.ctx.drawImage(this.penStage, 0, 0)
 
-    sprites.forEach(spr => {
-      if (spr.visible) {
-        this.renderSprite(spr, this.ctx)
-        if (spr._speechBubble.text) {
-          this.renderSpriteSpeechBubble(spr, this.ctx)
+    for (const sprite of Object.values(sprites)) {
+      if (sprite.visible) {
+        this.renderSprite(sprite, this.ctx)
+        if (sprite._speechBubble.text) {
+          this.renderSpriteSpeechBubble(sprite, this.ctx)
         }
       }
-    })
+    }
 
     this.ctx.font = '12px monospace'
     this.ctx.fillStyle = '#aaa'
