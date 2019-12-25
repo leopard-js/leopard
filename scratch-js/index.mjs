@@ -1,6 +1,6 @@
-import Project from './Project.mjs'
-import { Sprite, Stage } from './Sprite.mjs'
-import Trigger from './Trigger.mjs'
-import Costume from './Costume.mjs'
+import Project from "./Project.mjs";
+import { Sprite, Stage } from "./Sprite.mjs";
+import Trigger from "./Trigger.mjs";
+import Costume from "./Costume.mjs";
 
-export { Project, Sprite, Stage, Trigger, Costume }
+export { Project, Sprite, Stage, Trigger, Costume };

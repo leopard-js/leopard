@@ -1,13 +1,10 @@
-import { Project } from '../scratch-js/index.mjs'
+import { Project } from "../scratch-js/index.mjs";
 
-import Stage from './Stage/Stage.mjs'
-import Dog from './Dog/Dog.mjs'
-import Cat from './Cat/Cat.mjs'
+import Stage from "./Stage/Stage.mjs";
+import Dog from "./Dog/Dog.mjs";
+import Cat from "./Cat/Cat.mjs";
 
-const stage = new Stage(
-  { costumeNumber: 1 },
-  { myGlobalVar: "hello" }
-)
+const stage = new Stage({ costumeNumber: 1 }, { myGlobalVar: "hello" });
 
 const sprites = {
   cat: new Cat(
@@ -30,15 +27,15 @@ const sprites = {
     size: 100,
     visible: true
   })
-}
+};
 
-const project = new Project(stage, sprites)
+const project = new Project(stage, sprites);
 
-project.attach('#project')
+project.attach("#project");
 
-document.querySelector('#greenFlag').addEventListener('click', () => {
-  project.greenFlag()
-})
+document.querySelector("#greenFlag").addEventListener("click", () => {
+  project.greenFlag();
+});
 
 // Play on load
-project.greenFlag()
+project.greenFlag();

@@ -1,38 +1,38 @@
-import Trigger from './Trigger.mjs'
-import Renderer from './Renderer.mjs'
-import Input from './Input.mjs'
-import { Stage } from './Sprite.mjs'
+import Trigger from "./Trigger.mjs";
+import Renderer from "./Renderer.mjs";
+import Input from "./Input.mjs";
+import { Stage } from "./Sprite.mjs";
 
 export default class Project {
   constructor(stage, sprites = {}) {
-    this.stage = stage
-    this.sprites = sprites
+    this.stage = stage;
+    this.sprites = sprites;
 
     for (const sprite of Object.values(this.sprites)) {
-      sprite._project = this
+      sprite._project = this;
     }
-    this.stage._project = this
+    this.stage._project = this;
 
-    this.renderer = new Renderer()
+    this.renderer = new Renderer();
     this.input = new Input(this.renderer.stage, key => {
-      this.fireTrigger(Trigger.KEY_PRESSED, { key })
-    })
+      this.fireTrigger(Trigger.KEY_PRESSED, { key });
+    });
 
-    this.runningTriggers = []
+    this.runningTriggers = [];
 
-    this.restartTimer()
+    this.restartTimer();
 
-    this.playingSounds = []
+    this.playingSounds = [];
 
-    this.step()
+    this.step();
   }
 
   attach(renderTarget) {
-    this.renderer.setRenderTarget(renderTarget)
-    this.renderer.stage.addEventListener('click', () => {
+    this.renderer.setRenderTarget(renderTarget);
+    this.renderer.stage.addEventListener("click", () => {
       const wasClicked = sprite => {
         if (sprite instanceof Stage) {
-          return true
+          return true;
         }
 
         return this.renderer.checkPointCollision(
@@ -42,122 +42,127 @@ export default class Project {
             y: 180 - this.input.mouse.y
           },
           false
-        )
-      }
+        );
+      };
 
-      let matchingTriggers = []
+      let matchingTriggers = [];
       for (let i = 0; i < this.spritesAndStage.length; i++) {
-        const sprite = this.spritesAndStage[i]
-        const spriteClickedTriggers = sprite.triggers.filter(tr => tr.matches(Trigger.CLICKED, {}))
+        const sprite = this.spritesAndStage[i];
+        const spriteClickedTriggers = sprite.triggers.filter(tr =>
+          tr.matches(Trigger.CLICKED, {})
+        );
         if (spriteClickedTriggers.length > 0) {
           if (wasClicked(sprite)) {
-            matchingTriggers = [...matchingTriggers, ...spriteClickedTriggers]
+            matchingTriggers = [...matchingTriggers, ...spriteClickedTriggers];
           }
         }
       }
 
-      this._startTriggers(matchingTriggers)
-    })
+      this._startTriggers(matchingTriggers);
+    });
   }
 
   greenFlag() {
-    this.fireTrigger(Trigger.GREEN_FLAG)
-    this.input.focus()
+    this.fireTrigger(Trigger.GREEN_FLAG);
+    this.input.focus();
   }
 
   step() {
     // Step all triggers
-    const alreadyRunningTriggers = this.runningTriggers
+    const alreadyRunningTriggers = this.runningTriggers;
     for (let i = 0; i < alreadyRunningTriggers.length; i++) {
-      alreadyRunningTriggers[i].step()
+      alreadyRunningTriggers[i].step();
     }
 
     // Remove finished triggers
-    this.runningTriggers = this.runningTriggers.filter(trigger => !trigger.done)
+    this.runningTriggers = this.runningTriggers.filter(
+      trigger => !trigger.done
+    );
 
-    this.renderer.update(this.stage, this.sprites)
+    this.renderer.update(this.stage, this.sprites);
 
-    window.requestAnimationFrame(this.step.bind(this))
+    window.requestAnimationFrame(this.step.bind(this));
   }
 
   fireTrigger(trigger, options) {
     // Special trigger behaviors
     if (trigger === Trigger.GREEN_FLAG) {
-      this.restartTimer()
-      this.stopAllSounds()
-      this.runningTriggers = []
-    }
-    
-    // Find triggers which match conditions
-    let matchingTriggers = []
-    for (let i = 0; i < this.spritesAndStage.length; i++) {
-      const sprite = this.spritesAndStage[i]
-      const spriteTriggers = sprite.triggers
-        .filter(tr => tr.matches(trigger, options))
-      
-      matchingTriggers = [...matchingTriggers, ...spriteTriggers]
+      this.restartTimer();
+      this.stopAllSounds();
+      this.runningTriggers = [];
     }
 
-    return this._startTriggers(matchingTriggers)
+    // Find triggers which match conditions
+    let matchingTriggers = [];
+    for (let i = 0; i < this.spritesAndStage.length; i++) {
+      const sprite = this.spritesAndStage[i];
+      const spriteTriggers = sprite.triggers.filter(tr =>
+        tr.matches(trigger, options)
+      );
+
+      matchingTriggers = [...matchingTriggers, ...spriteTriggers];
+    }
+
+    return this._startTriggers(matchingTriggers);
   }
 
   _startTriggers(triggers) {
-    this.runningTriggers = [...this.runningTriggers, ...triggers]
-    return Promise.all(triggers.map(trigger => trigger.start()))
+    this.runningTriggers = [...this.runningTriggers, ...triggers];
+    return Promise.all(triggers.map(trigger => trigger.start()));
   }
 
   get spritesAndStage() {
-    return [...Object.values(this.sprites), this.stage]
+    return [...Object.values(this.sprites), this.stage];
   }
-  
+
   playSound(url) {
     return new Promise((resolve, reject) => {
-      const audio = new Audio(url)
+      const audio = new Audio(url);
 
-      const sound = { audio, hasStarted: false }
+      const sound = { audio, hasStarted: false };
 
       const soundEnd = () => {
-        this._stopSound(sound)
-        resolve()
-      }
-      audio.addEventListener('ended', soundEnd)
-      audio.addEventListener('pause', soundEnd)
+        this._stopSound(sound);
+        resolve();
+      };
+      audio.addEventListener("ended", soundEnd);
+      audio.addEventListener("pause", soundEnd);
 
-      this.playingSounds.push(sound)
+      this.playingSounds.push(sound);
 
       audio.play().then(() => {
-        sound.hasStarted = true
-      })
-    })
+        sound.hasStarted = true;
+      });
+    });
   }
-  
+
   _stopSound(sound) {
     if (sound.hasStarted) {
-      sound.audio.pause()
+      sound.audio.pause();
     } else {
       // Audio can't be paused because it hasn't started yet
       // (audio.play() is async; can't pause until play starts)
-      sound.audio.addEventListener('playing', () => {
+      sound.audio.addEventListener("playing", () => {
         // Stop for real ASAP
-        sound.audio.pause()
-      })
+        sound.audio.pause();
+      });
     }
 
     // Remove from playingSounds
-    const index = this.playingSounds.findIndex(s => s === sound)
+    const index = this.playingSounds.findIndex(s => s === sound);
     if (index > -1) {
-      this.playingSounds.splice(index, 1)
+      this.playingSounds.splice(index, 1);
     }
   }
-  
+
   stopAllSounds() {
-    const playingSoundsCopy = this.playingSounds.slice()
-    for(let i = 0; i < playingSoundsCopy.length; i++) {
-      this._stopSound(playingSoundsCopy[i])
+    const playingSoundsCopy = this.playingSounds.slice();
+    for (let i = 0; i < playingSoundsCopy.length; i++) {
+      this._stopSound(playingSoundsCopy[i]);
     }
   }
 
   restartTimer() {
-    this.timerStart = new Date()
+    this.timerStart = new Date();
   }
 }
