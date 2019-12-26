@@ -2,6 +2,7 @@ const GREEN_FLAG = Symbol("GREEN_FLAG");
 const KEY_PRESSED = Symbol("KEY_PRESSED");
 const BROADCAST = Symbol("BROADCAST");
 const CLICKED = Symbol("CLICKED");
+const CLONE_START = Symbol("CLONE_START");
 
 export default class Trigger {
   constructor(trigger, options, script) {
@@ -28,11 +29,13 @@ export default class Trigger {
     return true;
   }
 
-  start() {
+  start(target) {
     this.stop();
 
+    const boundScript = this._script.bind(target);
+
     this.done = false;
-    this._scriptRunning = this._script();
+    this._runningScript = boundScript();
 
     return new Promise(resolve => {
       this.stop = () => {
@@ -43,7 +46,7 @@ export default class Trigger {
   }
 
   step() {
-    this.done = this._scriptRunning.next().done;
+    this.done = this._runningScript.next().done;
     if (this.done) this.stop();
   }
 
@@ -58,5 +61,8 @@ export default class Trigger {
   }
   static get CLICKED() {
     return CLICKED;
+  }
+  static get CLONE_START() {
+    return CLONE_START;
   }
 }

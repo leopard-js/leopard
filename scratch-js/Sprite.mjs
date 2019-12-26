@@ -171,6 +171,9 @@ export class Sprite extends SpriteBase {
     this.size = size;
     this.visible = visible;
 
+    this.parent = null;
+    this.clones = [];
+
     this._penDown = penDown || false;
     this.penSize = penSize || 1;
     this._penColor = penColor || "black";
@@ -180,6 +183,55 @@ export class Sprite extends SpriteBase {
       style: "say",
       timeout: null
     };
+  }
+
+  createClone() {
+    const parent = this.parent || this;
+    const clone = Object.assign(
+      Object.create(Object.getPrototypeOf(parent)),
+      parent
+    );
+
+    clone._project = parent._project;
+
+    clone.triggers = parent.triggers.map(
+      trigger =>
+        new Trigger(
+          trigger.trigger,
+          trigger.options,
+          trigger._script.bind(clone)
+        )
+    );
+    clone.costumes = parent.costumes;
+    clone._vars = Object.assign({}, parent._vars);
+
+    clone._speechBubble = {
+      text: "",
+      style: "say",
+      timeout: null
+    };
+
+    clone.clones = [];
+    clone.parent = parent;
+    parent.clones.push(clone);
+
+    // Trigger CLONE_START:
+    const triggers = clone.triggers.filter(tr =>
+      tr.matches(Trigger.CLONE_START)
+    );
+    this._project._startTriggers(
+      triggers.map(trigger => ({ trigger, target: clone }))
+    );
+  }
+
+  deleteThisClone() {
+    if (this.parent === null) return;
+
+    this.parent.clones = this.parent.clones.filter(clone => clone !== this);
+
+    this._project.runningTriggers = this._project.runningTriggers.filter(
+      ({ target }) => target !== this
+    );
   }
 
   get direction() {

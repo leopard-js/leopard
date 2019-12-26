@@ -15,13 +15,6 @@ export default class Stage extends StageBase {
       })
     ];
 
-    this.triggers = [
-      new Trigger(Trigger.GREEN_FLAG, this.greenFlag.bind(this))
-    ];
-  }
-
-  *greenFlag() {
-    console.log("Green flag!");
-    yield* this.broadcastAndWait("turn cat");
+    this.triggers = [];
   }
 }

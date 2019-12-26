@@ -8,7 +8,7 @@ export default class Project {
     this.stage = stage;
     this.sprites = sprites;
 
-    for (const sprite of Object.values(this.sprites)) {
+    for (const sprite of this.spritesAndClones) {
       sprite._project = this;
     }
     this.stage._project = this;
@@ -53,7 +53,13 @@ export default class Project {
         );
         if (spriteClickedTriggers.length > 0) {
           if (wasClicked(sprite)) {
-            matchingTriggers = [...matchingTriggers, ...spriteClickedTriggers];
+            matchingTriggers = [
+              ...matchingTriggers,
+              ...spriteClickedTriggers.map(trigger => ({
+                trigger,
+                target: sprite
+              }))
+            ];
           }
         }
       }
@@ -71,15 +77,17 @@ export default class Project {
     // Step all triggers
     const alreadyRunningTriggers = this.runningTriggers;
     for (let i = 0; i < alreadyRunningTriggers.length; i++) {
-      alreadyRunningTriggers[i].step();
+      alreadyRunningTriggers[i].trigger.step();
     }
 
     // Remove finished triggers
     this.runningTriggers = this.runningTriggers.filter(
-      trigger => !trigger.done
+      ({ trigger }) => !trigger.done
     );
 
-    this.renderer.update(this.stage, this.sprites);
+    console.log(this.runningTriggers.length);
+
+    this.renderer.update(this.stage, this.spritesAndClones);
 
     window.requestAnimationFrame(this.step.bind(this));
   }
@@ -90,6 +98,11 @@ export default class Project {
       this.restartTimer();
       this.stopAllSounds();
       this.runningTriggers = [];
+
+      for (const spriteName in this.sprites) {
+        const sprite = this.sprites[spriteName];
+        sprite.clones = [];
+      }
     }
 
     // Find triggers which match conditions
@@ -100,7 +113,10 @@ export default class Project {
         tr.matches(trigger, options)
       );
 
-      matchingTriggers = [...matchingTriggers, ...spriteTriggers];
+      matchingTriggers = [
+        ...matchingTriggers,
+        ...spriteTriggers.map(trigger => ({ trigger, target: sprite }))
+      ];
     }
 
     return this._startTriggers(matchingTriggers);
@@ -108,11 +124,22 @@ export default class Project {
 
   _startTriggers(triggers) {
     this.runningTriggers = [...this.runningTriggers, ...triggers];
-    return Promise.all(triggers.map(trigger => trigger.start()));
+    return Promise.all(
+      triggers.map(({ trigger, target }) => {
+        return trigger.start(target);
+      })
+    );
+  }
+
+  get spritesAndClones() {
+    return Object.values(this.sprites).flatMap(sprite => [
+      sprite,
+      ...sprite.clones
+    ]);
   }
 
   get spritesAndStage() {
-    return [...Object.values(this.sprites), this.stage];
+    return [...this.spritesAndClones, this.stage];
   }
 
   playSound(url) {

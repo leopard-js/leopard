@@ -11,36 +11,33 @@ export default class Dog extends Sprite {
     ];
 
     this.triggers = [
-      new Trigger(Trigger.GREEN_FLAG, this.greenFlag.bind(this)),
-      new Trigger(Trigger.GREEN_FLAG, this.greenFlag2.bind(this)),
-      new Trigger(Trigger.BROADCAST, { name: "turn dog" }, this.turn.bind(this))
+      new Trigger(Trigger.GREEN_FLAG, this.greenFlag),
+      new Trigger(Trigger.CLONE_START, this.whenIStartAsClone),
+      new Trigger(Trigger.CLONE_START, this.whenIStartAsClone2)
     ];
   }
 
   *greenFlag() {
-    yield* this.glide(
-      1,
-      (Math.random() - 0.5) * 480,
-      (Math.random() - 0.5) * 360
-    );
-  }
+    this.say("Help!");
 
-  *greenFlag2() {
     while (true) {
-      if (this.touching("mouse")) {
-        this.size = 150;
-      } else {
-        this.size = 100;
-      }
-      yield;
+      this.createClone();
+      yield* this.wait(this.random(0.3, 1.0));
     }
   }
 
-  *turn() {
-    yield* this.thinkAndWait("Turning...", 1);
-    for (let i = 0; i < 36; i++) {
-      this.direction += 10;
-      this.stage.vars.myGlobalVar = this.random(0, 100);
+  *whenIStartAsClone() {
+    this.size = 50;
+    this.goto(this.random(-240, 240), 200);
+    yield* this.glide(this.random(1.5, 2.5), this.x, -200);
+    this.deleteThisClone();
+  }
+
+  *whenIStartAsClone2() {
+    this.vars.dirVel = this.random(-5, 5);
+
+    while (true) {
+      this.direction += this.vars.dirVel;
       yield;
     }
   }

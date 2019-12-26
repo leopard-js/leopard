@@ -11,26 +11,34 @@ export default class Cat extends Sprite {
     ];
 
     this.triggers = [
-      new Trigger(Trigger.GREEN_FLAG, this.greenFlag.bind(this)),
-      new Trigger(Trigger.BROADCAST, { name: "turn cat" }, this.turn.bind(this))
+      new Trigger(Trigger.GREEN_FLAG, this.greenFlag),
+      new Trigger(Trigger.CLONE_START, this.whenIStartAsClone),
+      new Trigger(Trigger.CLONE_START, this.whenIStartAsClone2)
     ];
   }
 
   *greenFlag() {
+    this.say("It's raining cats and dogs!");
+
     while (true) {
-      this.goto(this.mouse.x, this.mouse.y);
-      if (this.touching(this.sprites.dog)) {
-        console.log("Touching!");
-      }
-      yield;
+      this.createClone();
+      yield* this.wait(this.random(0.3, 1.0));
     }
   }
 
-  *turn() {
-    for (let i = 0; i < 36; i++) {
-      yield* this.broadcastAndWait("turn dog");
-      this.direction += this.vars.speed;
-      this.vars.speed += 1;
+  *whenIStartAsClone() {
+    this.size = 50;
+    this.goto(this.random(-240, 240), 200);
+    yield* this.glide(this.random(1.5, 2.5), this.x, -200);
+    this.deleteThisClone();
+  }
+
+  *whenIStartAsClone2() {
+    this.vars.dirVel = this.random(-5, 5);
+
+    while (true) {
+      this.direction += this.vars.dirVel;
+      yield;
     }
   }
 }
