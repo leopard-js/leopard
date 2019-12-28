@@ -1,6 +1,6 @@
 import Matrix from "./renderer/Matrix.mjs";
 import ShaderManager from "./renderer/ShaderManager.mjs";
-import TextureCache from "./renderer/TextureCache.mjs";
+import SkinCache from "./renderer/SkinCache.mjs";
 
 export default class Renderer {
   constructor(renderTarget, { w = 480, h = 360 } = {}) {
@@ -14,14 +14,14 @@ export default class Renderer {
     }
 
     this._shaderManager = new ShaderManager(this);
-    this._textureCache = new TextureCache(this);
+    this._skinCache = new SkinCache(this);
 
     this._currentShader = null;
 
     // Initialize a bunch of WebGL state
     const gl = this.gl;
 
-    // Use premultiplied alpha for proper color blending
+    // Use premultiplied alpha for proper color blending.
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
@@ -30,6 +30,7 @@ export default class Renderer {
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
+    // These are 6 points which make up 2 triangles which make up 1 quad/rectangle.
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([
@@ -62,12 +63,14 @@ export default class Renderer {
 
   update(stage, sprites) {
     const gl = this.gl;
+    // Clear to opaque white.
     gl.clearColor(1, 1, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    this.renderSprite(stage, this.ctx);
+    // TODO: find a way to not destroy the skins of hidden sprites
+    this._skinCache.beginTrace();
 
-    this._textureCache.beginTrace();
+    this.renderSprite(stage, this.ctx);
 
     for (const sprite of Object.values(sprites)) {
       if (sprite.visible) {
@@ -78,7 +81,7 @@ export default class Renderer {
       }
     }
 
-    this._textureCache.endTrace();
+    this._skinCache.endTrace();
   }
 
   createStage(w, h) {
@@ -104,14 +107,14 @@ export default class Renderer {
       // is a quadrilateral (as buffered earlier).
       gl.vertexAttribPointer(
         attribLocation,
-        2, // vec2
-        gl.FLOAT,
-        false,
-        0,
-        0
+        2, // every 2 array elements make one vertex.
+        gl.FLOAT, // data type
+        false, // normalized
+        0, // stride (space between attributes)
+        0 // offset (index of the first attribute to start from)
       );
 
-      // Projection matrix-- transforms from stage dimensions to GL clip space (-1 to 1).
+      // Projection matrix-- transforms from stage dimensions (-240 to 240 and -180 to 180) to GL clip space (-1 to 1).
       gl.uniformMatrix3fv(shader.uniform('u_projection'), false, [
         2 / this.stage.width,
         0,
@@ -129,16 +132,23 @@ export default class Renderer {
 
     const m = Matrix.create();
 
+    // The stage does not have a size, so set its scale to 1.
+    let spriteScale = 1;
+    if (spr.size) {
+      spriteScale = spr.size / 100;
+    }
+
     // These transforms are actually in reverse order because lol matrices
     Matrix.translate(m, m, spr.x, spr.y);
     Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
-    Matrix.scale(m, m, spr.size / 100, spr.size / 100);
+    Matrix.scale(m, m, spriteScale, spriteScale);
     Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
     Matrix.scale(m, m, spr.costume.width, spr.costume.height);
 
     gl.uniformMatrix3fv(shader.uniform('u_transform'), false, m);
 
-    const spriteTexture = this._textureCache.getTexture(spr.costume.img);
+    const spriteSkin = this._skinCache.getSkin(spr.costume);
+    const spriteTexture = spriteSkin.getTexture(spriteScale);
 
     gl.bindTexture(gl.TEXTURE_2D, spriteTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point

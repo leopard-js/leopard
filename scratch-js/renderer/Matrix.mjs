@@ -2,6 +2,7 @@
  * TODO: figure out where to put their license/copyright notice
  */
 
+// 3x3 transform matrix operations, unrolled 4 da speedz.
 export default class Matrix {
   // Create a new 3x3 transform matrix, initialized to the identity matrix.
   static create () {
