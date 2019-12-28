@@ -15,7 +15,7 @@ export default class BitmapSkin extends Skin {
     const gl = this.gl;
 
     if (this._texture === null) {
-	  // Use nearest-neighbor (i.e. blocky) texture filtering for bitmaps
+      // Use nearest-neighbor (i.e. blocky) texture filtering for bitmaps
       this._texture = super._makeTexture(image, this.gl.NEAREST);
     }
     return this._texture;

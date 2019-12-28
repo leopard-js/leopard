@@ -1,4 +1,4 @@
-import Shaders from './Shaders.mjs';
+import {SpriteShader, PenLineShader} from './Shaders.mjs';
 
 // Everything contained in a shader. It contains both the program, and the locations of the shader inputs.
 class Shader {
@@ -50,7 +50,6 @@ class ShaderManager {
     return shader;
   }
 
-  // TODO: compile different shaders for each different draw mode.
   getShader (drawMode) {
     const gl = this.gl;
     if (this._shaderCache.has(drawMode)) {
@@ -58,8 +57,20 @@ class ShaderManager {
     } else {
       this._currentShader = drawMode;
 
-      const vertShader = this._createShader(Shaders.vertex, gl.VERTEX_SHADER);
-      const fragShader = this._createShader(Shaders.fragment, gl.FRAGMENT_SHADER);
+      let shaderCode;
+      switch (drawMode) {
+        case ShaderManager.DrawModes.DEFAULT: {
+          shaderCode = SpriteShader;
+          break;
+        }
+
+        case ShaderManager.DrawModes.PEN_LINE: {
+          shaderCode = PenLineShader;
+          break;
+        }
+      }
+      const vertShader = this._createShader(shaderCode.vertex, gl.VERTEX_SHADER);
+      const fragShader = this._createShader(shaderCode.fragment, gl.FRAGMENT_SHADER);
 
       // Combine the vertex and fragment shaders into a single GL program.
       const program = gl.createProgram();
@@ -74,9 +85,9 @@ class ShaderManager {
   }
 }
 
-// TODO: add more draw modes (e.g. "pen layer").
 ShaderManager.DrawModes = {
-  SPRITE: 'SPRITE'
+  DEFAULT: 'DEFAULT',
+  PEN_LINE: 'PEN_LINE'
 }
 
 // TODO: effects.

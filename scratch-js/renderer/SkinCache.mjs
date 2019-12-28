@@ -16,19 +16,19 @@ export default class SkinCache {
   // Begin GC tracing. Any skin retrieved and rendered during tracing will *not* be garbage-collected.
   beginTrace() {
     // Initialize by assuming no texture is used.
-    for (const [key, skin] of this._skins) {
+    this._skins.forEach((skin, key) => {
       skin.used = false;
-    }
+    });
   }
 
   // End GC tracing. Any skin not retrieved since the tracing begun will be deleted.
   endTrace() {
-    for (const [key, skin] of this._skins) {
+    this._skins.forEach((skin, key) => {
       if (!skin.used) {
         skin.destroy();
         this._skins.delete(key);
       }
-    }
+    });
   }
 
   // Retrieve a given object (e.g. costume or speech bubble)'s skin. If it doesn't exist, make one.

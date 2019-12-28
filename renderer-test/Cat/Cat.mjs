@@ -14,17 +14,23 @@ export default class Cat extends Sprite {
       new Trigger(Trigger.GREEN_FLAG, this.greenFlag),
       new Trigger(Trigger.KEY_PRESSED, {key: "up"}, this.increaseSize),
       new Trigger(Trigger.KEY_PRESSED, {key: "down"}, this.decreaseSize),
-      new Trigger(Trigger.KEY_PRESSED, {key: "space"}, this.hideMe)
+      new Trigger(Trigger.KEY_PRESSED, {key: "space"}, this.hideMe),
     ];
   }
 
   *greenFlag() {
     this.say("It's raining cats and dogs!");
 
-    //this.penDown = true;
+    this.goto(-25, 40);
+    yield* this.wait(0.75);
+    this.penDown = true;
+    this.penSize = 10;
+    this.penColor = 'blue';
+    this.goto(75, -20);
     while (true) {
-      this.direction += 1;
-      this.move(0.5);
+      this.direction += 5;
+      this.move(10);
+      //this.stamp();
       yield;
     }
   }

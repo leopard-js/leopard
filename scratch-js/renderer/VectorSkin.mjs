@@ -55,7 +55,6 @@ export default class VectorSkin extends Skin {
 
   destroy () {
     for (const mip of this._mipmaps.values()) {
-      //console.log(mip);
       this.gl.deleteTexture(mip);
     }
   }

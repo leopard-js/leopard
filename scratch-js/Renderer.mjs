@@ -1,4 +1,5 @@
 import Matrix from "./renderer/Matrix.mjs";
+import PenSkin from "./renderer/PenSkin.mjs";
 import ShaderManager from "./renderer/ShaderManager.mjs";
 import SkinCache from "./renderer/SkinCache.mjs";
 
@@ -17,6 +18,7 @@ export default class Renderer {
     this._skinCache = new SkinCache(this);
 
     this._currentShader = null;
+    this._currentFramebuffer = null;
 
     // Initialize a bunch of WebGL state
     const gl = this.gl;
@@ -47,6 +49,8 @@ export default class Renderer {
 
     // Set the active texture unit to 0.
     gl.activeTexture(gl.TEXTURE0);
+
+    this._penSkin = new PenSkin(this, w, h);
   }
 
   setRenderTarget(renderTarget) {
@@ -98,16 +102,32 @@ export default class Renderer {
     }
   }
 
+  _setFramebuffer(framebuffer) {
+    if (this._currentFramebuffer !== framebuffer) {
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
+      this._currentFramebuffer = framebuffer;
+    }
+  }
+
   update(stage, sprites) {
     const gl = this.gl;
+
+    // Draw to the screen, not to a framebuffer.
+    this._setFramebuffer(null);
+
     // Clear to opaque white.
     gl.clearColor(1, 1, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
+    const penMatrix = Matrix.create();
+    Matrix.scale(penMatrix, penMatrix, this._penSkin.width, -this._penSkin.height);
+    Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
+    this._renderSkin(this._penSkin, ShaderManager.DrawModes.DEFAULT, penMatrix, 1);
+
     // TODO: find a way to not destroy the skins of hidden sprites
     this._skinCache.beginTrace();
 
-    this.renderSprite(stage, this.ctx);
+    this.renderSprite(stage);
 
     for (const sprite of Object.values(sprites)) {
       if (sprite.visible) {
@@ -122,7 +142,6 @@ export default class Renderer {
   }
 
   createStage(w, h) {
-    // TODO: create WebGL framebuffer
     const stage = document.createElement("canvas");
     stage.width = w;
     stage.height = h;
@@ -146,7 +165,7 @@ export default class Renderer {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  renderSprite(spr, ctx) {
+  renderSprite(spr) {
     // The stage does not have a size, so set its scale to 1.
     let spriteScale = 1;
     if (spr.size) {
@@ -162,7 +181,7 @@ export default class Renderer {
     Matrix.scale(m, m, spr.costume.width, spr.costume.height);
 
     const spriteSkin = this._skinCache.getSkin(spr.costume);
-    this._renderSkin(spriteSkin, ShaderManager.DrawModes.SPRITE, m, spriteScale);
+    this._renderSkin(spriteSkin, ShaderManager.DrawModes.DEFAULT, m, spriteScale);
   }
 
   renderSpriteSpeechBubble(spr) {
@@ -176,7 +195,7 @@ export default class Renderer {
     Matrix.translate(m, m, x, y);
     Matrix.scale(m, m, speechBubbleSkin.width, speechBubbleSkin.height);
 
-    this._renderSkin(speechBubbleSkin, ShaderManager.DrawModes.SPRITE, m, 1);
+    this._renderSkin(speechBubbleSkin, ShaderManager.DrawModes.DEFAULT, m, 1);
   }
 
   getBoundingBox(sprite) {
@@ -325,22 +344,16 @@ export default class Renderer {
   }
 
   penLine(pt1, pt2, color, size) {
-    this.penLayer.lineWidth = size;
-    this.penLayer.strokeStyle = color;
-    this.penLayer.lineCap = "round";
-
-    this.penLayer.beginPath();
-    this.penLayer.moveTo(pt1.x + 240, 180 - pt1.y);
-    this.penLayer.lineTo(pt2.x + 240, 180 - pt2.y);
-    this.penLayer.stroke();
+    this._penSkin.penLine(pt1, pt2, color, size);
   }
 
   clearPen() {
-    this.penLayer.clearRect(0, 0, this.penStage.width, this.penStage.height);
+    this._penSkin.clear();
   }
 
   stamp(sprite) {
-    this.renderSprite(sprite, this.penLayer);
+    this._setFramebuffer(this._penSkin._framebuffer);
+    this.renderSprite(sprite);
   }
 
   displayAskBox(question) {
