@@ -1,4 +1,5 @@
 import BitmapSkin from "./BitmapSkin.mjs";
+import SpeechBubbleSkin from "./SpeechBubbleSkin.mjs";
 import VectorSkin from "./VectorSkin.mjs";
 
 // This is a class which manages the creation and destruction of Skin objects.
@@ -9,43 +10,48 @@ export default class SkinCache {
     this._renderer = renderer;
     this.gl = renderer.gl;
 
-    this._costumeSkins = new Map();
+    this._skins = new Map();
   }
 
   // Begin GC tracing. Any skin retrieved and rendered during tracing will *not* be garbage-collected.
   beginTrace() {
     // Initialize by assuming no texture is used.
-    for (const [key, skin] of this._costumeSkins) {
+    for (const [key, skin] of this._skins) {
       skin.used = false;
     }
   }
 
   // End GC tracing. Any skin not retrieved since the tracing begun will be deleted.
   endTrace() {
-    for (const [key, skin] of this._costumeSkins) {
+    for (const [key, skin] of this._skins) {
       if (!skin.used) {
         skin.destroy();
-        this._costumeSkins.delete(key);
+        this._skins.delete(key);
       }
     }
   }
 
-  // Retrieve a given costume's skin. If it doesn't exist, make one.
-  getSkin(costume) {
-    if (this._costumeSkins.has(costume)) {
-      const skin = this._costumeSkins.get(costume);
+  // Retrieve a given object (e.g. costume or speech bubble)'s skin. If it doesn't exist, make one.
+  getSkin(obj) {
+    if (this._skins.has(obj)) {
+      const skin = this._skins.get(obj);
       skin.used = true;
       return skin;
     } else {
       let skin;
 
+      // TODO: this is a janky way to tell whether this is a speech bubble
+      if (obj.text) {
+        skin = new SpeechBubbleSkin(this._renderer, obj);
+      } else
+      // If it's not a speech bubble, it's a costume.
       // TODO: there's gotta be a better way to tell if an image is an SVG
-      if (costume.img.src.endsWith('.svg')) {
-        skin = new VectorSkin(this._renderer, costume.img);
+      if (obj.img.src.endsWith('.svg')) {
+        skin = new VectorSkin(this._renderer, obj.img);
       } else {
-        skin = new BitmapSkin(this._renderer, costume.img);
+        skin = new BitmapSkin(this._renderer, obj.img);
       }
-      this._costumeSkins.set(costume, skin);
+      this._skins.set(obj, skin);
       return skin;
     }
   }

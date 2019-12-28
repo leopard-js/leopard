@@ -61,42 +61,9 @@ export default class Renderer {
     this.renderTarget.append(this.stage);
   }
 
-  update(stage, sprites) {
-    const gl = this.gl;
-    // Clear to opaque white.
-    gl.clearColor(1, 1, 1, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // TODO: find a way to not destroy the skins of hidden sprites
-    this._skinCache.beginTrace();
-
-    this.renderSprite(stage, this.ctx);
-
-    for (const sprite of Object.values(sprites)) {
-      if (sprite.visible) {
-        this.renderSprite(sprite, this.ctx);
-        if (sprite._speechBubble.text) {
-          //this.renderSpriteSpeechBubble(sprite, this.ctx);
-        }
-      }
-    }
-
-    this._skinCache.endTrace();
-  }
-
-  createStage(w, h) {
-    // TODO: create WebGL framebuffer
-    const stage = document.createElement("canvas");
-    stage.width = w;
-    stage.height = h;
-
-    return stage;
-  }
-
-  renderSprite(spr, ctx) {
-    const gl = this.gl;
-    const shader = this._shaderManager.getShader(ShaderManager.DrawModes.SPRITE);
+  _setShader(shader) {
     if (shader !== this._currentShader) {
+      const gl = this.gl;
       gl.useProgram(shader.program);
 
       // These attributes and uniforms don't ever change, but must be set whenever a new shader program is used.
@@ -129,28 +96,49 @@ export default class Renderer {
 
       this._currentShader = shader;
     }
+  }
 
-    const m = Matrix.create();
+  update(stage, sprites) {
+    const gl = this.gl;
+    // Clear to opaque white.
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // The stage does not have a size, so set its scale to 1.
-    let spriteScale = 1;
-    if (spr.size) {
-      spriteScale = spr.size / 100;
+    // TODO: find a way to not destroy the skins of hidden sprites
+    this._skinCache.beginTrace();
+
+    this.renderSprite(stage, this.ctx);
+
+    for (const sprite of Object.values(sprites)) {
+      if (sprite.visible) {
+        this.renderSprite(sprite, this.ctx);
+        if (sprite._speechBubble.text) {
+          this.renderSpriteSpeechBubble(sprite, this.ctx);
+        }
+      }
     }
 
-    // These transforms are actually in reverse order because lol matrices
-    Matrix.translate(m, m, spr.x, spr.y);
-    Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
-    Matrix.scale(m, m, spriteScale, spriteScale);
-    Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
-    Matrix.scale(m, m, spr.costume.width, spr.costume.height);
+    this._skinCache.endTrace();
+  }
 
-    gl.uniformMatrix3fv(shader.uniform('u_transform'), false, m);
+  createStage(w, h) {
+    // TODO: create WebGL framebuffer
+    const stage = document.createElement("canvas");
+    stage.width = w;
+    stage.height = h;
 
-    const spriteSkin = this._skinCache.getSkin(spr.costume);
-    const spriteTexture = spriteSkin.getTexture(spriteScale);
+    return stage;
+  }
 
-    gl.bindTexture(gl.TEXTURE_2D, spriteTexture);
+  _renderSkin(skin, drawMode, matrix, screenSpaceScale) {
+    const gl = this.gl;
+    const shader = this._shaderManager.getShader(drawMode);
+    this._setShader(shader);
+    gl.uniformMatrix3fv(shader.uniform('u_transform'), false, matrix);
+
+    const skinTexture = skin.getTexture(screenSpaceScale);
+
+    gl.bindTexture(gl.TEXTURE_2D, skinTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point
     gl.uniform1i(shader.uniform('u_texture'), 0);
 
@@ -158,68 +146,37 @@ export default class Renderer {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  renderSpriteSpeechBubble(spr, ctx) {
-    const renderBubble = (x, y, w, h, r, style) => {
-      if (r > w / 2) r = w / 2;
-      if (r > h / 2) r = h / 2;
-      if (r < 0) return;
+  renderSprite(spr, ctx) {
+    // The stage does not have a size, so set its scale to 1.
+    let spriteScale = 1;
+    if (spr.size) {
+      spriteScale = spr.size / 100;
+    }
 
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x + r, y + h, r);
-      if (style === "say") {
-        ctx.lineTo(Math.min(x + 3 * r, x + w - r), y + h);
-        ctx.lineTo(x + r / 2, y + h + r);
-        ctx.lineTo(x + r, y + h);
-      } else if (style === "think") {
-        ctx.ellipse(x + r * 2.25, y + h, (r * 3) / 4, r / 2, 0, 0, Math.PI);
-      }
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+    // These transforms are actually in reverse order because lol matrices
+    const m = Matrix.create();
+    Matrix.translate(m, m, spr.x, spr.y);
+    Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
+    Matrix.scale(m, m, spriteScale, spriteScale);
+    Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
+    Matrix.scale(m, m, spr.costume.width, spr.costume.height);
 
-      if (style === "think") {
-        ctx.beginPath();
-        ctx.ellipse(
-          x + r,
-          y + h + (r * 3) / 4,
-          r / 3,
-          r / 3,
-          0,
-          0,
-          2 * Math.PI
-        );
-        ctx.fill();
-        ctx.stroke();
-      }
-    };
+    const spriteSkin = this._skinCache.getSkin(spr.costume);
+    this._renderSkin(spriteSkin, ShaderManager.DrawModes.SPRITE, m, spriteScale);
+  }
+
+  renderSpriteSpeechBubble(spr) {
+    const speechBubbleSkin = this._skinCache.getSkin(spr._speechBubble);
 
     const box = this.getBoundingBox(spr);
+    const x = (box.right - 240) - speechBubbleSkin.offsetX;
+    const y = (180 - box.top) - speechBubbleSkin.offsetY;
 
-    ctx.font = "16px sans-serif";
-    ctx.textBaseline = "hanging";
+    const m = Matrix.create();
+    Matrix.translate(m, m, x, y);
+    Matrix.scale(m, m, speechBubbleSkin.width, speechBubbleSkin.height);
 
-    const { text, style } = spr._speechBubble;
-    let { width } = ctx.measureText(text);
-
-    const maxWidth = this.stage.width - box.right;
-    const padding = 12;
-
-    width = Math.min(width + 2 * padding, maxWidth);
-    const height = 10 + 2 * padding;
-    const x = box.right;
-    const y = box.top - height;
-
-    ctx.fillStyle = "#fff";
-    ctx.strokeStyle = "#ccc";
-    ctx.lineWidth = 2;
-    renderBubble(x, y, width, height, 12, style);
-
-    ctx.fillStyle = "#444";
-    ctx.fillText(text, x + padding, y + padding, maxWidth - 2 * padding);
+    this._renderSkin(speechBubbleSkin, ShaderManager.DrawModes.SPRITE, m, 1);
   }
 
   getBoundingBox(sprite) {

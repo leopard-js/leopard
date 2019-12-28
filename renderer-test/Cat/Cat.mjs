@@ -21,8 +21,11 @@ export default class Cat extends Sprite {
   *greenFlag() {
     this.say("It's raining cats and dogs!");
 
+    //this.penDown = true;
     while (true) {
-      yield* this.wait(this.random(0.3, 1.0));
+      this.direction += 1;
+      this.move(0.5);
+      yield;
     }
   }
 

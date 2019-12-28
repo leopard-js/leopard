@@ -30,27 +30,8 @@ export default class VectorSkin extends Skin {
 
     ctx.drawImage(image, 0, 0, width, height);
 
-    const gl = this.gl;
-    const glTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, glTexture);
-    // These need to be set because most sprite textures don't have power-of-two dimensions.
-    // Non-power-of-two textures only work with gl.CLAMP_TO_EDGE wrapping behavior,
-    // and because they don't support automatic mipmaps, can only use non-mipmap texture filtering.
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    // Use linear (e.g. smooth) texture filtering for vectors
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      canvas
-    );
-
-    this._mipmaps.set(mipLevel, glTexture);
+    // Use linear (i.e. smooth) texture filtering for vectors
+    this._mipmaps.set(mipLevel, this._makeTexture(canvas, this.gl.LINEAR));
   }
 
   getTexture (scale) {
