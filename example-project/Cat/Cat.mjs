@@ -1,4 +1,4 @@
-import { Sprite, Trigger, Costume } from "../../scratch-js/index.mjs";
+import { Sprite, Trigger, Costume, Color } from "../../scratch-js/index.mjs";
 
 export default class Cat extends Sprite {
   constructor(...args) {
@@ -29,6 +29,9 @@ export default class Cat extends Sprite {
   *whenIStartAsClone() {
     this.size = 50;
     this.goto(this.random(-240, 240), 200);
+    this.penSize = this.random(8, 16);
+    this.penColor = Color.hsv(this.random(0, 100), 100, 100);
+    this.penDown = true;
     yield* this.glide(this.random(1.5, 2.5), this.x, -200);
     this.deleteThisClone();
   }
@@ -38,6 +41,7 @@ export default class Cat extends Sprite {
 
     while (true) {
       this.direction += this.vars.dirVel;
+      this.penColor.h += 0.5;
       yield;
     }
   }

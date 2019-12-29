@@ -1,4 +1,5 @@
 import Trigger from "./Trigger.mjs";
+import Color from "./Color.mjs";
 
 class SpriteBase {
   constructor(initialConditions, vars = {}) {
@@ -176,7 +177,7 @@ export class Sprite extends SpriteBase {
 
     this._penDown = penDown || false;
     this.penSize = penSize || 1;
-    this._penColor = penColor || "black";
+    this._penColor = penColor || Color.rgb(0, 0, 0);
 
     this._speechBubble = {
       text: "",
@@ -249,7 +250,7 @@ export class Sprite extends SpriteBase {
       this._project.renderer.penLine(
         { x: this._x, y: this._y },
         { x, y },
-        this._penColor,
+        this._penColor.toRGBString(),
         this.penSize
       );
     }
@@ -307,7 +308,7 @@ export class Sprite extends SpriteBase {
       this._project.renderer.penLine(
         { x: this.x, y: this.y },
         { x: this.x, y: this.y },
-        this._penColor,
+        this._penColor.toRGBString(),
         this.penSize
       );
     }
@@ -326,9 +327,13 @@ export class Sprite extends SpriteBase {
       const r = (color >> 16) & 0xff;
       const g = (color >> 8) & 0xff;
       const b = color & 0xff;
-      this._penColor = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
-    } else {
+      this._penColor = Color.rgba(r, g, b, a / 255);
+    } else if (color instanceof Color) {
       this._penColor = color;
+    } else {
+      console.error(
+        `${color} is not a valid penColor. Try using the Color class!`
+      );
     }
   }
 
