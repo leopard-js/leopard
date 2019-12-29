@@ -27,31 +27,9 @@ export default class PenSkin extends Skin {
     this.width = width;
     this.height = height;
 
-    // Create an empty texture with this skin's dimensions.
-    const gl = this.gl;
-    this._texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this._texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      this.width,
-      this.height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null
-    );
-
-    // Create a framebuffer backed by said texture. This means we can draw onto the framebuffer,
-    // and the results appear in the texture.
-    this._framebuffer = gl.createFramebuffer();
-    this.renderer._setFramebuffer(this._framebuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._texture, 0);
+    const {framebuffer, texture} = renderer._createFramebuffer(width, height, this.gl.NEAREST);
+    this._framebuffer = framebuffer;
+    this._texture = texture;
 
     this.clear();
   }

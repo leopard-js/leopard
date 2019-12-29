@@ -19,7 +19,7 @@ export default class Cat extends Sprite {
   }
 
   *greenFlag() {
-    this.say("It's raining cats and dogs!");
+    //this.say("It's raining cats and dogs!");
 
     this.goto(-25, 40);
     yield* this.wait(0.75);
@@ -28,8 +28,9 @@ export default class Cat extends Sprite {
     this.penColor = 'blue';
     this.goto(75, -20);
     while (true) {
-      this.direction += 5;
-      this.move(10);
+      //this.direction += 5;
+      //this.move(10);
+      this.goto(this.mouse.x, this.mouse.y);
       //this.stamp();
       yield;
     }

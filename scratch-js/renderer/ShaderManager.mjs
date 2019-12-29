@@ -59,7 +59,8 @@ class ShaderManager {
 
       let shaderCode;
       switch (drawMode) {
-        case ShaderManager.DrawModes.DEFAULT: {
+        case ShaderManager.DrawModes.DEFAULT:
+        case ShaderManager.DrawModes.SILHOUETTE: {
           shaderCode = SpriteShader;
           break;
         }
@@ -69,8 +70,11 @@ class ShaderManager {
           break;
         }
       }
-      const vertShader = this._createShader(shaderCode.vertex, gl.VERTEX_SHADER);
-      const fragShader = this._createShader(shaderCode.fragment, gl.FRAGMENT_SHADER);
+
+      // Use #define statements for conditional compilation in shader code.
+      const define = `#define DRAW_MODE_${drawMode}\n`;
+      const vertShader = this._createShader(define + shaderCode.vertex, gl.VERTEX_SHADER);
+      const fragShader = this._createShader(define + shaderCode.fragment, gl.FRAGMENT_SHADER);
 
       // Combine the vertex and fragment shaders into a single GL program.
       const program = gl.createProgram();
@@ -87,7 +91,8 @@ class ShaderManager {
 
 ShaderManager.DrawModes = {
   DEFAULT: 'DEFAULT',
-  PEN_LINE: 'PEN_LINE'
+  PEN_LINE: 'PEN_LINE',
+  SILHOUETTE: 'SILHOUETTE'
 }
 
 // TODO: effects.

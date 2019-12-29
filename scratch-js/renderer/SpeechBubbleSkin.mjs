@@ -21,6 +21,8 @@ export default class SpeechBubbleSkin extends Skin {
     this.height = 0;
     this.offsetX = -bubbleStyle.strokeWidth / 2;
     this.offsetY = this.offsetX + bubbleStyle.tailHeight;
+
+    this._renderBubble(this._bubble);
   }
 
   // To ensure proper text measurement and drawing, it's necessary to restyle the canvas after resizing it.
@@ -102,7 +104,6 @@ export default class SpeechBubbleSkin extends Skin {
 
   getTexture(scale) {
     if (this._texture === null) {
-      this._renderBubble(this._bubble);
       this._texture = this._makeTexture(this._canvas, this.gl.LINEAR);
     }
 

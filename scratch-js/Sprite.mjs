@@ -354,8 +354,8 @@ export class Sprite extends SpriteBase {
           return this._project.renderer.checkPointCollision(
             this,
             {
-              x: this.mouse.x + 240,
-              y: 180 - this.mouse.y
+              x: this.mouse.x,
+              y: this.mouse.y
             },
             fast
           );

@@ -1,5 +1,6 @@
 import Matrix from "./renderer/Matrix.mjs";
 import PenSkin from "./renderer/PenSkin.mjs";
+import Rectangle from "./renderer/Rectangle.mjs";
 import ShaderManager from "./renderer/ShaderManager.mjs";
 import SkinCache from "./renderer/SkinCache.mjs";
 
@@ -51,6 +52,47 @@ export default class Renderer {
     gl.activeTexture(gl.TEXTURE0);
 
     this._penSkin = new PenSkin(this, w, h);
+
+    // This framebuffer is where sprites are drawn for e.g. "touching" checks.
+    this._collisionBuffer = this._createFramebuffer(w, h, gl.NEAREST).framebuffer;
+
+    // In addition to the color attachment, we must also attach a stencil buffer to our collision buffer.
+    // The depth buffer is unnecessary, but WebGL only guarantees
+    // that certain combinations of framebuffer attachments will work, and "stencil but no depth" is not among them.
+    const renderbuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, w, h);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+  }
+
+  _createFramebuffer (width, height, filtering) {
+    // Create an empty texture with this skin's dimensions.
+    const gl = this.gl;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filtering);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filtering);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null
+    );
+
+    // Create a framebuffer backed by said texture. This means we can draw onto the framebuffer,
+    // and the results appear in the texture.
+    const framebuffer = gl.createFramebuffer();
+    this._setFramebuffer(framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+    return {texture, framebuffer};
   }
 
   setRenderTarget(renderTarget) {
@@ -103,7 +145,7 @@ export default class Renderer {
   }
 
   _setFramebuffer(framebuffer) {
-    if (this._currentFramebuffer !== framebuffer) {
+    if (framebuffer !== this._currentFramebuffer) {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
       this._currentFramebuffer = framebuffer;
     }
@@ -131,9 +173,9 @@ export default class Renderer {
 
     for (const sprite of Object.values(sprites)) {
       if (sprite.visible) {
-        this.renderSprite(sprite, this.ctx);
+        this.renderSprite(sprite);
         if (sprite._speechBubble.text) {
-          this.renderSpriteSpeechBubble(sprite, this.ctx);
+          this.renderSpriteSpeechBubble(sprite);
         }
       }
     }
@@ -165,7 +207,7 @@ export default class Renderer {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  renderSprite(spr) {
+  renderSprite(spr, drawMode = ShaderManager.DrawModes.DEFAULT) {
     // The stage does not have a size, so set its scale to 1.
     let spriteScale = 1;
     if (spr.size) {
@@ -180,16 +222,18 @@ export default class Renderer {
     Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
     Matrix.scale(m, m, spr.costume.width, spr.costume.height);
 
+    const gl = this.gl;
+
     const spriteSkin = this._skinCache.getSkin(spr.costume);
-    this._renderSkin(spriteSkin, ShaderManager.DrawModes.DEFAULT, m, spriteScale);
+    this._renderSkin(spriteSkin, drawMode, m, spriteScale);
   }
 
   renderSpriteSpeechBubble(spr) {
     const speechBubbleSkin = this._skinCache.getSkin(spr._speechBubble);
 
     const box = this.getBoundingBox(spr);
-    const x = (box.right - 240) - speechBubbleSkin.offsetX;
-    const y = (180 - box.top) - speechBubbleSkin.offsetY;
+    const x = Math.round(box.right - speechBubbleSkin.offsetX);
+    const y = Math.round(box.top - speechBubbleSkin.offsetY);
 
     const m = Matrix.create();
     Matrix.translate(m, m, x, y);
@@ -200,8 +244,8 @@ export default class Renderer {
 
   getBoundingBox(sprite) {
     const origin = {
-      x: sprite.x + 240,
-      y: -sprite.y + 180
+      x: sprite.x,
+      y: sprite.y
     };
 
     const s = sprite.size / 100;
@@ -228,83 +272,93 @@ export default class Renderer {
     const points = [
       movePoint(movePoint(origin, angle.up, dist.up), angle.right, dist.right),
       movePoint(movePoint(origin, angle.up, dist.up), angle.left, dist.left),
-      movePoint(
-        movePoint(origin, angle.down, dist.down),
-        angle.right,
-        dist.right
-      ),
+      movePoint(movePoint(origin, angle.down, dist.down), angle.right, dist.right),
       movePoint(movePoint(origin, angle.down, dist.down), angle.left, dist.left)
     ];
 
-    return {
-      left: Math.round(
-        Math.min.apply(
-          Math,
-          points.map(pt => pt.x)
-        )
-      ),
-      right: Math.round(
-        Math.max.apply(
-          Math,
-          points.map(pt => pt.x)
-        )
-      ),
-      top: Math.round(
-        Math.min.apply(
-          Math,
-          points.map(pt => pt.y)
-        )
-      ),
-      bottom: Math.round(
-        Math.max.apply(
-          Math,
-          points.map(pt => pt.y)
-        )
-      )
-    };
+    const rect = new Rectangle();
+
+    rect.left = Math.min.apply(
+      Math,
+      points.map(pt => pt.x)
+    );
+    rect.right = Math.max.apply(
+      Math,
+      points.map(pt => pt.x)
+    );
+    rect.bottom = Math.min.apply(
+      Math,
+      points.map(pt => pt.y)
+    );
+    rect.top = Math.max.apply(
+      Math,
+      points.map(pt => pt.y)
+    );
+
+    return rect;
   }
 
   checkSpriteCollision(spr1, spr2, fast) {
     if (!spr1.visible) return false;
     if (!spr2.visible) return false;
 
-    const box1 = this.getBoundingBox(spr1);
-    const box2 = this.getBoundingBox(spr2);
+    const box1 = this.getBoundingBox(spr1).snapToInt();
+    const box2 = this.getBoundingBox(spr2).snapToInt();
 
-    if (box1.right <= box2.left) return false;
-    if (box1.left >= box2.right) return false;
-    if (box1.bottom <= box2.top) return false;
-    if (box1.top >= box2.bottom) return false;
-
+    if (!box1.intersects(box2)) return false;
     if (fast) return true;
 
-    const left = Math.max(box1.left, box2.left);
-    const right = Math.min(box1.right, box2.right);
-    const top = Math.max(box1.top, box2.top);
-    const bottom = Math.min(box1.bottom, box2.bottom);
+    const collisionBox = Rectangle.intersection(box1, box2).clamp(-240, 240, -180, 180);
 
-    const collisionStage = this.createStage(right - left, bottom - top);
-    const collisionCtx = collisionStage.getContext("2d");
+    this._setFramebuffer(this._collisionBuffer);
+    const gl = this.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 
-    collisionCtx.setTransform(1, 0, 0, 1, 0, 0);
-    collisionCtx.translate(-left, -top);
+    // Enable stenciling. This means that:
+    // 1. Only pixels which pass the "stencil test" will be drawn.
+    // 2. Anything rendered will also draw to the stencil buffer.
+    gl.enable(gl.STENCIL_TEST);
+    // Pass the stencil test regardless of what's in the stencil buffer.
+    // Note that pixels which the shader has discarded will still fail the stencil test.
+    // 1 is the reference value which we use in the next line.
+    gl.stencilFunc(gl.ALWAYS, 1, 1);
+    // If the stencil test passes (in this case, if the shader hasn't discarded the pixel),
+    // draw a 1 to that pixel in the stencil buffer, replacing whatever's already there.
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+    // Don't draw to the color buffer. Only to the stencil buffer.
+    gl.colorMask(false, false, false, false);
+    // Draw the sprite in the "silhouette" mode, which discards transparent pixels.
+    // This, along with the above line, has the effect of not drawing anything to the color buffer, but
+    // creating a "mask" in the stencil buffer that masks out all pixels where this sprite is transparent.
+    this.renderSprite(spr1, ShaderManager.DrawModes.SILHOUETTE);
 
-    collisionCtx.globalCompositeOperation = "source-over";
-    this.renderSprite(spr1, collisionCtx);
+    // Pass the stencil test if the stencil buffer value equals 1 (e.g. the pixel got masked in above).
+    gl.stencilFunc(gl.EQUAL, 1, 1);
+    // Keep the current stencil buffer values no matter what.
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    // We can draw to the color buffer again. Note that only pixels which pass the stencil test are drawn.
+    gl.colorMask(true, true, true, true);
+    // Render the second sprite, which will now be masked in to the area of the first sprite.
+    this.renderSprite(spr2, ShaderManager.DrawModes.SILHOUETTE);
 
-    collisionCtx.globalCompositeOperation = "source-in";
-    this.renderSprite(spr2, collisionCtx);
+    // Make sure to disable the stencil test so as not to affect other rendering!
+    gl.disable(gl.STENCIL_TEST);
 
-    // If collision stage contains any alpha > 0, there's a collision
-    const w = collisionStage.width;
-    const h = collisionStage.height;
-    const imgData = collisionCtx.getImageData(0, 0, w, h).data;
+    const pixelData = new Uint8Array(collisionBox.width * collisionBox.height * 4);
+    gl.readPixels(
+      collisionBox.left + 240,
+      collisionBox.bottom + 180,
+      collisionBox.width,
+      collisionBox.height,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      pixelData
+    );
 
-    const length = w * h * 4;
-    for (let i = 0; i < length; i += 4) {
-      if (imgData[i + 3] > 0) {
-        return true;
-      }
+    // Any opaque pixel = an overlap between the two sprites.
+    for (let i = 0; i < pixelData.length; i += 4) {
+      if (pixelData[i + 3] !== 0) return true;
     }
 
     return false;
@@ -314,33 +368,20 @@ export default class Renderer {
     if (!spr.visible) return false;
 
     const box = this.getBoundingBox(spr);
-
-    if (box.right < point.x) return false;
-    if (box.left > point.x) return false;
-    if (box.top > point.y) return false;
-    if (box.bottom < point.y) return false;
-
+    if (!box.containsPoint(point.x, point.y)) return false;
     if (fast) return true;
 
-    const collisionStage = this.createStage(
-      box.right - box.left,
-      box.bottom - box.top
-    );
-    const collisionCtx = collisionStage.getContext("2d");
+    // TODO: would it be faster to enable a scissor rectangle?
+    this._setFramebuffer(this._collisionBuffer);
+    const gl = this.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
 
-    collisionCtx.setTransform(1, 0, 0, 1, 0, 0);
-    collisionCtx.translate(-box.left, -box.top);
+    this.renderSprite(spr);
 
-    this.renderSprite(spr, collisionCtx);
-
-    const w = collisionStage.width;
-    const h = collisionStage.height;
-    const imgData = collisionCtx.getImageData(0, 0, w, h).data;
-
-    // Check if point has alpha > 0
-    const x = point.x - box.left;
-    const y = point.y - box.top;
-    return imgData[(y * w + x) * 4 + 3] > 0;
+    const hoveredPixel = new Uint8Array(4);
+    gl.readPixels(point.x + 240, point.y + 180, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, hoveredPixel);
+    return hoveredPixel[3] !== 0;
   }
 
   penLine(pt1, pt2, color, size) {

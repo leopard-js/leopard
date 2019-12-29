@@ -12,13 +12,14 @@ export default class Dog extends Sprite {
 
     this.triggers = [
       new Trigger(Trigger.GREEN_FLAG, this.greenFlag),
+      new Trigger(Trigger.GREEN_FLAG, this.checkTouching),
       new Trigger(Trigger.CLONE_START, this.whenIStartAsClone),
       new Trigger(Trigger.CLONE_START, this.whenIStartAsClone2)
     ];
   }
 
   *greenFlag() {
-    this.say("Help!");
+    //this.say("Help!");
 
     while (true) {
       this.createClone();
@@ -38,6 +39,17 @@ export default class Dog extends Sprite {
 
     while (true) {
       this.direction += this.vars.dirVel;
+      yield;
+    }
+  }
+
+  *checkTouching() {
+    while (true) {
+      if (this.touching(this.sprites.cat)) {
+        this.say("Touching!");
+      } else {
+        this.say(null);
+      }
       yield;
     }
   }

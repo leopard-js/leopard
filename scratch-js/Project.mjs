@@ -40,8 +40,8 @@ export default class Project {
         return this.renderer.checkPointCollision(
           sprite,
           {
-            x: this.input.mouse.x + 240,
-            y: 180 - this.input.mouse.y
+            x: this.input.mouse.x,
+            y: this.input.mouse.y
           },
           false
         );
