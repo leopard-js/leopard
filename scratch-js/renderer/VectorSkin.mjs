@@ -10,6 +10,8 @@ export default class VectorSkin extends Skin {
     this._image = image;
     this._canvas = document.createElement('canvas');
 
+    this._setSizeFromImage(image);
+
     this._mipmaps = new Map();
   }
 

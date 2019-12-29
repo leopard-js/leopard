@@ -6,6 +6,8 @@ export default class BitmapSkin extends Skin {
 
     this._image = image;
     this._texture = null;
+
+    this._setSizeFromImage(image);
   }
 
   getTexture (scale) {

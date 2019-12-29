@@ -1,4 +1,5 @@
-import {SpriteShader, PenLineShader} from './Shaders.mjs';
+import {SpriteShader, PenLineShader} from "./Shaders.mjs";
+import effectNames from "./effectNames.mjs";
 
 // Everything contained in a shader. It contains both the program, and the locations of the shader inputs.
 class Shader {
@@ -32,7 +33,10 @@ class ShaderManager {
     this.renderer = renderer;
     this.gl = renderer.gl;
 
-    this._shaderCache = new Map();
+    this._shaderCache = {};
+    for (const drawMode of Object.keys(ShaderManager.DrawModes)) {
+      this._shaderCache[drawMode] = new Map();
+    }
   }
 
   // Creates and compiles a vertex or fragment shader from the given source code.
@@ -50,13 +54,12 @@ class ShaderManager {
     return shader;
   }
 
-  getShader (drawMode) {
+  getShader (drawMode, effectBitmask = 0) {
     const gl = this.gl;
-    if (this._shaderCache.has(drawMode)) {
-      return this._shaderCache.get(drawMode);
+    const shaderMap = this._shaderCache[drawMode];
+    if (shaderMap.has(effectBitmask)) {
+      return shaderMap.get(effectBitmask);
     } else {
-      this._currentShader = drawMode;
-
       let shaderCode;
       switch (drawMode) {
         case ShaderManager.DrawModes.DEFAULT:
@@ -72,7 +75,15 @@ class ShaderManager {
       }
 
       // Use #define statements for conditional compilation in shader code.
-      const define = `#define DRAW_MODE_${drawMode}\n`;
+      let define = `#define DRAW_MODE_${drawMode}\n`;
+
+      // Add #defines for each enabled effect.
+      for (let i = 0; i < effectNames.length; i++) {
+        if ((effectBitmask & (1 << i)) !== 0) {
+          define += `#define EFFECT_${effectNames[i]}\n`;
+        }
+      }
+
       const vertShader = this._createShader(define + shaderCode.vertex, gl.VERTEX_SHADER);
       const fragShader = this._createShader(define + shaderCode.fragment, gl.FRAGMENT_SHADER);
 
@@ -83,7 +94,7 @@ class ShaderManager {
       gl.linkProgram(program);
 
       const shader = new Shader(gl, program);
-      this._shaderCache.set(drawMode, shader);
+      shaderMap.set(effectBitmask, shader);
       return shader;
     }
   }

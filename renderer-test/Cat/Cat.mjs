@@ -30,7 +30,15 @@ export default class Cat extends Sprite {
     while (true) {
       //this.direction += 5;
       //this.move(10);
-      this.goto(this.mouse.x, this.mouse.y);
+      this.goto(this.mouse.x - 10, this.mouse.y);
+      if (this.mouse.down) {
+        this.effects.color += 1;
+        this.effects.pixelate = 50;
+        this.effects.whirl += 1;
+        this.effects.ghost += 1;
+      } else {
+        this.effects.clear();
+      }
       //this.stamp();
       yield;
     }

@@ -7,12 +7,12 @@ export default class Skin {
 
   // Get the skin's texture for a given (screen-space) scale.
   // This is a method and not a getter to signal that it's potentially expensive.
-  getTexture (scale) {
+  getTexture(scale) {
     return null;
   }
 
   // Helper function to create a texture from an image and handle all the boilerplate.
-  _makeTexture (image, filtering) {
+  _makeTexture(image, filtering) {
     const gl = this.gl;
     const glTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, glTexture);
@@ -33,6 +33,19 @@ export default class Skin {
     );
 
     return glTexture;
+  }
+
+  // Helper function to set this skin's size based on an image that may or may not be loaded.
+  _setSizeFromImage(image) {
+    if (image.complete) {
+      this.width = image.naturalWidth;
+      this.height = image.naturalHeight;
+    } else {
+      image.addEventListener("load", () => {
+        this.width = image.naturalWidth;
+        this.height = image.naturalHeight;
+      })
+    }
   }
 
   // Clean up any textures or other objets created by this skin.

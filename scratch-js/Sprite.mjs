@@ -1,6 +1,54 @@
 import Trigger from "./Trigger.mjs";
 import Color from "./Color.mjs";
 
+import effectNames from "./renderer/effectNames.mjs";
+// This is a wrapper to allow the enabled effects in a sprite to be used as a Map key.
+// By setting an effect, the bitmask is updated as well.
+// This allows the bitmask to be used to uniquely identify a set of enabled effects.
+class _EffectMap {
+  constructor() {
+    this._bitmask = 0;
+    this._effectValues = {};
+
+    for (let i = 0; i < effectNames.length; i++) {
+      const effectName = effectNames[i];
+      this._effectValues[effectName] = 0;
+
+      Object.defineProperty(this, effectName, {
+        get: () => {
+          return this._effectValues[effectName];
+        },
+
+        set: val => {
+          this._effectValues[effectName] = val;
+
+          if (val === 0) {
+            // If the effect value is 0, meaning it's disabled, set its bit in the bitmask to 0.
+            this._bitmask = (this._bitmask & ~(1 << i));
+          } else {
+            // Otherwise, set its bit to 1.
+            this._bitmask = (this._bitmask | (1 << i));
+          }
+        }
+      })
+    }
+  }
+
+  _clone() {
+    const m = new _EffectMap();
+    for (const effectName of Object.keys(this._effectValues)) {
+      m[effectName] = this[effectName];
+    }
+  }
+
+  clear() {
+    for (const effectName of Object.keys(this._effectValues)) {
+      this._effectValues[effectName] = 0;
+    }
+    this._bitmask = 0;
+  }
+}
+
 class SpriteBase {
   constructor(initialConditions, vars = {}) {
     this._project = null;
@@ -10,6 +58,8 @@ class SpriteBase {
 
     this.triggers = [];
     this.costumes = [];
+
+    this.effects = new _EffectMap();
 
     this._vars = vars;
   }
@@ -221,6 +271,8 @@ export class Sprite extends SpriteBase {
       style: "say",
       timeout: null
     };
+
+    clone.effects = parent.effects._clone();
 
     clone.clones = [];
     clone.parent = this;

@@ -191,11 +191,24 @@ export default class Renderer {
     return stage;
   }
 
-  _renderSkin(skin, drawMode, matrix, screenSpaceScale) {
+  _renderSkin(skin, drawMode, matrix, screenSpaceScale, effects) {
     const gl = this.gl;
-    const shader = this._shaderManager.getShader(drawMode);
+
+    let effectBitmask = 0;
+    if (effects) effectBitmask = effects._bitmask;
+    const shader = this._shaderManager.getShader(drawMode, effectBitmask);
     this._setShader(shader);
     gl.uniformMatrix3fv(shader.uniform('u_transform'), false, matrix);
+
+    if (effectBitmask !== 0) {
+      for (const effect of Object.keys(effects._effectValues)) {
+        const effectVal = effects._effectValues[effect];
+        if (effectVal !== 0) gl.uniform1f(shader.uniform(`u_${effect}`), effectVal);
+      }
+
+      // Pixelate effect needs the skin size
+      if (effects._effectValues.pixelate !== 0) gl.uniform2f(shader.uniform("u_skinSize"), skin.width, skin.height);
+    }
 
     const skinTexture = skin.getTexture(screenSpaceScale);
 
@@ -225,7 +238,7 @@ export default class Renderer {
     const gl = this.gl;
 
     const spriteSkin = this._skinCache.getSkin(spr.costume);
-    this._renderSkin(spriteSkin, drawMode, m, spriteScale);
+    this._renderSkin(spriteSkin, drawMode, m, spriteScale, spr.effects);
   }
 
   renderSpriteSpeechBubble(spr) {
