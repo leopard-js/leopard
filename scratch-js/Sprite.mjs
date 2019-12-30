@@ -272,7 +272,7 @@ export class Sprite extends SpriteBase {
       timeout: null
     };
 
-    clone.effects = parent.effects._clone();
+    clone.effects = this.effects._clone();
 
     clone.clones = [];
     clone.parent = this;

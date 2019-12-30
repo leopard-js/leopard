@@ -8,6 +8,16 @@ export default class Rectangle {
     return this;
   }
 
+  static fromBounds(left, right, bottom, top) {
+    const r = new Rectangle();
+    r.left = left;
+    r.right = right;
+    r.bottom  = bottom;
+    r.top = top;
+
+    return r;
+  }
+
   // Push this rectangle out to integer bounds.
   // This takes a conservative approach and will always expand the rectangle outwards.
   snapToInt() {
@@ -47,6 +57,16 @@ export default class Rectangle {
     this.top = Math.max(Math.min(this.top, top), bottom);
 
     return this;
+  }
+
+  // Compute the union of two rectangles.
+  static union(rect1, rect2, result = new Rectangle()) {
+    result.left = Math.min(rect1.left, rect2.left);
+    result.right = Math.max(rect1.right, rect2.right);
+    result.bottom = Math.min(rect1.bottom, rect2.bottom);
+    result.top = Math.max(rect1.top, rect2.top);
+
+    return result;
   }
 
   // Compute the intersection of two rectangles.

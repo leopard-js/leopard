@@ -12,7 +12,7 @@ export default class Dog extends Sprite {
 
     this.triggers = [
       new Trigger(Trigger.GREEN_FLAG, this.greenFlag),
-      new Trigger(Trigger.GREEN_FLAG, this.checkTouching),
+      //new Trigger(Trigger.GREEN_FLAG, this.checkTouching),
       new Trigger(Trigger.CLONE_START, this.whenIStartAsClone),
       new Trigger(Trigger.CLONE_START, this.whenIStartAsClone2)
     ];

@@ -323,17 +323,28 @@ export default class Renderer {
     return rect;
   }
 
-  checkSpriteCollision(spr1, spr2, fast) {
+  checkSpriteCollision(spr1, targets, fast) {
     if (!spr1.visible) return false;
-    if (!spr2.visible) return false;
+    if (!Array.isArray(targets)) {
+      targets = [targets];
+    }
+    targets = targets.filter(target => target.visible);
+    if (targets.length === 0) return;
 
     const box1 = this.getBoundingBox(spr1).snapToInt();
-    const box2 = this.getBoundingBox(spr2).snapToInt();
 
-    if (!box1.intersects(box2)) return false;
+    // This is an "impossible rectangle"-- its left bound is infinitely far to the right,
+    // its right bound is infinitely to the left, and so on. It's size is effectively -Infinity.
+    // Its only purpose is to be the "identity rectangle" that starts the rectangle union process.
+    const targetBox = Rectangle.fromBounds(Infinity, -Infinity, Infinity, -Infinity);
+    for (const target of targets) {
+      Rectangle.union(targetBox, this.getBoundingBox(target).snapToInt(), targetBox);
+    }
+
+    if (!box1.intersects(targetBox)) return false;
     if (fast) return true;
 
-    const collisionBox = Rectangle.intersection(box1, box2).clamp(-240, 240, -180, 180);
+    const collisionBox = Rectangle.intersection(box1, targetBox).clamp(-240, 240, -180, 180);
 
     this._setFramebuffer(this._collisionBuffer);
     const gl = this.gl;
@@ -364,8 +375,10 @@ export default class Renderer {
     gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
     // We can draw to the color buffer again. Note that only pixels which pass the stencil test are drawn.
     gl.colorMask(true, true, true, true);
-    // Render the second sprite, which will now be masked in to the area of the first sprite.
-    this.renderSprite(spr2, ShaderManager.DrawModes.SILHOUETTE);
+    // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
+    for (const target of targets) {
+      this.renderSprite(target, ShaderManager.DrawModes.SILHOUETTE);
+    }
 
     // Make sure to disable the stencil test so as not to affect other rendering!
     gl.disable(gl.STENCIL_TEST);
