@@ -316,7 +316,7 @@ export class Sprite extends SpriteBase {
       this._project.renderer.penLine(
         { x: this._x, y: this._y },
         { x, y },
-        this._penColor.toRGBString(),
+        this._penColor,
         this.penSize
       );
     }
@@ -374,7 +374,7 @@ export class Sprite extends SpriteBase {
       this._project.renderer.penLine(
         { x: this.x, y: this.y },
         { x: this.x, y: this.y },
-        this._penColor.toRGBString(),
+        this._penColor,
         this.penSize
       );
     }

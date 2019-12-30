@@ -1,26 +1,6 @@
 import Skin from "./Skin.mjs";
 import ShaderManager from "./ShaderManager.mjs";
 
-// Used for turning CSS colors into RGBA.
-const __colorCanvas = document.createElement("canvas");
-
-// Convert CSS color strings to RGBA colors whose values range from 0-1.
-// This is an ugly hack that will go away once #22 is worked out.
-const _cssColorToRGBAFloat = color => {
-  const colorCtx = __colorCanvas.getContext('2d');
-  colorCtx.fillStyle = color;
-  colorCtx.fillRect(0, 0, 1, 1);
-  const color4b = colorCtx.getImageData(0, 0, 1, 1).data;
-  const color4f = new Float32Array(4);
-  const alpha = color4b[3] / 255;
-  color4f[0] = (color4b[0] / 255) * alpha;
-  color4f[1] = (color4b[1] / 255) * alpha;
-  color4f[2] = (color4b[2] / 255) * alpha;
-  color4f[3] = alpha;
-
-  return color4f;
-}
-
 export default class PenSkin extends Skin {
   constructor(renderer, width, height) {
     super(renderer);
@@ -55,7 +35,7 @@ export default class PenSkin extends Skin {
     gl.uniform1f(shader.uniform('u_penSize'), size);
     gl.uniform2f(shader.uniform('u_penSkinSize'), this.width, this.height);
     gl.uniform4f(shader.uniform('u_penPoints'), pt1.x, pt1.y, pt2.x, pt2.y);
-    gl.uniform4fv(shader.uniform('u_penColor'), _cssColorToRGBAFloat(color));
+    gl.uniform4fv(shader.uniform('u_penColor'), color.toRGBANormalized());
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }

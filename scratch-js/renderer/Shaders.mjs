@@ -201,14 +201,17 @@ varying vec2 v_texCoord;
 
 void main() {
   // Maaaaagic antialiased-line-with-round-caps shader.
-	// Adapted from Inigo Quilez' 2D distance function cheat sheet
-	// https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
-	vec2 pa = v_texCoord - u_penPoints.xy, ba = u_penPoints.zw - u_penPoints.xy;
-	float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+  // Adapted from Inigo Quilez' 2D distance function cheat sheet
+  // https://www.iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
+  vec2 pa = v_texCoord - u_penPoints.xy, ba = u_penPoints.zw - u_penPoints.xy;
+  float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
 
-	float cappedLine = clamp((u_penSize + 1.0) * 0.5 - length(pa - ba*h), 0.0, 1.0);
+  float cappedLine = clamp((u_penSize + 1.0) * 0.5 - length(pa - ba*h), 0.0, 1.0);
 
-	gl_FragColor = u_penColor * cappedLine;
+  // Premultiply pen color by its alpha
+  vec4 premul = vec4(vec3(u_penColor.rgb * u_penColor.a), u_penColor.a);
+
+  gl_FragColor = premul * cappedLine;
 }
 `
 

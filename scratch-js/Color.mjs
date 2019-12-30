@@ -203,6 +203,11 @@ export default class Color {
     return `rgb(${rgb.join(", ")})`;
   }
 
+  toRGBANormalized() {
+    const rgb = hsvToRGB(this.h, this.s, this.v);
+    return [rgb.r / 255, rgb.g / 255, rgb.b / 255, this.a];
+  }
+
   toString() {
     return this.toRGBString();
   }

@@ -1,4 +1,4 @@
-import { Sprite, Trigger, Costume } from "../../scratch-js/index.mjs";
+import { Sprite, Trigger, Costume, Color } from "../../scratch-js/index.mjs";
 
 export default class Cat extends Sprite {
   constructor(...args) {
@@ -27,7 +27,8 @@ export default class Cat extends Sprite {
     yield* this.wait(0.75);
     this.penDown = true;
     this.penSize = 10;
-    this.penColor = 'blue';
+    this.penColor = Color.rgb(255, 127, 0);
+    this.penColor.a = 0.5;
     this.goto(45, 80);
     while (true) {
       //this.direction += 5;
