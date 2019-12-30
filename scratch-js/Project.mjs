@@ -162,6 +162,7 @@ export default class Project {
       };
       audio.addEventListener("ended", soundEnd);
       audio.addEventListener("pause", soundEnd);
+      audio.addEventListener("error", reject);
 
       this.playingSounds.push(sound);
 
