@@ -78,44 +78,56 @@ function hsvToRGB(h, s, v) {
 }
 
 export default class Color {
-  constructor(r = 0, g = 0, b = 0, a = 1) {
-    this.r = r;
-    this.g = g;
-    this.b = b;
+  constructor(h = 0, s = 0, v = 0, a = 1) {
+    this.h = h;
+    this.s = s;
+    this.v = v;
     this.a = a;
   }
 
   static rgb(r, g, b, a = 1) {
-    return new Color(r, g, b, a);
+    const { h, s, v } = rgbToHSV(r, g, b);
+    return new Color(h, s, v, a);
   }
 
   static hsv(h, s, v, a = 1) {
-    const { r, g, b } = hsvToRGB(h, s, v);
-    return new Color(r, g, b, a);
+    return new Color(h, s, v, a);
+  }
+
+  static num(n) {
+    n = Number(n);
+
+    // Match Scratch rgba system
+    // https://github.com/LLK/scratch-vm/blob/0dffc65ce99307d048f6b9a10b1c31b01ab0133d/src/util/color.js#L45
+    const a = (n >> 24) & 0xff;
+    const r = (n >> 16) & 0xff;
+    const g = (n >> 8) & 0xff;
+    const b = n & 0xff;
+    return Color.rgb(r, g, b, a);
   }
 
   // Red
   get r() {
-    return this._r;
+    return hsvToRGB(this.h, this.s, this.v).r;
   }
   set r(r) {
-    this._r = clamp(r, 0, 255);
+    this._setRGB(r, this.g, this.b);
   }
 
   // Green
   get g() {
-    return this._g;
+    return hsvToRGB(this.h, this.s, this.v).g;
   }
   set g(g) {
-    this._g = clamp(g, 0, 255);
+    this._setRGB(this.r, g, this.b);
   }
 
   // Blue
   get b() {
-    return this._b;
+    return hsvToRGB(this.h, this.s, this.v).b;
   }
   set b(b) {
-    this._b = clamp(b, 0, 255);
+    this._setRGB(this.r, this.g, b);
   }
 
   // Alpha
@@ -128,38 +140,38 @@ export default class Color {
 
   // Hue
   get h() {
-    return rgbToHSV(this.r, this.g, this.b).h;
+    return this._h;
   }
   set h(h) {
-    this._setHSV(h, this.s, this.v);
+    this._h = ((h % 100) + 100) % 100;
   }
 
   // Shade
   get s() {
-    return rgbToHSV(this.r, this.g, this.b).s;
+    return this._s;
   }
   set s(s) {
-    this._setHSV(this.h, s, this.v);
+    this._s = clamp(s, 0, 100);
   }
 
   // Value
   get v() {
-    return rgbToHSV(this.r, this.g, this.b).v;
+    return this._v;
   }
   set v(v) {
-    this._setHSV(this.h, this.s, v);
+    this._v = clamp(v, 0, 100);
   }
 
-  _setHSV(h, s, v) {
-    h = ((h % 100) + 100) % 100;
-    s = clamp(s, 0, 100);
-    v = clamp(v, 0, 100);
+  _setRGB(r, g, b) {
+    r = clamp(r, 0, 255);
+    g = clamp(g, 0, 255);
+    b = clamp(b, 0, 255);
 
-    const { r, g, b } = hsvToRGB(h, s, v);
+    const { h, s, v } = rgbToHSV(r, g, b);
 
-    this.r = r;
-    this.g = g;
-    this.b = b;
+    this.h = h;
+    this.s = s;
+    this.v = v;
   }
 
   toHexString(forceIncludeAlpha = false) {

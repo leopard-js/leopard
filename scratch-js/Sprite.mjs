@@ -320,15 +320,7 @@ export class Sprite extends SpriteBase {
   }
 
   set penColor(color) {
-    if (typeof color === "number") {
-      // Match Scratch rgba system
-      // https://github.com/LLK/scratch-vm/blob/0dffc65ce99307d048f6b9a10b1c31b01ab0133d/src/util/color.js#L45
-      const a = (color >> 24) & 0xff;
-      const r = (color >> 16) & 0xff;
-      const g = (color >> 8) & 0xff;
-      const b = color & 0xff;
-      this._penColor = Color.rgba(r, g, b, a / 255);
-    } else if (color instanceof Color) {
+    if (color instanceof Color) {
       this._penColor = color;
     } else {
       console.error(
