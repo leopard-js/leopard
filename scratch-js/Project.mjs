@@ -103,6 +103,10 @@ export default class Project {
         const sprite = this.sprites[spriteName];
         sprite.clones = [];
       }
+
+      for (const sprite of this.spritesAndStage) {
+        sprite.effects.clear();
+      }
     }
 
     // Find triggers which match conditions

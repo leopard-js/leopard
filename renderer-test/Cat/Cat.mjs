@@ -16,6 +16,8 @@ export default class Cat extends Sprite {
       new Trigger(Trigger.KEY_PRESSED, {key: "down"}, this.decreaseSize),
       new Trigger(Trigger.KEY_PRESSED, {key: "space"}, this.hideMe),
     ];
+
+    this.rotationStyle = Sprite.RotationStyle.LEFT_RIGHT;
   }
 
   *greenFlag() {
@@ -26,18 +28,19 @@ export default class Cat extends Sprite {
     this.penDown = true;
     this.penSize = 10;
     this.penColor = 'blue';
-    this.goto(75, -20);
+    this.goto(45, 80);
     while (true) {
       //this.direction += 5;
       //this.move(10);
-      this.goto(this.mouse.x - 10, this.mouse.y);
+      //this.goto(this.mouse.x - 10, this.mouse.y);
+      this.direction = this.radToScratch(Math.atan2(this.mouse.y - this.y, this.mouse.x - this.x));
       if (this.mouse.down) {
         this.effects.color += 1;
         this.effects.pixelate = 50;
         this.effects.whirl += 1;
         this.effects.ghost += 1;
       } else {
-        this.effects.clear();
+        //this.effects.clear();
       }
       //this.stamp();
       yield;

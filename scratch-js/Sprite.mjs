@@ -122,14 +122,12 @@ class SpriteBase {
     return this.degToRad(this.scratchToDeg(scratchDir));
   }
 
+  // Wrap rotation from -180 to 180.
   normalizeDeg(deg) {
-    return ((deg - 180) % 360) + 180;
-  }
-
-  normalizeScratch(scratchDir) {
-    const deg = this.scratchToDeg(scratchDir);
-    const normalized = this.normalizeDeg(deg);
-    return this.degToScratch(normalized);
+    // This is a pretty big math expression, but it's necessary because in JavaScript,
+    // the % operator means "remainder", not "modulo", and so negative numbers won't "wrap around".
+    // See https://web.archive.org/web/20090717035140if_/javascript.about.com/od/problemsolving/a/modulobug.htm
+    return ((((deg + 180) % 360) + 360) % 360) - 180;
   }
 
   random(a, b) {
@@ -224,6 +222,7 @@ export class Sprite extends SpriteBase {
       x,
       y,
       direction,
+      rotationStyle,
       costumeNumber,
       size,
       visible,
@@ -235,6 +234,7 @@ export class Sprite extends SpriteBase {
     this._x = x;
     this._y = y;
     this._direction = direction;
+    this.rotationStyle = rotationStyle || Sprite.RotationStyle.ALL_AROUND;
     this._costumeNumber = costumeNumber;
     this.size = size;
     this.visible = visible;
@@ -306,7 +306,7 @@ export class Sprite extends SpriteBase {
   }
 
   set direction(dir) {
-    this._direction = this.normalizeScratch(dir);
+    this._direction = this.normalizeDeg(dir);
   }
 
   goto(x, y) {
@@ -460,6 +460,12 @@ export class Sprite extends SpriteBase {
     while (!done) yield;
   }
 }
+
+Sprite.RotationStyle = Object.freeze({
+  ALL_AROUND: Symbol("ALL_AROUND"),
+  LEFT_RIGHT: Symbol("LEFT_RIGHT"),
+  DONT_ROTATE: Symbol("DONT_ROTATE")
+});
 
 export class Stage extends SpriteBase {
   constructor(...args) {

@@ -4,6 +4,8 @@ import Rectangle from "./renderer/Rectangle.mjs";
 import ShaderManager from "./renderer/ShaderManager.mjs";
 import SkinCache from "./renderer/SkinCache.mjs";
 
+import {Sprite} from "./Sprite.mjs";
+
 export default class Renderer {
   constructor(renderTarget, { w = 480, h = 360 } = {}) {
     this.stage = this.createStage(w, h);
@@ -230,7 +232,17 @@ export default class Renderer {
     // These transforms are actually in reverse order because lol matrices
     const m = Matrix.create();
     Matrix.translate(m, m, spr.x, spr.y);
-    Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
+    switch (spr.rotationStyle) {
+      case Sprite.RotationStyle.ALL_AROUND: {
+        Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
+        break;
+      }
+      case Sprite.RotationStyle.LEFT_RIGHT: {
+        if (spr.direction < 0) Matrix.scale(m, m, -1, 1);
+        break;
+      }
+    }
+
     Matrix.scale(m, m, spriteScale, spriteScale);
     Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
     Matrix.scale(m, m, spr.costume.width, spr.costume.height);
