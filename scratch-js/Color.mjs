@@ -103,7 +103,7 @@ export default class Color {
     const r = (n >> 16) & 0xff;
     const g = (n >> 8) & 0xff;
     const b = n & 0xff;
-    return Color.rgb(r, g, b, a);
+    return Color.rgb(r, g, b, a > 0 ? a / 255 : 1);
   }
 
   // Red
