@@ -187,24 +187,17 @@ export class Sprite extends SpriteBase {
   }
 
   createClone() {
-    const parent = this.parent || this;
     const clone = Object.assign(
-      Object.create(Object.getPrototypeOf(parent)),
-      parent
+      Object.create(Object.getPrototypeOf(this)),
+      this
     );
 
-    clone._project = parent._project;
-
-    clone.triggers = parent.triggers.map(
-      trigger =>
-        new Trigger(
-          trigger.trigger,
-          trigger.options,
-          trigger._script.bind(clone)
-        )
+    clone._project = this._project;
+    clone.triggers = this.triggers.map(
+      trigger => new Trigger(trigger.trigger, trigger.options, trigger._script)
     );
-    clone.costumes = parent.costumes;
-    clone._vars = Object.assign({}, parent._vars);
+    clone.costumes = this.costumes;
+    clone._vars = Object.assign({}, this._vars);
 
     clone._speechBubble = {
       text: "",
@@ -213,8 +206,8 @@ export class Sprite extends SpriteBase {
     };
 
     clone.clones = [];
-    clone.parent = parent;
-    parent.clones.push(clone);
+    clone.parent = this;
+    this.clones.push(clone);
 
     // Trigger CLONE_START:
     const triggers = clone.triggers.filter(tr =>
@@ -233,6 +226,10 @@ export class Sprite extends SpriteBase {
     this._project.runningTriggers = this._project.runningTriggers.filter(
       ({ target }) => target !== this
     );
+  }
+
+  andClones() {
+    return [this, ...this.clones.flatMap(clone => clone.andClones())];
   }
 
   get direction() {
