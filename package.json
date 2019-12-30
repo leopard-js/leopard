@@ -1,0 +1,26 @@
+{
+  "name": "scratch-js",
+  "version": "0.1.0",
+  "description": "Library for making Scratch-like projects with JavaScript.",
+  "main": "scratch-js/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint 'scratch-js/**'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PullJosh/scratch-js.git"
+  },
+  "author": "Josh Pullen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PullJosh/scratch-js/issues"
+  },
+  "homepage": "https://scratch-js.now.sh/",
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.9.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "prettier": "^1.19.1"
+  }
+}
