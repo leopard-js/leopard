@@ -193,7 +193,9 @@ export class Sprite extends SpriteBase {
     );
 
     clone._project = this._project;
-    clone.triggers = this.triggers;
+    clone.triggers = this.triggers.map(
+      trigger => new Trigger(trigger.trigger, trigger.options, trigger._script)
+    );
     clone.costumes = this.costumes;
     clone._vars = Object.assign({}, this._vars);
 
