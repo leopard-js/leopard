@@ -131,8 +131,9 @@ export default class Project {
             trigger.trigger === runningTrigger.trigger &&
             trigger.target === runningTrigger.target
         )
-      )
+      ) {
         this.runningTriggers.push(trigger);
+      }
     }
     return Promise.all(
       triggers.map(({ trigger, target }) => {
@@ -142,10 +143,7 @@ export default class Project {
   }
 
   get spritesAndClones() {
-    return Object.values(this.sprites).flatMap(sprite => [
-      sprite,
-      ...sprite.clones
-    ]);
+    return Object.values(this.sprites).flatMap(sprite => sprite.andClones());
   }
 
   get spritesAndStage() {
