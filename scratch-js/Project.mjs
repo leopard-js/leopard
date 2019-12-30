@@ -85,8 +85,6 @@ export default class Project {
       ({ trigger }) => !trigger.done
     );
 
-    console.log(this.runningTriggers.length);
-
     this.renderer.update(this.stage, this.spritesAndClones);
 
     window.requestAnimationFrame(this.step.bind(this));
@@ -123,7 +121,19 @@ export default class Project {
   }
 
   _startTriggers(triggers) {
-    this.runningTriggers = [...this.runningTriggers, ...triggers];
+    // Only add these triggers to this.runningTriggers if they're not already there.
+    // TODO: if the triggers are already running, they'll be restarted but their execution order is unchanged.
+    // Does that match Scratch's behavior?
+    for (const trigger of triggers) {
+      if (
+        !this.runningTriggers.find(
+          runningTrigger =>
+            trigger.trigger === runningTrigger.trigger &&
+            trigger.target === runningTrigger.target
+        )
+      )
+        this.runningTriggers.push(trigger);
+    }
     return Promise.all(
       triggers.map(({ trigger, target }) => {
         return trigger.start(target);
