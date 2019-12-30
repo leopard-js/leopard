@@ -1,7 +1,7 @@
 import Skin from "./Skin.mjs";
 
 export default class BitmapSkin extends Skin {
-  constructor (renderer, image) {
+  constructor(renderer, image) {
     super(renderer);
 
     this._image = image;
@@ -10,11 +10,9 @@ export default class BitmapSkin extends Skin {
     this._setSizeFromImage(image);
   }
 
-  getTexture (scale) {
+  getTexture() {
     const image = this._image;
     if (!image.complete) return null;
-
-    const gl = this.gl;
 
     if (this._texture === null) {
       // Use nearest-neighbor (i.e. blocky) texture filtering for bitmaps
@@ -23,7 +21,7 @@ export default class BitmapSkin extends Skin {
     return this._texture;
   }
 
-  destroy () {
+  destroy() {
     if (this._texture !== null) this.gl.deleteTexture(this._texture);
   }
 }

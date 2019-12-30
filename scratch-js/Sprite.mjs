@@ -24,13 +24,13 @@ class _EffectMap {
 
           if (val === 0) {
             // If the effect value is 0, meaning it's disabled, set its bit in the bitmask to 0.
-            this._bitmask = (this._bitmask & ~(1 << i));
+            this._bitmask = this._bitmask & ~(1 << i);
           } else {
             // Otherwise, set its bit to 1.
-            this._bitmask = (this._bitmask | (1 << i));
+            this._bitmask = this._bitmask | (1 << i);
           }
         }
-      })
+      });
     }
   }
 

@@ -4,11 +4,11 @@ import Skin from "./Skin.mjs";
 const MIPMAP_OFFSET = 4;
 
 export default class VectorSkin extends Skin {
-  constructor (renderer, image) {
+  constructor(renderer, image) {
     super(renderer);
 
     this._image = image;
-    this._canvas = document.createElement('canvas');
+    this._canvas = document.createElement("canvas");
 
     this._setSizeFromImage(image);
 
@@ -16,12 +16,12 @@ export default class VectorSkin extends Skin {
   }
 
   // TODO: handle proper subpixel positioning when SVG viewbox has non-integer coordinates
-  _createMipmap (mipLevel) {
+  _createMipmap(mipLevel) {
     const scale = 2 ** (mipLevel - MIPMAP_OFFSET);
 
     // Instead of uploading the image to WebGL as a texture, render the image to a canvas and upload the canvas.
     const canvas = this._canvas;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
 
     const image = this._image;
     const width = image.naturalWidth * scale;
@@ -36,11 +36,9 @@ export default class VectorSkin extends Skin {
     this._mipmaps.set(mipLevel, this._makeTexture(canvas, this.gl.LINEAR));
   }
 
-  getTexture (scale) {
+  getTexture(scale) {
     const image = this._image;
     if (!image.complete) return null;
-
-    const gl = this.gl;
 
     // Because WebGL doesn't support vector graphics, substitute a bunch of bitmaps.
     // This skin contains several renderings of its image at different scales.
@@ -55,7 +53,7 @@ export default class VectorSkin extends Skin {
     return this._mipmaps.get(mipLevel);
   }
 
-  destroy () {
+  destroy() {
     for (const mip of this._mipmaps.values()) {
       this.gl.deleteTexture(mip);
     }

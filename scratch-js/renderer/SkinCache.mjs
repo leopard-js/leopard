@@ -16,7 +16,7 @@ export default class SkinCache {
   // Begin GC tracing. Any skin retrieved and rendered during tracing will *not* be garbage-collected.
   beginTrace() {
     // Initialize by assuming no texture is used.
-    this._skins.forEach((skin, key) => {
+    this._skins.forEach(skin => {
       skin.used = false;
     });
   }
@@ -43,10 +43,10 @@ export default class SkinCache {
       // TODO: this is a janky way to tell whether this is a speech bubble
       if (obj.text) {
         skin = new SpeechBubbleSkin(this._renderer, obj);
-      } else
+      }
       // If it's not a speech bubble, it's a costume.
       // TODO: there's gotta be a better way to tell if an image is an SVG
-      if (obj.img.src.endsWith('.svg')) {
+      else if (obj.img.src.endsWith(".svg")) {
         skin = new VectorSkin(this._renderer, obj.img);
       } else {
         skin = new BitmapSkin(this._renderer, obj.img);

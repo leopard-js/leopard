@@ -6,7 +6,7 @@ const bubbleStyle = {
   strokeWidth: 4,
   padding: 12,
   tailHeight: 12
-}
+};
 
 // TODO: multiline speech bubbles
 export default class SpeechBubbleSkin extends Skin {
@@ -27,9 +27,9 @@ export default class SpeechBubbleSkin extends Skin {
 
   // To ensure proper text measurement and drawing, it's necessary to restyle the canvas after resizing it.
   _restyleCanvas() {
-    const ctx = this._canvas.getContext('2d');
-    ctx.font = '16px sans-serif';
-    ctx.textBaseline = 'hanging';
+    const ctx = this._canvas.getContext("2d");
+    ctx.font = "16px sans-serif";
+    ctx.textBaseline = "hanging";
   }
 
   _renderBubble(bubble) {
@@ -82,11 +82,12 @@ export default class SpeechBubbleSkin extends Skin {
     const maxWidth = bubbleStyle.maxLineWidth;
     const padding = bubbleStyle.padding;
 
-    const width = Math.ceil(Math.min(textWidth, maxWidth) + (2 * padding));
+    const width = Math.ceil(Math.min(textWidth, maxWidth) + 2 * padding);
     const height = 10 + 2 * padding;
 
     this.width = canvas.width = width + bubbleStyle.strokeWidth;
-    this.height = canvas.height = height + bubbleStyle.tailHeight + bubbleStyle.strokeWidth;
+    this.height = canvas.height =
+      height + bubbleStyle.tailHeight + bubbleStyle.strokeWidth;
 
     this._restyleCanvas();
 
@@ -102,7 +103,8 @@ export default class SpeechBubbleSkin extends Skin {
     ctx.fillText(text, x + padding, y + padding, maxWidth);
   }
 
-  getTexture(scale) {
+  // TODO: when stage resizing gets added, render text bubbles at screen-space scale
+  getTexture() {
     if (this._texture === null) {
       this._texture = this._makeTexture(this._canvas, this.gl.LINEAR);
     }

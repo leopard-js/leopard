@@ -5,7 +5,7 @@
 // 3x3 transform matrix operations, unrolled 4 da speedz.
 export default class Matrix {
   // Create a new 3x3 transform matrix, initialized to the identity matrix.
-  static create () {
+  static create() {
     const matrix = new Float32Array(9);
     matrix[0] = 1;
     matrix[4] = 1;
@@ -14,10 +14,16 @@ export default class Matrix {
   }
 
   // Translate a matrix by the given X and Y values
-  static translate (dst, src, x, y) {
-    const a00 = src[0], a01 = src[1], a02 = src[2],
-    a10 = src[3], a11 = src[4], a12 = src[5],
-    a20 = src[6], a21 = src[7], a22 = src[8];
+  static translate(dst, src, x, y) {
+    const a00 = src[0],
+      a01 = src[1],
+      a02 = src[2],
+      a10 = src[3],
+      a11 = src[4],
+      a12 = src[5],
+      a20 = src[6],
+      a21 = src[7],
+      a22 = src[8];
 
     dst[0] = a00;
     dst[1] = a01;
@@ -34,13 +40,18 @@ export default class Matrix {
   }
 
   // Rotate a matrix, in radians
-  static rotate (dst, src, rad) {
-    const a00 = src[0], a01 = src[1], a02 = src[2],
-    a10 = src[3], a11 = src[4], a12 = src[5],
-    a20 = src[6], a21 = src[7], a22 = src[8],
-
-    s = Math.sin(rad),
-    c = Math.cos(rad);
+  static rotate(dst, src, rad) {
+    const a00 = src[0],
+      a01 = src[1],
+      a02 = src[2],
+      a10 = src[3],
+      a11 = src[4],
+      a12 = src[5],
+      a20 = src[6],
+      a21 = src[7],
+      a22 = src[8],
+      s = Math.sin(rad),
+      c = Math.cos(rad);
 
     dst[0] = c * a00 + s * a10;
     dst[1] = c * a01 + s * a11;
@@ -57,7 +68,7 @@ export default class Matrix {
   }
 
   // Scale a matrix by the given X and Y values
-  static scale (dst, src, x, y) {
+  static scale(dst, src, x, y) {
     dst[0] = x * src[0];
     dst[1] = x * src[1];
     dst[2] = x * src[2];

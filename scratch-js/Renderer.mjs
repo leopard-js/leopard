@@ -4,12 +4,12 @@ import Rectangle from "./renderer/Rectangle.mjs";
 import ShaderManager from "./renderer/ShaderManager.mjs";
 import SkinCache from "./renderer/SkinCache.mjs";
 
-import {Sprite} from "./Sprite.mjs";
+import { Sprite } from "./Sprite.mjs";
 
 export default class Renderer {
   constructor(renderTarget, { w = 480, h = 360 } = {}) {
     this.stage = this.createStage(w, h);
-    this.gl = this.stage.getContext("webgl", {antialias: false});
+    this.gl = this.stage.getContext("webgl", { antialias: false });
 
     if (renderTarget !== undefined) {
       this.setRenderTarget(renderTarget);
@@ -38,15 +38,7 @@ export default class Renderer {
     // These are 6 points which make up 2 triangles which make up 1 quad/rectangle.
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array([
-        0, 0,
-        0, 1,
-        1, 0,
-
-        1, 1,
-        0, 1,
-        1, 0
-      ]),
+      new Float32Array([0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0]),
       gl.STATIC_DRAW
     );
 
@@ -56,7 +48,11 @@ export default class Renderer {
     this._penSkin = new PenSkin(this, w, h);
 
     // This framebuffer is where sprites are drawn for e.g. "touching" checks.
-    this._collisionBuffer = this._createFramebuffer(w, h, gl.NEAREST).framebuffer;
+    this._collisionBuffer = this._createFramebuffer(
+      w,
+      h,
+      gl.NEAREST
+    ).framebuffer;
 
     // In addition to the color attachment, we must also attach a stencil buffer to our collision buffer.
     // The depth buffer is unnecessary, but WebGL only guarantees
@@ -64,10 +60,15 @@ export default class Renderer {
     const renderbuffer = gl.createRenderbuffer();
     gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, w, h);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+    gl.framebufferRenderbuffer(
+      gl.FRAMEBUFFER,
+      gl.DEPTH_STENCIL_ATTACHMENT,
+      gl.RENDERBUFFER,
+      renderbuffer
+    );
   }
 
-  _createFramebuffer (width, height, filtering) {
+  _createFramebuffer(width, height, filtering) {
     // Create an empty texture with this skin's dimensions.
     const gl = this.gl;
     const texture = gl.createTexture();
@@ -92,9 +93,15 @@ export default class Renderer {
     // and the results appear in the texture.
     const framebuffer = gl.createFramebuffer();
     this._setFramebuffer(framebuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      texture,
+      0
+    );
 
-    return {texture, framebuffer};
+    return { texture, framebuffer };
   }
 
   setRenderTarget(renderTarget) {
@@ -116,7 +123,7 @@ export default class Renderer {
 
       // These attributes and uniforms don't ever change, but must be set whenever a new shader program is used.
 
-      const attribLocation = shader.attrib('a_position');
+      const attribLocation = shader.attrib("a_position");
       gl.enableVertexAttribArray(attribLocation);
       // Bind the 'a_position' vertex attribute to the current contents of `gl.ARRAY_BUFFER`, which in this case
       // is a quadrilateral (as buffered earlier).
@@ -130,7 +137,7 @@ export default class Renderer {
       );
 
       // Projection matrix-- transforms from stage dimensions (-240 to 240 and -180 to 180) to GL clip space (-1 to 1).
-      gl.uniformMatrix3fv(shader.uniform('u_projection'), false, [
+      gl.uniformMatrix3fv(shader.uniform("u_projection"), false, [
         2 / this.stage.width,
         0,
         0,
@@ -164,9 +171,19 @@ export default class Renderer {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     const penMatrix = Matrix.create();
-    Matrix.scale(penMatrix, penMatrix, this._penSkin.width, -this._penSkin.height);
+    Matrix.scale(
+      penMatrix,
+      penMatrix,
+      this._penSkin.width,
+      -this._penSkin.height
+    );
     Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
-    this._renderSkin(this._penSkin, ShaderManager.DrawModes.DEFAULT, penMatrix, 1);
+    this._renderSkin(
+      this._penSkin,
+      ShaderManager.DrawModes.DEFAULT,
+      penMatrix,
+      1
+    );
 
     // TODO: find a way to not destroy the skins of hidden sprites
     this._skinCache.beginTrace();
@@ -200,23 +217,25 @@ export default class Renderer {
     if (effects) effectBitmask = effects._bitmask;
     const shader = this._shaderManager.getShader(drawMode, effectBitmask);
     this._setShader(shader);
-    gl.uniformMatrix3fv(shader.uniform('u_transform'), false, matrix);
+    gl.uniformMatrix3fv(shader.uniform("u_transform"), false, matrix);
 
     if (effectBitmask !== 0) {
       for (const effect of Object.keys(effects._effectValues)) {
         const effectVal = effects._effectValues[effect];
-        if (effectVal !== 0) gl.uniform1f(shader.uniform(`u_${effect}`), effectVal);
+        if (effectVal !== 0)
+          gl.uniform1f(shader.uniform(`u_${effect}`), effectVal);
       }
 
       // Pixelate effect needs the skin size
-      if (effects._effectValues.pixelate !== 0) gl.uniform2f(shader.uniform("u_skinSize"), skin.width, skin.height);
+      if (effects._effectValues.pixelate !== 0)
+        gl.uniform2f(shader.uniform("u_skinSize"), skin.width, skin.height);
     }
 
     const skinTexture = skin.getTexture(screenSpaceScale);
 
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point
-    gl.uniform1i(shader.uniform('u_texture'), 0);
+    gl.uniform1i(shader.uniform("u_texture"), 0);
 
     // Draw 6 vertices. In this case, they belong to the 2 triangles that make up 1 quadrilateral.
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -246,8 +265,6 @@ export default class Renderer {
     Matrix.scale(m, m, spriteScale, spriteScale);
     Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
     Matrix.scale(m, m, spr.costume.width, spr.costume.height);
-
-    const gl = this.gl;
 
     const spriteSkin = this._skinCache.getSkin(spr.costume);
     this._renderSkin(spriteSkin, drawMode, m, spriteScale, spr.effects);
@@ -297,7 +314,11 @@ export default class Renderer {
     const points = [
       movePoint(movePoint(origin, angle.up, dist.up), angle.right, dist.right),
       movePoint(movePoint(origin, angle.up, dist.up), angle.left, dist.left),
-      movePoint(movePoint(origin, angle.down, dist.down), angle.right, dist.right),
+      movePoint(
+        movePoint(origin, angle.down, dist.down),
+        angle.right,
+        dist.right
+      ),
       movePoint(movePoint(origin, angle.down, dist.down), angle.left, dist.left)
     ];
 
@@ -336,15 +357,29 @@ export default class Renderer {
     // This is an "impossible rectangle"-- its left bound is infinitely far to the right,
     // its right bound is infinitely to the left, and so on. It's size is effectively -Infinity.
     // Its only purpose is to be the "identity rectangle" that starts the rectangle union process.
-    const targetBox = Rectangle.fromBounds(Infinity, -Infinity, Infinity, -Infinity);
+    const targetBox = Rectangle.fromBounds(
+      Infinity,
+      -Infinity,
+      Infinity,
+      -Infinity
+    );
     for (const target of targets) {
-      Rectangle.union(targetBox, this.getBoundingBox(target).snapToInt(), targetBox);
+      Rectangle.union(
+        targetBox,
+        this.getBoundingBox(target).snapToInt(),
+        targetBox
+      );
     }
 
     if (!box1.intersects(targetBox)) return false;
     if (fast) return true;
 
-    const collisionBox = Rectangle.intersection(box1, targetBox).clamp(-240, 240, -180, 180);
+    const collisionBox = Rectangle.intersection(box1, targetBox).clamp(
+      -240,
+      240,
+      -180,
+      180
+    );
 
     this._setFramebuffer(this._collisionBuffer);
     const gl = this.gl;
@@ -383,7 +418,9 @@ export default class Renderer {
     // Make sure to disable the stencil test so as not to affect other rendering!
     gl.disable(gl.STENCIL_TEST);
 
-    const pixelData = new Uint8Array(collisionBox.width * collisionBox.height * 4);
+    const pixelData = new Uint8Array(
+      collisionBox.width * collisionBox.height * 4
+    );
     gl.readPixels(
       collisionBox.left + 240,
       collisionBox.bottom + 180,
@@ -418,7 +455,15 @@ export default class Renderer {
     this.renderSprite(spr);
 
     const hoveredPixel = new Uint8Array(4);
-    gl.readPixels(point.x + 240, point.y + 180, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, hoveredPixel);
+    gl.readPixels(
+      point.x + 240,
+      point.y + 180,
+      1,
+      1,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      hoveredPixel
+    );
     return hoveredPixel[3] !== 0;
   }
 

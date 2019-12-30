@@ -1,7 +1,6 @@
 const SpriteShader = {};
 
-SpriteShader.vertex =
-`
+SpriteShader.vertex = `
 precision mediump float;
 
 attribute vec2 a_position;
@@ -16,8 +15,7 @@ void main() {
 }
 `;
 
-SpriteShader.fragment =
-`
+SpriteShader.fragment = `
 precision mediump float;
 
 const float epsilon = 1e-3;
@@ -163,11 +161,9 @@ void main() {
 }
 `;
 
-
 const PenLineShader = {};
 
-PenLineShader.vertex =
-`
+PenLineShader.vertex = `
 precision mediump float;
 
 attribute vec2 a_position;
@@ -187,10 +183,9 @@ void main() {
   v_texCoord = penBounds;
   gl_Position = vec4(position, 1.0, 1.0);
 }
-`
+`;
 
-PenLineShader.fragment =
-`
+PenLineShader.fragment = `
 precision mediump float;
 
 uniform sampler2D u_texture;
@@ -213,6 +208,6 @@ void main() {
 
   gl_FragColor = premul * cappedLine;
 }
-`
+`;
 
-export {SpriteShader, PenLineShader};
+export { SpriteShader, PenLineShader };

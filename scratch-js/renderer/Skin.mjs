@@ -1,5 +1,5 @@
 export default class Skin {
-  constructor (renderer) {
+  constructor(renderer) {
     this.renderer = renderer;
     this.gl = renderer.gl;
     this.used = true;
@@ -7,6 +7,7 @@ export default class Skin {
 
   // Get the skin's texture for a given (screen-space) scale.
   // This is a method and not a getter to signal that it's potentially expensive.
+  /* eslint-disable-next-line no-unused-vars */
   getTexture(scale) {
     return null;
   }
@@ -23,14 +24,7 @@ export default class Skin {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filtering);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filtering);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      image
-    );
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 
     return glTexture;
   }
@@ -44,10 +38,10 @@ export default class Skin {
       image.addEventListener("load", () => {
         this.width = image.naturalWidth;
         this.height = image.naturalHeight;
-      })
+      });
     }
   }
 
   // Clean up any textures or other objets created by this skin.
-  destroy () {}
+  destroy() {}
 }

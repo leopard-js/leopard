@@ -7,7 +7,11 @@ export default class PenSkin extends Skin {
     this.width = width;
     this.height = height;
 
-    const {framebuffer, texture} = renderer._createFramebuffer(width, height, this.gl.NEAREST);
+    const { framebuffer, texture } = renderer._createFramebuffer(
+      width,
+      height,
+      this.gl.NEAREST
+    );
     this._framebuffer = framebuffer;
     this._texture = texture;
 
@@ -20,7 +24,7 @@ export default class PenSkin extends Skin {
     gl.deleteFramebuffer(this._framebuffer);
   }
 
-  getTexture(scale) {
+  getTexture() {
     return this._texture;
   }
 
@@ -28,14 +32,16 @@ export default class PenSkin extends Skin {
     const renderer = this.renderer;
     renderer._setFramebuffer(this._framebuffer);
 
-    const shader = renderer._shaderManager.getShader(ShaderManager.DrawModes.PEN_LINE);
+    const shader = renderer._shaderManager.getShader(
+      ShaderManager.DrawModes.PEN_LINE
+    );
     renderer._setShader(shader);
 
     const gl = this.gl;
-    gl.uniform1f(shader.uniform('u_penSize'), size);
-    gl.uniform2f(shader.uniform('u_penSkinSize'), this.width, this.height);
-    gl.uniform4f(shader.uniform('u_penPoints'), pt1.x, pt1.y, pt2.x, pt2.y);
-    gl.uniform4fv(shader.uniform('u_penColor'), color.toRGBANormalized());
+    gl.uniform1f(shader.uniform("u_penSize"), size);
+    gl.uniform2f(shader.uniform("u_penSkinSize"), this.width, this.height);
+    gl.uniform4f(shader.uniform("u_penPoints"), pt1.x, pt1.y, pt2.x, pt2.y);
+    gl.uniform4fv(shader.uniform("u_penColor"), color.toRGBANormalized());
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }

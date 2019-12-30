@@ -12,7 +12,7 @@ export default class Rectangle {
     const r = new Rectangle();
     r.left = left;
     r.right = right;
-    r.bottom  = bottom;
+    r.bottom = bottom;
     r.top = top;
 
     return r;
@@ -42,10 +42,7 @@ export default class Rectangle {
   // Check whether a given point is inside this rectangle.
   containsPoint(x, y) {
     return (
-      x >= this.left &&
-      x <= this.right &&
-      y >= this.bottom &&
-      y <= this.top
+      x >= this.left && x <= this.right && y >= this.bottom && y <= this.top
     );
   }
 
