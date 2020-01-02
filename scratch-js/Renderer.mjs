@@ -4,7 +4,7 @@ import Rectangle from "./renderer/Rectangle.mjs";
 import ShaderManager from "./renderer/ShaderManager.mjs";
 import SkinCache from "./renderer/SkinCache.mjs";
 
-import { Sprite } from "./Sprite.mjs";
+import { Sprite, Stage } from "./Sprite.mjs";
 
 export default class Renderer {
   constructor(project, renderTarget, { w = 480, h = 360 } = {}) {
@@ -39,6 +39,8 @@ export default class Renderer {
     // These are 6 points which make up 2 triangles which make up 1 quad/rectangle.
     gl.bufferData(
       gl.ARRAY_BUFFER,
+      // Prettier mangles the formatting here but every 2 array values make one (x, y) pair
+      // and every 6 values make one triangle
       new Float32Array([0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0]),
       gl.STATIC_DRAW
     );
@@ -163,33 +165,35 @@ export default class Renderer {
     }
   }
 
-  _renderLayers() {
-    // Pen layer
-    const penMatrix = Matrix.create();
-    Matrix.scale(
-      penMatrix,
-      penMatrix,
-      this._penSkin.width,
-      -this._penSkin.height
-    );
-    Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
-    this._renderSkin(
-      this._penSkin,
-      ShaderManager.DrawModes.DEFAULT,
-      penMatrix,
-      1
-    );
+  // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
+  _renderLayers(layers, drawMode = ShaderManager.DrawModes.DEFAULT) {
+    const shouldFilterLayers = layers instanceof Set;
+    const shouldIncludeLayer = layer =>
+      !(shouldFilterLayers && !layers.has(layer));
 
-    // Stage layer
-    this.renderSprite(this.project.stage);
+    // Stage
+    if (shouldIncludeLayer(this.project.stage)) {
+      this.renderSprite(this.project.stage, drawMode);
+    }
+
+    // Pen layer
+    if (shouldIncludeLayer(this._penSkin)) {
+      const penMatrix = Matrix.create();
+      Matrix.scale(
+        penMatrix,
+        penMatrix,
+        this._penSkin.width,
+        -this._penSkin.height
+      );
+      Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
+      this._renderSkin(this._penSkin, drawMode, penMatrix, 1);
+    }
 
     // Sprites + clones
     for (const sprite of this.project.spritesAndClones) {
-      if (sprite.visible) {
-        this.renderSprite(sprite);
-        if (sprite._speechBubble.text) {
-          this.renderSpriteSpeechBubble(sprite);
-        }
+      // Stage doesn't have "visible" defined, so check if it's strictly false
+      if (shouldIncludeLayer(sprite) && sprite.visible !== false) {
+        this.renderSprite(sprite, drawMode);
       }
     }
   }
@@ -251,38 +255,51 @@ export default class Renderer {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  renderSprite(spr, drawMode = ShaderManager.DrawModes.DEFAULT) {
-    // The stage does not have a size, so set its scale to 1.
-    let spriteScale = 1;
-    if (spr.size) {
-      spriteScale = spr.size / 100;
+  renderSprite(sprite, drawMode) {
+    this._renderSkin(
+      this._skinCache.getSkin(sprite.costume),
+      drawMode,
+      this._calculateSpriteMatrix(sprite),
+      1,
+      this.project.stage.effects
+    );
+    if (sprite._speechBubble && sprite._speechBubble.text) {
+      const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
+      this._renderSkin(
+        speechBubbleSkin,
+        drawMode,
+        this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
+        1
+      );
     }
+  }
 
+  _calculateSpriteMatrix(spr) {
     // These transforms are actually in reverse order because lol matrices
     const m = Matrix.create();
-    Matrix.translate(m, m, spr.x, spr.y);
-    switch (spr.rotationStyle) {
-      case Sprite.RotationStyle.ALL_AROUND: {
-        Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
-        break;
+    if (!(spr instanceof Stage)) {
+      Matrix.translate(m, m, spr.x, spr.y);
+      switch (spr.rotationStyle) {
+        case Sprite.RotationStyle.ALL_AROUND: {
+          Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
+          break;
+        }
+        case Sprite.RotationStyle.LEFT_RIGHT: {
+          if (spr.direction < 0) Matrix.scale(m, m, -1, 1);
+          break;
+        }
       }
-      case Sprite.RotationStyle.LEFT_RIGHT: {
-        if (spr.direction < 0) Matrix.scale(m, m, -1, 1);
-        break;
-      }
-    }
 
-    Matrix.scale(m, m, spriteScale, spriteScale);
+      const spriteScale = spr.size / 100;
+      Matrix.scale(m, m, spriteScale, spriteScale);
+    }
     Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
     Matrix.scale(m, m, spr.costume.width, spr.costume.height);
 
-    const spriteSkin = this._skinCache.getSkin(spr.costume);
-    this._renderSkin(spriteSkin, drawMode, m, spriteScale, spr.effects);
+    return m;
   }
 
-  renderSpriteSpeechBubble(spr) {
-    const speechBubbleSkin = this._skinCache.getSkin(spr._speechBubble);
-
+  _calculateSpeechBubbleMatrix(spr, speechBubbleSkin) {
     const box = this.getBoundingBox(spr);
     const x = Math.round(box.right - speechBubbleSkin.offsetX);
     const y = Math.round(box.top - speechBubbleSkin.offsetY);
@@ -291,7 +308,7 @@ export default class Renderer {
     Matrix.translate(m, m, x, y);
     Matrix.scale(m, m, speechBubbleSkin.width, speechBubbleSkin.height);
 
-    this._renderSkin(speechBubbleSkin, ShaderManager.DrawModes.DEFAULT, m, 1);
+    return m;
   }
 
   getBoundingBox(sprite) {
@@ -356,16 +373,18 @@ export default class Renderer {
 
   checkSpriteCollision(spr1, targets, fast) {
     if (!spr1.visible) return false;
-    if (!Array.isArray(targets)) {
-      targets = [targets];
+    if (!(targets instanceof Set)) {
+      if (targets instanceof Array) {
+        targets = new Set(targets);
+      } else {
+        targets = new Set([targets]);
+      }
     }
-    targets = targets.filter(target => target.visible);
-    if (targets.length === 0) return;
 
     const box1 = this.getBoundingBox(spr1).snapToInt();
 
     // This is an "impossible rectangle"-- its left bound is infinitely far to the right,
-    // its right bound is infinitely to the left, and so on. It's size is effectively -Infinity.
+    // its right bound is infinitely to the left, and so on. Its size is effectively -Infinity.
     // Its only purpose is to be the "identity rectangle" that starts the rectangle union process.
     const targetBox = Rectangle.fromBounds(
       Infinity,
@@ -412,7 +431,7 @@ export default class Renderer {
     // Draw the sprite in the "silhouette" mode, which discards transparent pixels.
     // This, along with the above line, has the effect of not drawing anything to the color buffer, but
     // creating a "mask" in the stencil buffer that masks out all pixels where this sprite is transparent.
-    this.renderSprite(spr1, ShaderManager.DrawModes.SILHOUETTE);
+    this._renderLayers(spr1, ShaderManager.DrawModes.SILHOUETTE);
 
     // Pass the stencil test if the stencil buffer value equals 1 (e.g. the pixel got masked in above).
     gl.stencilFunc(gl.EQUAL, 1, 1);
@@ -421,9 +440,7 @@ export default class Renderer {
     // We can draw to the color buffer again. Note that only pixels which pass the stencil test are drawn.
     gl.colorMask(true, true, true, true);
     // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
-    for (const target of targets) {
-      this.renderSprite(target, ShaderManager.DrawModes.SILHOUETTE);
-    }
+    this._renderLayers(targets, ShaderManager.DrawModes.SILHOUETTE);
 
     // Make sure to disable the stencil test so as not to affect other rendering!
     gl.disable(gl.STENCIL_TEST);
@@ -462,7 +479,7 @@ export default class Renderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    this.renderSprite(spr);
+    this._renderLayers(spr);
 
     const hoveredPixel = new Uint8Array(4);
     gl.readPixels(
@@ -485,9 +502,9 @@ export default class Renderer {
     this._penSkin.clear();
   }
 
-  stamp(sprite) {
+  stamp(spr) {
     this._setFramebuffer(this._penSkin._framebuffer);
-    this.renderSprite(sprite);
+    this._renderLayers(spr);
   }
 
   displayAskBox(question) {
