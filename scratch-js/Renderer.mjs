@@ -7,7 +7,8 @@ import SkinCache from "./renderer/SkinCache.mjs";
 import { Sprite } from "./Sprite.mjs";
 
 export default class Renderer {
-  constructor(renderTarget, { w = 480, h = 360 } = {}) {
+  constructor(project, renderTarget, { w = 480, h = 360 } = {}) {
+    this.project = project;
     this.stage = this.createStage(w, h);
     this.gl = this.stage.getContext("webgl", { antialias: false });
 
@@ -51,24 +52,12 @@ export default class Renderer {
     this._collisionBuffer = this._createFramebuffer(
       w,
       h,
-      gl.NEAREST
+      gl.NEAREST,
+      true // stencil
     ).framebuffer;
-
-    // In addition to the color attachment, we must also attach a stencil buffer to our collision buffer.
-    // The depth buffer is unnecessary, but WebGL only guarantees
-    // that certain combinations of framebuffer attachments will work, and "stencil but no depth" is not among them.
-    const renderbuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, w, h);
-    gl.framebufferRenderbuffer(
-      gl.FRAMEBUFFER,
-      gl.DEPTH_STENCIL_ATTACHMENT,
-      gl.RENDERBUFFER,
-      renderbuffer
-    );
   }
 
-  _createFramebuffer(width, height, filtering) {
+  _createFramebuffer(width, height, filtering, stencil = false) {
     // Create an empty texture with this skin's dimensions.
     const gl = this.gl;
     const texture = gl.createTexture();
@@ -100,6 +89,20 @@ export default class Renderer {
       texture,
       0
     );
+
+    // The depth buffer is unnecessary, but WebGL only guarantees
+    // that certain combinations of framebuffer attachments will work, and "stencil but no depth" is not among them.
+    if (stencil) {
+      const renderbuffer = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, width, height);
+      gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER,
+        gl.DEPTH_STENCIL_ATTACHMENT,
+        gl.RENDERBUFFER,
+        renderbuffer
+      );
+    }
 
     return { texture, framebuffer };
   }
@@ -160,16 +163,8 @@ export default class Renderer {
     }
   }
 
-  update(stage, sprites) {
-    const gl = this.gl;
-
-    // Draw to the screen, not to a framebuffer.
-    this._setFramebuffer(null);
-
-    // Clear to opaque white.
-    gl.clearColor(1, 1, 1, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
+  _renderLayers() {
+    // Pen layer
     const penMatrix = Matrix.create();
     Matrix.scale(
       penMatrix,
@@ -185,12 +180,11 @@ export default class Renderer {
       1
     );
 
-    // TODO: find a way to not destroy the skins of hidden sprites
-    this._skinCache.beginTrace();
+    // Stage layer
+    this.renderSprite(this.project.stage);
 
-    this.renderSprite(stage);
-
-    for (const sprite of Object.values(sprites)) {
+    // Sprites + clones
+    for (const sprite of this.project.spritesAndClones) {
       if (sprite.visible) {
         this.renderSprite(sprite);
         if (sprite._speechBubble.text) {
@@ -198,6 +192,22 @@ export default class Renderer {
         }
       }
     }
+  }
+
+  update() {
+    const gl = this.gl;
+
+    // Draw to the screen, not to a framebuffer.
+    this._setFramebuffer(null);
+
+    // Clear to opaque white.
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // TODO: find a way to not destroy the skins of hidden sprites
+    this._skinCache.beginTrace();
+
+    this._renderLayers();
 
     this._skinCache.endTrace();
   }
