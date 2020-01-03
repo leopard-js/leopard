@@ -8,14 +8,36 @@ export default class Rectangle {
     return this;
   }
 
-  static fromBounds(left, right, bottom, top) {
-    const r = new Rectangle();
-    r.left = left;
-    r.right = right;
-    r.bottom = bottom;
-    r.top = top;
+  static fromBounds(left, right, bottom, top, result) {
+    if (!result) result = new Rectangle();
+    result.left = left;
+    result.right = right;
+    result.bottom = bottom;
+    result.top = top;
 
-    return r;
+    return result;
+  }
+
+  static fromMatrix(matrix, result) {
+    if (!result) result = new Rectangle();
+
+    // Adapted somewhat from https://github.com/LLK/scratch-render/blob/develop/docs/Rectangle-AABB-Matrix.md
+    const xa = matrix[0] / 2;
+    const xb = matrix[3] / 2;
+    const absx = Math.abs(xa) + Math.abs(xb);
+    const sumx = xa + xb + matrix[6];
+
+    const ya = matrix[1] / 2;
+    const yb = matrix[4] / 2;
+    const absy = Math.abs(ya) + Math.abs(yb);
+    const sumy = ya + yb + matrix[7];
+
+    result.left = sumx - absx;
+    result.right = sumx + absx;
+    result.bottom = sumy - absy;
+    result.top = sumy + absy;
+
+    return result;
   }
 
   // Push this rectangle out to integer bounds.

@@ -7,7 +7,7 @@ export default class Cat extends Sprite {
     this.name = "Cat";
 
     this.costumes = [
-      new Costume("cat", "./Cat/costumes/cat.svg", { x: 47, y: 55 })
+      new Costume("cat", "./Cat/costumes/cat.svg", { x: 47, y: 20 })
     ];
 
     this.triggers = [
@@ -17,7 +17,7 @@ export default class Cat extends Sprite {
       new Trigger(Trigger.KEY_PRESSED, { key: "space" }, this.hideMe)
     ];
 
-    this.rotationStyle = Sprite.RotationStyle.LEFT_RIGHT;
+    //this.rotationStyle = Sprite.RotationStyle.LEFT_RIGHT;
   }
 
   *greenFlag() {
@@ -40,6 +40,7 @@ export default class Cat extends Sprite {
       } else {
         this.say(null);
       }
+      this.direction += 5;
       //this.direction = this.radToScratch(Math.atan2(this.mouse.y - this.y, this.mouse.x - this.x));
       if (this.mouse.down) {
         this.effects.color += 1;

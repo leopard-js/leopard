@@ -351,63 +351,7 @@ export default class Renderer {
   }
 
   getBoundingBox(sprite) {
-    const origin = {
-      x: sprite.x,
-      y: sprite.y
-    };
-
-    const s = sprite.size / 100;
-    const dist = {
-      left: s * sprite.costume.center.x,
-      right: s * (sprite.costume.width - sprite.costume.center.x),
-      up: s * sprite.costume.center.y,
-      down: s * (sprite.costume.height - sprite.costume.center.y)
-    };
-
-    const spriteDirRad = sprite.scratchToRad(sprite.direction);
-    const angle = {
-      left: spriteDirRad + Math.PI,
-      right: spriteDirRad,
-      up: spriteDirRad - Math.PI / 2,
-      down: spriteDirRad + Math.PI / 2
-    };
-
-    const movePoint = (pt, angle, dist) => ({
-      x: pt.x + Math.cos(angle) * dist,
-      y: pt.y + Math.sin(angle) * dist
-    });
-
-    const points = [
-      movePoint(movePoint(origin, angle.up, dist.up), angle.right, dist.right),
-      movePoint(movePoint(origin, angle.up, dist.up), angle.left, dist.left),
-      movePoint(
-        movePoint(origin, angle.down, dist.down),
-        angle.right,
-        dist.right
-      ),
-      movePoint(movePoint(origin, angle.down, dist.down), angle.left, dist.left)
-    ];
-
-    const rect = new Rectangle();
-
-    rect.left = Math.min.apply(
-      Math,
-      points.map(pt => pt.x)
-    );
-    rect.right = Math.max.apply(
-      Math,
-      points.map(pt => pt.x)
-    );
-    rect.bottom = Math.min.apply(
-      Math,
-      points.map(pt => pt.y)
-    );
-    rect.top = Math.max.apply(
-      Math,
-      points.map(pt => pt.y)
-    );
-
-    return rect;
+    return Rectangle.fromMatrix(this._calculateSpriteMatrix(sprite));
   }
 
   _stencilSprite(spr) {
@@ -483,6 +427,8 @@ export default class Renderer {
       180
     );
 
+    if (collisionBox.width === 0 || collisionBox.height === 0) return;
+
     this._setFramebuffer(this._collisionBuffer);
     // Enable stencil testing then stencil in this sprite, which masks all further drawing to this sprite's area.
     this._stencilSprite(spr);
@@ -526,6 +472,8 @@ export default class Renderer {
       this.stage.height / -2,
       this.stage.height / 2
     );
+
+    if (sprBox.width === 0 || sprBox.height === 0) return false;
 
     this._setFramebuffer(this._collisionBuffer);
     const gl = this.gl;
