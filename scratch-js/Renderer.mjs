@@ -141,18 +141,13 @@ export default class Renderer {
         0 // offset (index of the first attribute to start from)
       );
 
-      // Projection matrix-- transforms from stage dimensions (-240 to 240 and -180 to 180) to GL clip space (-1 to 1).
-      gl.uniformMatrix3fv(shader.uniform("u_projection"), false, [
-        2 / this.stage.width,
-        0,
-        0,
-        0,
-        2 / this.stage.height,
-        0,
-        0,
-        0,
-        1
-      ]);
+      // The shader is passed things in "Scratch-space" (-240, 240) and (-180, 180).
+      // This tells it those dimensions so it can convert them to OpenGL "clip-space" (-1, 1).
+      gl.uniform2f(
+        shader.uniform("u_stageSize"),
+        this.stage.width,
+        this.stage.height
+      );
 
       this._currentShader = shader;
     }
@@ -420,11 +415,13 @@ export default class Renderer {
     if (!sprBox.intersects(targetBox)) return false;
     if (fast) return true;
 
+    const cx = this.stage.width / 2;
+    const cy = this.stage.height / 2;
     const collisionBox = Rectangle.intersection(sprBox, targetBox).clamp(
-      -240,
-      240,
-      -180,
-      180
+      -cx,
+      cx,
+      -cy,
+      cy
     );
 
     if (collisionBox.width === 0 || collisionBox.height === 0) return;
@@ -446,8 +443,8 @@ export default class Renderer {
       collisionBox.width * collisionBox.height * 4
     );
     gl.readPixels(
-      collisionBox.left + 240,
-      collisionBox.bottom + 180,
+      collisionBox.left + cx,
+      collisionBox.bottom + cy,
       collisionBox.width,
       collisionBox.height,
       gl.RGBA,
@@ -466,12 +463,9 @@ export default class Renderer {
   checkColorCollision(spr, targetsColor) {
     const sprBox = this.getBoundingBox(spr).snapToInt();
 
-    sprBox.clamp(
-      this.stage.width / -2,
-      this.stage.width / 2,
-      this.stage.height / -2,
-      this.stage.height / 2
-    );
+    const cx = this.stage.width / 2;
+    const cy = this.stage.height / 2;
+    sprBox.clamp(-cx, cx, -cy, cy);
 
     if (sprBox.width === 0 || sprBox.height === 0) return false;
 
@@ -494,8 +488,8 @@ export default class Renderer {
 
     const pixelData = new Uint8Array(sprBox.width * sprBox.height * 4);
     gl.readPixels(
-      sprBox.left + 240,
-      sprBox.bottom + 180,
+      sprBox.left + cx,
+      sprBox.bottom + cy,
       sprBox.width,
       sprBox.height,
       gl.RGBA,
@@ -536,9 +530,11 @@ export default class Renderer {
     this._renderLayers(spr);
 
     const hoveredPixel = new Uint8Array(4);
+    const cx = this.stage.width / 2;
+    const cy = this.stage.height / 2;
     gl.readPixels(
-      point.x + 240,
-      point.y + 180,
+      point.x + cx,
+      point.y + cy,
       1,
       1,
       gl.RGBA,
