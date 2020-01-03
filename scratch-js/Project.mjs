@@ -22,6 +22,8 @@ export default class Project {
 
     this.restartTimer();
 
+    this.answer = null;
+
     this.playingSounds = [];
 
     this.step();
@@ -200,5 +202,9 @@ export default class Project {
 
   restartTimer() {
     this.timerStart = new Date();
+  }
+
+  async askAndWait(question) {
+    this.answer = await this.renderer.displayAskBox(question);
   }
 }

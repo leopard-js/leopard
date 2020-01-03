@@ -15,6 +15,11 @@ export default class Stage extends StageBase {
       })
     ];
 
-    this.triggers = [];
+    this.triggers = [new Trigger(Trigger.GREEN_FLAG, this.greenFlag)];
+  }
+
+  *greenFlag() {
+    yield* this.askAndWait("What is your name?");
+    console.log(`Hello, ${this.answer}!`);
   }
 }

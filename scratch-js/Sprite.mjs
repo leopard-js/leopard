@@ -147,6 +147,23 @@ class SpriteBase {
   clearPen() {
     this._project.renderer.clearPen();
   }
+
+  *askAndWait(question) {
+    if (this._speechBubble) {
+      this.say(null);
+    }
+
+    let done = false;
+    this._project.askAndWait(question).then(() => {
+      done = true;
+    });
+
+    while (!done) yield;
+  }
+
+  get answer() {
+    return this._project.answer;
+  }
 }
 
 export class Sprite extends SpriteBase {

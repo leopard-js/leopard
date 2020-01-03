@@ -18,6 +18,7 @@ export default class Renderer {
       renderTarget = document.querySelector(renderTarget);
     }
     this.renderTarget = renderTarget;
+    this.renderTarget.classList.add("scratch-js__project");
     this.renderTarget.style.width = `${this.stage.width}px`;
     this.renderTarget.style.height = `${this.stage.height}px`;
 
@@ -292,5 +293,36 @@ export default class Renderer {
 
   stamp(sprite) {
     this.renderSprite(sprite, this.penLayer);
+  }
+
+  displayAskBox(question) {
+    const askBox = document.createElement("form");
+    askBox.classList.add("scratch-js__askBox");
+
+    const askText = document.createElement("span");
+    askText.classList.add("scratch-js__askText");
+    askText.innerText = question;
+    askBox.append(askText);
+
+    const askInput = document.createElement("input");
+    askInput.type = "text";
+    askInput.classList.add("scratch-js__askInput");
+    askBox.append(askInput);
+
+    const askButton = document.createElement("button");
+    askButton.classList.add("scratch-js__askButton");
+    askButton.innerText = "Answer";
+    askBox.append(askButton);
+
+    this.renderTarget.append(askBox);
+    askInput.focus();
+
+    return new Promise(resolve => {
+      askBox.addEventListener("submit", e => {
+        e.preventDefault();
+        askBox.remove();
+        resolve(askInput.value);
+      });
+    });
   }
 }
