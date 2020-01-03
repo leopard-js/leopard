@@ -166,14 +166,31 @@ export default class Renderer {
   }
 
   // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
-  _renderLayers(layers, drawMode = ShaderManager.DrawModes.DEFAULT) {
-    const shouldFilterLayers = layers instanceof Set;
+  _renderLayers(layers, options = {}) {
+    options = Object.assign(
+      {},
+      {
+        drawMode: ShaderManager.DrawModes.DEFAULT,
+        renderSpeechBubbles: true
+      },
+      options
+    );
+
+    const shouldRestrictLayers = layers instanceof Set;
+    const shouldFilterLayers = typeof options.filter === "function";
     const shouldIncludeLayer = layer =>
-      !(shouldFilterLayers && !layers.has(layer));
+      !(
+        (shouldRestrictLayers && !layers.has(layer)) ||
+        (shouldFilterLayers && !options.filter(layer))
+      );
 
     // Stage
     if (shouldIncludeLayer(this.project.stage)) {
-      this.renderSprite(this.project.stage, drawMode);
+      this.renderSprite(
+        this.project.stage,
+        options.drawMode,
+        options.beforeRenderingSkin
+      );
     }
 
     // Pen layer
@@ -186,14 +203,26 @@ export default class Renderer {
         -this._penSkin.height
       );
       Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
-      this._renderSkin(this._penSkin, drawMode, penMatrix, 1);
+      this._renderSkin(
+        this._penSkin,
+        options.drawMode,
+        penMatrix,
+        1,
+        null,
+        options.beforeRenderingSkin
+      );
     }
 
     // Sprites + clones
     for (const sprite of this.project.spritesAndClones) {
       // Stage doesn't have "visible" defined, so check if it's strictly false
       if (shouldIncludeLayer(sprite) && sprite.visible !== false) {
-        this.renderSprite(sprite, drawMode);
+        this.renderSprite(
+          sprite,
+          options.drawMode,
+          options.beforeRenderingSkin,
+          options.renderSpeechBubbles
+        );
       }
     }
   }
@@ -210,9 +239,7 @@ export default class Renderer {
 
     // TODO: find a way to not destroy the skins of hidden sprites
     this._skinCache.beginTrace();
-
     this._renderLayers();
-
     this._skinCache.endTrace();
   }
 
@@ -224,7 +251,14 @@ export default class Renderer {
     return stage;
   }
 
-  _renderSkin(skin, drawMode, matrix, screenSpaceScale, effects) {
+  _renderSkin(
+    skin,
+    drawMode,
+    matrix,
+    screenSpaceScale,
+    effects,
+    beforeRendering
+  ) {
     const gl = this.gl;
 
     let effectBitmask = 0;
@@ -245,6 +279,8 @@ export default class Renderer {
         gl.uniform2f(shader.uniform("u_skinSize"), skin.width, skin.height);
     }
 
+    if (typeof beforeRendering === "function") beforeRendering(skin, shader);
+
     const skinTexture = skin.getTexture(screenSpaceScale);
 
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
@@ -255,21 +291,24 @@ export default class Renderer {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  renderSprite(sprite, drawMode) {
+  renderSprite(sprite, drawMode, beforeRenderingSkin, renderBubble = true) {
     this._renderSkin(
       this._skinCache.getSkin(sprite.costume),
       drawMode,
       this._calculateSpriteMatrix(sprite),
       1,
-      this.project.stage.effects
+      sprite.effects,
+      beforeRenderingSkin
     );
-    if (sprite._speechBubble && sprite._speechBubble.text) {
+    if (renderBubble && sprite._speechBubble && sprite._speechBubble.text) {
       const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
       this._renderSkin(
         speechBubbleSkin,
         drawMode,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
-        1
+        1,
+        null,
+        beforeRenderingSkin
       );
     }
   }
@@ -371,46 +410,7 @@ export default class Renderer {
     return rect;
   }
 
-  checkSpriteCollision(spr1, targets, fast) {
-    if (!spr1.visible) return false;
-    if (!(targets instanceof Set)) {
-      if (targets instanceof Array) {
-        targets = new Set(targets);
-      } else {
-        targets = new Set([targets]);
-      }
-    }
-
-    const box1 = this.getBoundingBox(spr1).snapToInt();
-
-    // This is an "impossible rectangle"-- its left bound is infinitely far to the right,
-    // its right bound is infinitely to the left, and so on. Its size is effectively -Infinity.
-    // Its only purpose is to be the "identity rectangle" that starts the rectangle union process.
-    const targetBox = Rectangle.fromBounds(
-      Infinity,
-      -Infinity,
-      Infinity,
-      -Infinity
-    );
-    for (const target of targets) {
-      Rectangle.union(
-        targetBox,
-        this.getBoundingBox(target).snapToInt(),
-        targetBox
-      );
-    }
-
-    if (!box1.intersects(targetBox)) return false;
-    if (fast) return true;
-
-    const collisionBox = Rectangle.intersection(box1, targetBox).clamp(
-      -240,
-      240,
-      -180,
-      180
-    );
-
-    this._setFramebuffer(this._collisionBuffer);
+  _stencilSprite(spr) {
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
@@ -431,7 +431,10 @@ export default class Renderer {
     // Draw the sprite in the "silhouette" mode, which discards transparent pixels.
     // This, along with the above line, has the effect of not drawing anything to the color buffer, but
     // creating a "mask" in the stencil buffer that masks out all pixels where this sprite is transparent.
-    this._renderLayers(spr1, ShaderManager.DrawModes.SILHOUETTE);
+    this._renderLayers(new Set([spr]), {
+      drawMode: ShaderManager.DrawModes.SILHOUETTE,
+      renderSpeechBubbles: false
+    });
 
     // Pass the stencil test if the stencil buffer value equals 1 (e.g. the pixel got masked in above).
     gl.stencilFunc(gl.EQUAL, 1, 1);
@@ -439,9 +442,57 @@ export default class Renderer {
     gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
     // We can draw to the color buffer again. Note that only pixels which pass the stencil test are drawn.
     gl.colorMask(true, true, true, true);
-    // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
-    this._renderLayers(targets, ShaderManager.DrawModes.SILHOUETTE);
+  }
 
+  checkSpriteCollision(spr, targets, fast) {
+    if (!spr.visible) return false;
+    if (!(targets instanceof Set)) {
+      if (targets instanceof Array) {
+        targets = new Set(targets);
+      } else {
+        targets = new Set([targets]);
+      }
+    }
+
+    const sprBox = this.getBoundingBox(spr).snapToInt();
+
+    // This is an "impossible rectangle"-- its left bound is infinitely far to the right,
+    // its right bound is infinitely to the left, and so on. Its size is effectively -Infinity.
+    // Its only purpose is to be the "identity rectangle" that starts the rectangle union process.
+    const targetBox = Rectangle.fromBounds(
+      Infinity,
+      -Infinity,
+      Infinity,
+      -Infinity
+    );
+    for (const target of targets) {
+      Rectangle.union(
+        targetBox,
+        this.getBoundingBox(target).snapToInt(),
+        targetBox
+      );
+    }
+
+    if (!sprBox.intersects(targetBox)) return false;
+    if (fast) return true;
+
+    const collisionBox = Rectangle.intersection(sprBox, targetBox).clamp(
+      -240,
+      240,
+      -180,
+      180
+    );
+
+    this._setFramebuffer(this._collisionBuffer);
+    // Enable stencil testing then stencil in this sprite, which masks all further drawing to this sprite's area.
+    this._stencilSprite(spr);
+
+    // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
+    this._renderLayers(targets, {
+      drawMode: ShaderManager.DrawModes.SILHOUETTE
+    });
+
+    const gl = this.gl;
     // Make sure to disable the stencil test so as not to affect other rendering!
     gl.disable(gl.STENCIL_TEST);
 
@@ -461,6 +512,61 @@ export default class Renderer {
     // Any opaque pixel = an overlap between the two sprites.
     for (let i = 0; i < pixelData.length; i += 4) {
       if (pixelData[i + 3] !== 0) return true;
+    }
+
+    return false;
+  }
+
+  checkColorCollision(spr, targetsColor) {
+    const sprBox = this.getBoundingBox(spr).snapToInt();
+
+    sprBox.clamp(
+      this.stage.width / -2,
+      this.stage.width / 2,
+      this.stage.height / -2,
+      this.stage.height / 2
+    );
+
+    this._setFramebuffer(this._collisionBuffer);
+    const gl = this.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+
+    this._setFramebuffer(this._collisionBuffer);
+    // Enable stencil testing then stencil in this sprite, which masks all further drawing to this sprite's area.
+    this._stencilSprite(spr);
+
+    // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
+    this._renderLayers(null, {
+      filter: layer => layer !== spr
+    });
+
+    // Make sure to disable the stencil test so as not to affect other rendering!
+    gl.disable(gl.STENCIL_TEST);
+
+    const pixelData = new Uint8Array(sprBox.width * sprBox.height * 4);
+    gl.readPixels(
+      sprBox.left + 240,
+      sprBox.bottom + 180,
+      sprBox.width,
+      sprBox.height,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      pixelData
+    );
+
+    const color = targetsColor.toRGBA();
+    for (let i = 0; i < pixelData.length; i += 4) {
+      if (
+        // Ensure we're not testing transparent pixels
+        pixelData[i + 3] !== 0 &&
+        // Scratch tests the top 5 bits of the red and green channels,
+        // and the top 4 bits of the blue channel.
+        ((pixelData[i] ^ color[0]) & 0b11111000) === 0 &&
+        ((pixelData[i + 1] ^ color[1]) & 0b11111000) === 0 &&
+        ((pixelData[i + 2] ^ color[2]) & 0b11110000) === 0
+      )
+        return true;
     }
 
     return false;

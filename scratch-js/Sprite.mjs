@@ -417,6 +417,8 @@ export class Sprite extends SpriteBase {
           );
           return false;
       }
+    } else if (target instanceof Color) {
+      return this._project.renderer.checkColorCollision(this, target);
     }
 
     return this._project.renderer.checkSpriteCollision(this, target, fast);

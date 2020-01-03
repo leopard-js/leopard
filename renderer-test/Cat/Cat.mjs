@@ -12,9 +12,9 @@ export default class Cat extends Sprite {
 
     this.triggers = [
       new Trigger(Trigger.GREEN_FLAG, this.greenFlag),
-      new Trigger(Trigger.KEY_PRESSED, {key: "up"}, this.increaseSize),
-      new Trigger(Trigger.KEY_PRESSED, {key: "down"}, this.decreaseSize),
-      new Trigger(Trigger.KEY_PRESSED, {key: "space"}, this.hideMe),
+      new Trigger(Trigger.KEY_PRESSED, { key: "up" }, this.increaseSize),
+      new Trigger(Trigger.KEY_PRESSED, { key: "down" }, this.decreaseSize),
+      new Trigger(Trigger.KEY_PRESSED, { key: "space" }, this.hideMe)
     ];
 
     this.rotationStyle = Sprite.RotationStyle.LEFT_RIGHT;
@@ -30,11 +30,12 @@ export default class Cat extends Sprite {
     this.penColor = Color.rgb(255, 127, 0);
     this.penColor.a = 0.5;
     this.goto(45, 80);
+    this.effects.ghost = 50;
     while (true) {
       //this.direction += 5;
       //this.move(10);
       this.goto(this.mouse.x - 10, this.mouse.y);
-      if (this.touching(this.sprites.dog.andClones())) {
+      if (this.touching(Color.rgb(0, 0, 0))) {
         this.say("Touching!");
       } else {
         this.say(null);
