@@ -20,7 +20,7 @@ const sprites = {
     y: -100,
     direction: 45,
     costumeNumber: 1,
-    size: 100,
+    size: 300,
     visible: true
   })
 };
@@ -35,3 +35,12 @@ document.querySelector("#greenFlag").addEventListener("click", () => {
 
 // Play on load
 project.greenFlag();
+
+const projElement = document.querySelector("#project");
+document.querySelector("#stage-size").addEventListener("input", event => {
+  const stageWidth = event.target.value;
+  const stageHeight = stageWidth * 0.75;
+
+  projElement.style.width = stageWidth + "px";
+  projElement.style.height = stageHeight + "px";
+});

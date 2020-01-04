@@ -52,7 +52,7 @@ uniform float u_brightness;
 uniform float u_ghost;
 #endif
 
-#if defined(EFFECT_whirl) || defined(EFFECT_fisheye)
+#if defined(EFFECT_whirl) || defined(EFFECT_fisheye) || defined(EFFECT_pixelate)
 const vec2 CENTER = vec2(0.5, 0.5);
 #endif
 

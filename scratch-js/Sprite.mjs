@@ -39,6 +39,7 @@ class _EffectMap {
     for (const effectName of Object.keys(this._effectValues)) {
       m[effectName] = this[effectName];
     }
+    return m;
   }
 
   clear() {
@@ -427,7 +428,14 @@ export class Sprite extends SpriteBase {
   colorTouching(color, target) {
     if (typeof target === "string") {
       console.error(
-        `Cannot find target "${target}" in "touching". Did you mean to pass a sprite class instead?`
+        `Cannot find target "${target}" in "touchingColor". Did you mean to pass a sprite class instead?`
+      );
+      return false;
+    }
+
+    if (typeof color === "string") {
+      console.error(
+        `Cannot find color "${color}" in "touchingColor". Did you mean to pass a Color instance instead?`
       );
       return false;
     }
