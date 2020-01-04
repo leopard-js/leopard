@@ -503,8 +503,8 @@ export default class Renderer {
     if (!sprBox.intersects(targetBox)) return false;
     if (fast) return true;
 
-    const cx = this.stage.width / 2;
-    const cy = this.stage.height / 2;
+    const cx = this._collisionBuffer.width / 2;
+    const cy = this._collisionBuffer.height / 2;
     const collisionBox = Rectangle.intersection(sprBox, targetBox).clamp(
       -cx,
       cx,
@@ -551,8 +551,8 @@ export default class Renderer {
   checkColorCollision(spr, targetsColor, sprColor) {
     const sprBox = this.getBoundingBox(spr).snapToInt();
 
-    const cx = this.stage.width / 2;
-    const cy = this.stage.height / 2;
+    const cx = this._collisionBuffer.width / 2;
+    const cy = this._collisionBuffer.height / 2;
     sprBox.clamp(-cx, cx, -cy, cy);
 
     if (sprBox.width === 0 || sprBox.height === 0) return false;
@@ -618,8 +618,8 @@ export default class Renderer {
     this._renderLayers(spr);
 
     const hoveredPixel = new Uint8Array(4);
-    const cx = this.stage.width / 2;
-    const cy = this.stage.height / 2;
+    const cx = this._collisionBuffer.width / 2;
+    const cy = this._collisionBuffer.height / 2;
     gl.readPixels(
       point.x + cx,
       point.y + cy,

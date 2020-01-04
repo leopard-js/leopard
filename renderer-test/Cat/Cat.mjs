@@ -31,7 +31,6 @@ export default class Cat extends Sprite {
     this.penColor.a = 0.5;
     this.goto(45, 80);
     this.effects.ghost = 50;
-    this.size = 10;
     while (true) {
       //this.direction += 5;
       //this.move(10);
@@ -49,7 +48,7 @@ export default class Cat extends Sprite {
         this.effects.whirl += 1;
         this.effects.ghost += 1;
       } else {
-        //this.effects.clear();
+        this.effects.clear();
       }
       //this.stamp();
       yield;
