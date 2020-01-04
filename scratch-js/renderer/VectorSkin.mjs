@@ -10,6 +10,10 @@ export default class VectorSkin extends Skin {
     this._image = image;
     this._canvas = document.createElement("canvas");
 
+    this._maxTextureSize = renderer.gl.getParameter(
+      renderer.gl.MAX_TEXTURE_SIZE
+    );
+
     this._setSizeFromImage(image);
 
     this._mipmaps = new Map();
@@ -25,8 +29,11 @@ export default class VectorSkin extends Skin {
     const ctx = canvas.getContext("2d");
 
     const image = this._image;
-    const width = image.naturalWidth * scale;
-    const height = image.naturalHeight * scale;
+    let width = image.naturalWidth * scale;
+    let height = image.naturalHeight * scale;
+
+    width = Math.min(width, this._maxTextureSize);
+    height = Math.min(height, this._maxTextureSize);
 
     canvas.width = width;
     canvas.height = height;
