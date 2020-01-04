@@ -38,7 +38,7 @@ export default class Cat extends Sprite {
       if (this.colorTouching(Color.rgb(255, 255, 255), this.sprites.dog)) {
         this.say("Touching!");
       } else {
-        this.say(null);
+        this.say("Not touching!");
       }
       //this.direction += 5;
       //this.direction = this.radToScratch(Math.atan2(this.mouse.y - this.y, this.mouse.x - this.x));

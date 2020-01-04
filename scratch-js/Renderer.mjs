@@ -382,9 +382,20 @@ export default class Renderer {
 
   // Calculate the transform matrix for a speech bubble attached to a sprite.
   _calculateSpeechBubbleMatrix(spr, speechBubbleSkin) {
-    const box = this.getBoundingBox(spr);
-    const x = Math.round(box.right - speechBubbleSkin.offsetX);
-    const y = Math.round(box.top - speechBubbleSkin.offsetY);
+    const sprBounds = this.getBoundingBox(spr);
+    let x;
+    if (
+      speechBubbleSkin.width + sprBounds.right >
+      this.project.stage.width / 2
+    ) {
+      x = sprBounds.left - speechBubbleSkin.width;
+      speechBubbleSkin.flipped = true;
+    } else {
+      x = sprBounds.right;
+      speechBubbleSkin.flipped = false;
+    }
+    x = Math.round(x - speechBubbleSkin.offsetX);
+    const y = Math.round(sprBounds.top - speechBubbleSkin.offsetY);
 
     const m = Matrix.create();
     Matrix.translate(m, m, x, y);
