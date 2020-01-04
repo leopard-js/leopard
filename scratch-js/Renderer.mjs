@@ -349,7 +349,7 @@ export default class Renderer {
     return Rectangle.fromMatrix(this._calculateSpriteMatrix(sprite));
   }
 
-  _stencilSprite(spr) {
+  _stencilSprite(spr, colorMask) {
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
@@ -370,10 +370,24 @@ export default class Renderer {
     // Draw the sprite in the "silhouette" mode, which discards transparent pixels.
     // This, along with the above line, has the effect of not drawing anything to the color buffer, but
     // creating a "mask" in the stencil buffer that masks out all pixels where this sprite is transparent.
-    this._renderLayers(new Set([spr]), {
+
+    const opts = {
       drawMode: ShaderManager.DrawModes.SILHOUETTE,
       renderSpeechBubbles: false
-    });
+    };
+
+    // If we mask in the color (for e.g. "color is touching color"),
+    // we need to pass that in as a uniform as well.
+    if (colorMask) {
+      opts.beforeRenderingSkin = (skin, shader) => {
+        gl.uniform4fv(
+          shader.uniform("u_colorMask"),
+          colorMask.toRGBANormalized()
+        );
+      };
+      opts.drawMode = ShaderManager.DrawModes.COLOR_MASK;
+    }
+    this._renderLayers(new Set([spr]), opts);
 
     // Pass the stencil test if the stencil buffer value equals 1 (e.g. the pixel got masked in above).
     gl.stencilFunc(gl.EQUAL, 1, 1);
@@ -383,7 +397,7 @@ export default class Renderer {
     gl.colorMask(true, true, true, true);
   }
 
-  checkSpriteCollision(spr, targets, fast) {
+  checkSpriteCollision(spr, targets, fast, sprColor) {
     if (!spr.visible) return false;
     if (!(targets instanceof Set)) {
       if (targets instanceof Array) {
@@ -428,7 +442,7 @@ export default class Renderer {
 
     this._setFramebuffer(this._collisionBuffer);
     // Enable stencil testing then stencil in this sprite, which masks all further drawing to this sprite's area.
-    this._stencilSprite(spr);
+    this._stencilSprite(spr, sprColor);
 
     // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
     this._renderLayers(targets, {
@@ -460,7 +474,7 @@ export default class Renderer {
     return false;
   }
 
-  checkColorCollision(spr, targetsColor) {
+  checkColorCollision(spr, targetsColor, sprColor) {
     const sprBox = this.getBoundingBox(spr).snapToInt();
 
     const cx = this.stage.width / 2;
@@ -476,7 +490,7 @@ export default class Renderer {
 
     this._setFramebuffer(this._collisionBuffer);
     // Enable stencil testing then stencil in this sprite, which masks all further drawing to this sprite's area.
-    this._stencilSprite(spr);
+    this._stencilSprite(spr, sprColor);
 
     // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
     this._renderLayers(null, {

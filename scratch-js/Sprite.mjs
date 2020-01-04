@@ -424,6 +424,28 @@ export class Sprite extends SpriteBase {
     return this._project.renderer.checkSpriteCollision(this, target, fast);
   }
 
+  colorTouching(color, target) {
+    if (typeof target === "string") {
+      console.error(
+        `Cannot find target "${target}" in "touching". Did you mean to pass a sprite class instead?`
+      );
+      return false;
+    }
+
+    if (target instanceof Color) {
+      // "Color is touching color"
+      return this._project.renderer.checkColorCollision(this, target, color);
+    } else {
+      // "Color is touching sprite" (not implemented in Scratch!)
+      return this._project.renderer.checkSpriteCollision(
+        this,
+        target,
+        false,
+        color
+      );
+    }
+  }
+
   say(text) {
     clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text, style: "say", timeout: null };

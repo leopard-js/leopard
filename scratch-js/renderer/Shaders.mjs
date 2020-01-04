@@ -56,6 +56,15 @@ uniform float u_ghost;
 const vec2 CENTER = vec2(0.5, 0.5);
 #endif
 
+#ifdef DRAW_MODE_COLOR_MASK
+uniform vec4 u_colorMask;
+
+// TODO: Scratch 2.0 and Scratch 3.0's CPU path check if the top 6 bits match,
+// which a tolerance of 3/255 should be equivalent to,
+// but Scratch's GPU path has a tolerance of 2/255.
+const vec3 COLOR_MASK_TOLERANCE = vec3(3.0 / 255.0);
+#endif
+
 #ifdef EFFECT_color
 // Taken from http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 rgb2hsv(vec3 c)
@@ -146,6 +155,13 @@ void main() {
   color = vec4(unmul * color.a, color.a);
 
   #endif // defined(defined(EFFECT_color) || defined(EFFECT_brightness))
+
+  #ifdef DRAW_MODE_COLOR_MASK
+  vec3 diff = abs(u_colorMask.rgb - color.rgb);
+  if (any(greaterThan(diff, COLOR_MASK_TOLERANCE))) {
+    discard;
+  }
+  #endif
 
   #ifdef EFFECT_ghost
   color *= (1.0 - clamp(u_ghost * 0.01, 0.0, 1.0));

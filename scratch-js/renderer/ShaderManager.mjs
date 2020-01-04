@@ -69,7 +69,8 @@ class ShaderManager {
       let shaderCode;
       switch (drawMode) {
         case ShaderManager.DrawModes.DEFAULT:
-        case ShaderManager.DrawModes.SILHOUETTE: {
+        case ShaderManager.DrawModes.SILHOUETTE:
+        case ShaderManager.DrawModes.COLOR_MASK: {
           shaderCode = SpriteShader;
           break;
         }
@@ -115,7 +116,8 @@ class ShaderManager {
 ShaderManager.DrawModes = {
   DEFAULT: "DEFAULT",
   PEN_LINE: "PEN_LINE",
-  SILHOUETTE: "SILHOUETTE"
+  SILHOUETTE: "SILHOUETTE",
+  COLOR_MASK: "COLOR_MASK"
 };
 
 // TODO: effects.
