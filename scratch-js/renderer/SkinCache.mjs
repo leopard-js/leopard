@@ -2,6 +2,8 @@ import BitmapSkin from "./BitmapSkin.mjs";
 import SpeechBubbleSkin from "./SpeechBubbleSkin.mjs";
 import VectorSkin from "./VectorSkin.mjs";
 
+import Costume from "../Costume.mjs";
+
 // This is a class which manages the creation and destruction of Skin objects.
 // A Skin is the renderer's version of a "costume". It is backed by an image, but you render it by getting its texture.
 // Different types of Skins can give you textures in different ways.
@@ -40,16 +42,16 @@ export default class SkinCache {
     } else {
       let skin;
 
-      // TODO: this is a janky way to tell whether this is a speech bubble
-      if (obj.text) {
-        skin = new SpeechBubbleSkin(this._renderer, obj);
-      }
-      // If it's not a speech bubble, it's a costume.
-      // TODO: there's gotta be a better way to tell if an image is an SVG
-      else if (obj.img.src.endsWith(".svg")) {
-        skin = new VectorSkin(this._renderer, obj.img);
+      if (obj instanceof Costume) {
+        // TODO: there's gotta be a better way to tell if an image is an SVG
+        if (obj.img.src.endsWith(".svg")) {
+          skin = new VectorSkin(this._renderer, obj.img);
+        } else {
+          skin = new BitmapSkin(this._renderer, obj.img);
+        }
       } else {
-        skin = new BitmapSkin(this._renderer, obj.img);
+        // If it's not a costume, assume it's a speech bubble.
+        skin = new SpeechBubbleSkin(this._renderer, obj);
       }
       this._skins.set(obj, skin);
       return skin;

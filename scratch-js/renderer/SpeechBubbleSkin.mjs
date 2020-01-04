@@ -18,6 +18,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._bubble = bubble;
     this._flipped = false;
     this._rendered = false;
+    this._renderedScale = 0;
 
     this.width = 0;
     this.height = 0;
@@ -39,7 +40,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._rendered = false;
   }
 
-  _renderBubble(bubble) {
+  _renderBubble(bubble, scale) {
     const canvas = this._canvas;
     const ctx = canvas.getContext("2d");
 
@@ -92,14 +93,18 @@ export default class SpeechBubbleSkin extends Skin {
     const width = Math.ceil(Math.min(textWidth, maxWidth) + 2 * padding);
     const height = 10 + 2 * padding;
 
-    this.width = canvas.width = width + bubbleStyle.strokeWidth;
-    this.height = canvas.height =
-      height + bubbleStyle.tailHeight + bubbleStyle.strokeWidth;
+    this.width = width + bubbleStyle.strokeWidth;
+    this.height = height + bubbleStyle.tailHeight + bubbleStyle.strokeWidth;
+
+    canvas.width = this.width * scale;
+    canvas.height = this.height * scale;
 
     this._restyleCanvas();
 
     const x = bubbleStyle.strokeWidth / 2;
     const y = x;
+
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
 
     ctx.fillStyle = "#fff";
     ctx.strokeStyle = "#ccc";
@@ -116,13 +121,14 @@ export default class SpeechBubbleSkin extends Skin {
     ctx.fillText(text, x + padding, y + padding, maxWidth);
 
     this._rendered = true;
+    this._renderedScale = scale;
   }
 
-  // TODO: when stage resizing gets added, render text bubbles at screen-space scale
-  getTexture() {
-    if (!this._rendered) {
-      this._renderBubble(this._bubble);
+  getTexture(scale) {
+    if (!this._rendered || this._renderedScale !== scale) {
+      this._renderBubble(this._bubble, scale);
       const gl = this.gl;
+      gl.bindTexture(gl.TEXTURE_2D, this._texture);
       gl.texImage2D(
         gl.TEXTURE_2D,
         0,

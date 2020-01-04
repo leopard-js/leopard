@@ -423,8 +423,7 @@ export default class Renderer {
         drawMode,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
         1,
-        null,
-        beforeRenderingSkin
+        null
       );
     }
   }
