@@ -7,12 +7,14 @@ import SkinCache from "./renderer/SkinCache.mjs";
 import { Sprite, Stage } from "./Sprite.mjs";
 
 export default class Renderer {
-  constructor(project, renderTarget, { w = 480, h = 360 } = {}) {
+  constructor(project, renderTarget) {
+    const w = project.stage.width;
+    const h = project.stage.height;
     this.project = project;
     this.stage = this.createStage(w, h);
     this.gl = this.stage.getContext("webgl", { antialias: false });
 
-    if (renderTarget !== undefined) {
+    if (renderTarget) {
       this.setRenderTarget(renderTarget);
     } else {
       this.renderTarget = null;
@@ -23,6 +25,7 @@ export default class Renderer {
 
     this._currentShader = null;
     this._currentFramebuffer = null;
+    this._screenSpaceScale = 1;
 
     // Initialize a bunch of WebGL state
     const gl = this.gl;
@@ -51,15 +54,15 @@ export default class Renderer {
     this._penSkin = new PenSkin(this, w, h);
 
     // This framebuffer is where sprites are drawn for e.g. "touching" checks.
-    this._collisionBuffer = this._createFramebuffer(
+    this._collisionBuffer = this._createFramebufferInfo(
       w,
       h,
       gl.NEAREST,
       true // stencil
-    ).framebuffer;
+    );
   }
 
-  _createFramebuffer(width, height, filtering, stencil = false) {
+  _createFramebufferInfo(width, height, filtering, stencil = false) {
     // Create an empty texture with this skin's dimensions.
     const gl = this.gl;
     const texture = gl.createTexture();
@@ -82,8 +85,13 @@ export default class Renderer {
 
     // Create a framebuffer backed by said texture. This means we can draw onto the framebuffer,
     // and the results appear in the texture.
-    const framebuffer = gl.createFramebuffer();
-    this._setFramebuffer(framebuffer);
+    const framebufferInfo = {
+      texture,
+      width,
+      height,
+      framebuffer: gl.createFramebuffer()
+    };
+    this._setFramebuffer(framebufferInfo);
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
       gl.COLOR_ATTACHMENT0,
@@ -106,7 +114,7 @@ export default class Renderer {
       );
     }
 
-    return { texture, framebuffer };
+    return framebufferInfo;
   }
 
   setRenderTarget(renderTarget) {
@@ -115,8 +123,8 @@ export default class Renderer {
     }
     this.renderTarget = renderTarget;
     this.renderTarget.classList.add("scratch-js__project");
-    this.renderTarget.style.width = `${this.stage.width}px`;
-    this.renderTarget.style.height = `${this.stage.height}px`;
+    this.renderTarget.style.width = `${this.project.stage.width}px`;
+    this.renderTarget.style.height = `${this.project.stage.height}px`;
 
     this.renderTarget.append(this.stage);
   }
@@ -141,22 +149,24 @@ export default class Renderer {
         0 // offset (index of the first attribute to start from)
       );
 
-      // The shader is passed things in "Scratch-space" (-240, 240) and (-180, 180).
-      // This tells it those dimensions so it can convert them to OpenGL "clip-space" (-1, 1).
-      gl.uniform2f(
-        shader.uniform("u_stageSize"),
-        this.stage.width,
-        this.stage.height
-      );
-
       this._currentShader = shader;
+      this._updateStageSize();
     }
   }
 
-  _setFramebuffer(framebuffer) {
-    if (framebuffer !== this._currentFramebuffer) {
-      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, framebuffer);
-      this._currentFramebuffer = framebuffer;
+  _setFramebuffer(framebufferInfo) {
+    if (framebufferInfo !== this._currentFramebuffer) {
+      if (framebufferInfo === null) {
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        this._updateStageSize();
+      } else {
+        this.gl.bindFramebuffer(
+          this.gl.FRAMEBUFFER,
+          framebufferInfo.framebuffer
+        );
+        this.gl.viewport(0, 0, framebufferInfo.width, framebufferInfo.height);
+      }
+      this._currentFramebuffer = framebufferInfo;
     }
   }
 
@@ -223,6 +233,7 @@ export default class Renderer {
   }
 
   update() {
+    this._resize();
     const gl = this.gl;
 
     // Draw to the screen, not to a framebuffer.
@@ -238,22 +249,67 @@ export default class Renderer {
     this._skinCache.endTrace();
   }
 
+  _updateStageSize() {
+    if (this._currentShader) {
+      // The shader is passed things in "Scratch-space" (-240, 240) and (-180, 180).
+      // This tells it those dimensions so it can convert them to OpenGL "clip-space" (-1, 1).
+      this.gl.uniform2f(
+        this._currentShader.uniform("u_stageSize"),
+        this.project.stage.width,
+        this.project.stage.height
+      );
+    }
+
+    if (this._currentFramebuffer === null) {
+      this.gl.viewport(
+        0,
+        0,
+        this.gl.drawingBufferWidth,
+        this.gl.drawingBufferHeight
+      );
+    }
+  }
+
+  _resize() {
+    const stageSize = this.stage.getBoundingClientRect();
+    const ratio = window.devicePixelRatio;
+    const adjustedWidth = Math.round(stageSize.width * ratio);
+    const adjustedHeight = Math.round(stageSize.height * ratio);
+    if (
+      this.stage.width !== adjustedWidth ||
+      this.stage.height !== adjustedHeight
+    ) {
+      this.stage.width = adjustedWidth;
+      this.stage.height = adjustedHeight;
+      this._screenSpaceScale = Math.max(
+        adjustedWidth / this.project.stage.width,
+        adjustedHeight / this.project.stage.height
+      );
+
+      this._updateStageSize();
+    }
+  }
+
   createStage(w, h) {
     const stage = document.createElement("canvas");
     stage.width = w;
     stage.height = h;
 
+    // Size canvas to parent container
+    stage.style.width = stage.style.height = "100%";
+
+    // If the container width is a non-integer size, don't blur the canvas.
+    // Chrome:
+    stage.style.imageRendering = "pixelated";
+    // Firefox:
+    stage.style.imageRendering = "crisp-edges";
+    // Safari + Opera:
+    stage.style.imageRendering = "-webkit-optimize-contrast";
+
     return stage;
   }
 
-  _renderSkin(
-    skin,
-    drawMode,
-    matrix,
-    screenSpaceScale,
-    effects,
-    beforeRendering
-  ) {
+  _renderSkin(skin, drawMode, matrix, scale, effects, beforeRendering) {
     const gl = this.gl;
 
     let effectBitmask = 0;
@@ -276,7 +332,7 @@ export default class Renderer {
 
     if (typeof beforeRendering === "function") beforeRendering(skin, shader);
 
-    const skinTexture = skin.getTexture(screenSpaceScale);
+    const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
 
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point
@@ -287,11 +343,14 @@ export default class Renderer {
   }
 
   renderSprite(sprite, drawMode, beforeRenderingSkin, renderBubble = true) {
+    const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
+      ? sprite.size / 100
+      : 1;
     this._renderSkin(
       this._skinCache.getSkin(sprite.costume),
       drawMode,
       this._calculateSpriteMatrix(sprite),
-      1,
+      spriteScale,
       sprite.effects,
       beforeRenderingSkin
     );

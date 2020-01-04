@@ -4,7 +4,10 @@ import Stage from "./Stage/Stage.mjs";
 import Dog from "./Dog/Dog.mjs";
 import Cat from "./Cat/Cat.mjs";
 
-const stage = new Stage({ costumeNumber: 1 }, { myGlobalVar: "hello" });
+const stage = new Stage(
+  { costumeNumber: 1, width: 640 },
+  { myGlobalVar: "hello" }
+);
 
 const sprites = {
   cat: new Cat({
@@ -35,3 +38,13 @@ document.querySelector("#greenFlag").addEventListener("click", () => {
 
 // Play on load
 project.greenFlag();
+
+const projElement = document.querySelector("#project");
+
+document.querySelector("#stage-size").addEventListener("input", event => {
+  const stageWidth = event.target.value;
+  const stageHeight = stageWidth * 0.5625;
+
+  projElement.style.width = stageWidth + "px";
+  projElement.style.height = stageHeight + "px";
+});

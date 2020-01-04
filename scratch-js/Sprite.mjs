@@ -492,8 +492,21 @@ Sprite.RotationStyle = Object.freeze({
 });
 
 export class Stage extends SpriteBase {
-  constructor(...args) {
-    super(...args);
+  constructor(initialConditions, ...args) {
+    super(initialConditions, ...args);
+
+    // Use defineProperties to make these non-writable.
+    // Changing the width and height of the stage after initialization isn't supported.
+    Object.defineProperties(this, {
+      width: {
+        value: initialConditions.width || 480,
+        enumerable: true
+      },
+      height: {
+        value: initialConditions.height || 360,
+        enumerable: true
+      }
+    });
 
     this.name = "Stage";
   }

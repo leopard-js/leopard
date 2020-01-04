@@ -14,7 +14,7 @@ export default class Project {
     this.stage._project = this;
 
     this.renderer = new Renderer(this);
-    this.input = new Input(this.renderer.stage, key => {
+    this.input = new Input(this.stage, this.renderer.stage, key => {
       this.fireTrigger(Trigger.KEY_PRESSED, { key });
     });
 

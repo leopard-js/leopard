@@ -7,13 +7,13 @@ export default class PenSkin extends Skin {
     this.width = width;
     this.height = height;
 
-    const { framebuffer, texture } = renderer._createFramebuffer(
+    const framebufferInfo = renderer._createFramebufferInfo(
       width,
       height,
       this.gl.NEAREST
     );
-    this._framebuffer = framebuffer;
-    this._texture = texture;
+    this._framebufferInfo = framebufferInfo;
+    this._texture = framebufferInfo.texture;
 
     this.clear();
   }
@@ -21,7 +21,7 @@ export default class PenSkin extends Skin {
   destroy() {
     const gl = this.gl;
     gl.deleteTexture(this._texture);
-    gl.deleteFramebuffer(this._framebuffer);
+    gl.deleteFramebuffer(this._framebufferInfo.framebuffer);
   }
 
   getTexture() {
@@ -30,7 +30,7 @@ export default class PenSkin extends Skin {
 
   penLine(pt1, pt2, color, size) {
     const renderer = this.renderer;
-    renderer._setFramebuffer(this._framebuffer);
+    renderer._setFramebuffer(this._framebufferInfo);
 
     const shader = renderer._shaderManager.getShader(
       ShaderManager.DrawModes.PEN_LINE
@@ -47,7 +47,7 @@ export default class PenSkin extends Skin {
   }
 
   clear() {
-    this.renderer._setFramebuffer(this._framebuffer);
+    this.renderer._setFramebuffer(this._framebufferInfo);
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);

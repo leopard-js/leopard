@@ -7,7 +7,7 @@ export default class Cat extends Sprite {
     this.name = "Cat";
 
     this.costumes = [
-      new Costume("cat", "./Cat/costumes/cat.svg", { x: 47, y: 20 })
+      new Costume("cat", "./Cat/costumes/cat.svg", { x: 47, y: 55 })
     ];
 
     this.triggers = [
@@ -31,10 +31,11 @@ export default class Cat extends Sprite {
     this.penColor.a = 0.5;
     this.goto(45, 80);
     this.effects.ghost = 50;
+    this.size = 10;
     while (true) {
       //this.direction += 5;
       //this.move(10);
-      this.goto(this.mouse.x - 10, this.mouse.y);
+      this.goto(this.mouse.x, this.mouse.y);
       if (this.colorTouching(Color.rgb(255, 255, 255), this.sprites.dog)) {
         this.say("Touching!");
       } else {
