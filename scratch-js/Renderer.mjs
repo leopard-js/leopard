@@ -62,6 +62,10 @@ export default class Renderer {
     );
   }
 
+  // Create a framebuffer info object, which contains the following:
+  // * The framebuffer itself.
+  // * The texture backing the framebuffer.
+  // * The resolution (width and height) of the framebuffer.
   _createFramebufferInfo(width, height, filtering, stencil = false) {
     // Create an empty texture with this skin's dimensions.
     const gl = this.gl;
@@ -117,18 +121,6 @@ export default class Renderer {
     return framebufferInfo;
   }
 
-  setRenderTarget(renderTarget) {
-    if (typeof renderTarget === "string") {
-      renderTarget = document.querySelector(renderTarget);
-    }
-    this.renderTarget = renderTarget;
-    this.renderTarget.classList.add("scratch-js__project");
-    this.renderTarget.style.width = `${this.project.stage.width}px`;
-    this.renderTarget.style.height = `${this.project.stage.height}px`;
-
-    this.renderTarget.append(this.stage);
-  }
-
   _setShader(shader) {
     if (shader !== this._currentShader) {
       const gl = this.gl;
@@ -157,6 +149,7 @@ export default class Renderer {
   _setFramebuffer(framebufferInfo) {
     if (framebufferInfo !== this._currentFramebuffer) {
       if (framebufferInfo === null) {
+        // The "null" framebuffer means the drawing buffer which we're displaying to the screen.
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
         this._updateStageSize();
       } else {
@@ -164,10 +157,23 @@ export default class Renderer {
           this.gl.FRAMEBUFFER,
           framebufferInfo.framebuffer
         );
+        // Make sure to update the drawing viewport to the current framebuffer size.
         this.gl.viewport(0, 0, framebufferInfo.width, framebufferInfo.height);
       }
       this._currentFramebuffer = framebufferInfo;
     }
+  }
+
+  setRenderTarget(renderTarget) {
+    if (typeof renderTarget === "string") {
+      renderTarget = document.querySelector(renderTarget);
+    }
+    this.renderTarget = renderTarget;
+    this.renderTarget.classList.add("scratch-js__project");
+    this.renderTarget.style.width = `${this.project.stage.width}px`;
+    this.renderTarget.style.height = `${this.project.stage.height}px`;
+
+    this.renderTarget.append(this.stage);
   }
 
   // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
@@ -181,6 +187,9 @@ export default class Renderer {
       options
     );
 
+    // If we're given a list of layers, filter by that.
+    // If we're given a filter function in the options, filter by that too.
+    // If we're given both, then only include layers which match both.
     const shouldRestrictLayers = layers instanceof Set;
     const shouldFilterLayers = typeof options.filter === "function";
     const shouldIncludeLayer = layer =>
@@ -232,23 +241,6 @@ export default class Renderer {
     }
   }
 
-  update() {
-    this._resize();
-    const gl = this.gl;
-
-    // Draw to the screen, not to a framebuffer.
-    this._setFramebuffer(null);
-
-    // Clear to opaque white.
-    gl.clearColor(1, 1, 1, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // TODO: find a way to not destroy the skins of hidden sprites
-    this._skinCache.beginTrace();
-    this._renderLayers();
-    this._skinCache.endTrace();
-  }
-
   _updateStageSize() {
     if (this._currentShader) {
       // The shader is passed things in "Scratch-space" (-240, 240) and (-180, 180).
@@ -270,6 +262,7 @@ export default class Renderer {
     }
   }
 
+  // Keep the canvas size in sync with the CSS size.
   _resize() {
     const stageSize = this.stage.getBoundingClientRect();
     const ratio = window.devicePixelRatio;
@@ -288,6 +281,23 @@ export default class Renderer {
 
       this._updateStageSize();
     }
+  }
+
+  update() {
+    this._resize();
+
+    // Draw to the screen, not to a framebuffer.
+    this._setFramebuffer(null);
+
+    // Clear to opaque white.
+    const gl = this.gl;
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // TODO: find a way to not destroy the skins of hidden sprites
+    this._skinCache.beginTrace();
+    this._renderLayers();
+    this._skinCache.endTrace();
   }
 
   createStage(w, h) {
@@ -342,31 +352,9 @@ export default class Renderer {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  renderSprite(sprite, drawMode, beforeRenderingSkin, renderBubble = true) {
-    const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
-      ? sprite.size / 100
-      : 1;
-    this._renderSkin(
-      this._skinCache.getSkin(sprite.costume),
-      drawMode,
-      this._calculateSpriteMatrix(sprite),
-      spriteScale,
-      sprite.effects,
-      beforeRenderingSkin
-    );
-    if (renderBubble && sprite._speechBubble && sprite._speechBubble.text) {
-      const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
-      this._renderSkin(
-        speechBubbleSkin,
-        drawMode,
-        this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
-        1,
-        null,
-        beforeRenderingSkin
-      );
-    }
-  }
-
+  // Calculate the transform matrix for a sprite.
+  // TODO: store the transform matrix in the sprite itself. That adds some complexity though,
+  // so it's better off in another PR.
   _calculateSpriteMatrix(spr) {
     // These transforms are actually in reverse order because lol matrices
     const m = Matrix.create();
@@ -392,6 +380,7 @@ export default class Renderer {
     return m;
   }
 
+  // Calculate the transform matrix for a speech bubble attached to a sprite.
   _calculateSpeechBubbleMatrix(spr, speechBubbleSkin) {
     const box = this.getBoundingBox(spr);
     const x = Math.round(box.right - speechBubbleSkin.offsetX);
@@ -404,10 +393,36 @@ export default class Renderer {
     return m;
   }
 
+  renderSprite(sprite, drawMode, beforeRenderingSkin, renderBubble = true) {
+    const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
+      ? sprite.size / 100
+      : 1;
+    this._renderSkin(
+      this._skinCache.getSkin(sprite.costume),
+      drawMode,
+      this._calculateSpriteMatrix(sprite),
+      spriteScale,
+      sprite.effects,
+      beforeRenderingSkin
+    );
+    if (renderBubble && sprite._speechBubble && sprite._speechBubble.text) {
+      const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
+      this._renderSkin(
+        speechBubbleSkin,
+        drawMode,
+        this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
+        1,
+        null,
+        beforeRenderingSkin
+      );
+    }
+  }
+
   getBoundingBox(sprite) {
     return Rectangle.fromMatrix(this._calculateSpriteMatrix(sprite));
   }
 
+  // Mask drawing in to only areas where this sprite is opaque.
   _stencilSprite(spr, colorMask) {
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);

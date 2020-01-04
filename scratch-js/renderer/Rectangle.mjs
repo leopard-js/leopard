@@ -18,6 +18,7 @@ export default class Rectangle {
     return result;
   }
 
+  // Initialize a bounding box around a sprite given the sprite's transform matrix.
   static fromMatrix(matrix, result) {
     if (!result) result = new Rectangle();
 

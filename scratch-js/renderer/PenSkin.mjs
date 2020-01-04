@@ -13,19 +13,18 @@ export default class PenSkin extends Skin {
       this.gl.NEAREST
     );
     this._framebufferInfo = framebufferInfo;
-    this._texture = framebufferInfo.texture;
 
     this.clear();
   }
 
   destroy() {
     const gl = this.gl;
-    gl.deleteTexture(this._texture);
+    gl.deleteTexture(this._framebufferInfo.texture);
     gl.deleteFramebuffer(this._framebufferInfo.framebuffer);
   }
 
   getTexture() {
-    return this._texture;
+    return this._framebufferInfo.texture;
   }
 
   penLine(pt1, pt2, color, size) {

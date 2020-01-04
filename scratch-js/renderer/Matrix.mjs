@@ -1,5 +1,5 @@
 /* Adapted from gl-matrix
- * TODO: figure out where to put their license/copyright notice
+ * https://github.com/toji/gl-matrix
  */
 
 // 3x3 transform matrix operations, unrolled 4 da speedz.

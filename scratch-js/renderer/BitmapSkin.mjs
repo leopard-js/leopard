@@ -11,6 +11,7 @@ export default class BitmapSkin extends Skin {
   }
 
   getTexture() {
+    // Make sure to handle potentially non-loaded textures
     const image = this._image;
     if (!image.complete) return null;
 

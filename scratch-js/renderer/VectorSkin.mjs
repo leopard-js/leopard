@@ -16,6 +16,7 @@ export default class VectorSkin extends Skin {
   }
 
   // TODO: handle proper subpixel positioning when SVG viewbox has non-integer coordinates
+  // This will require rethinking costume + project loading probably
   _createMipmap(mipLevel) {
     const scale = 2 ** (mipLevel - MIPMAP_OFFSET);
 

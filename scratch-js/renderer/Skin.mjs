@@ -6,7 +6,6 @@ export default class Skin {
   }
 
   // Get the skin's texture for a given (screen-space) scale.
-  // This is a method and not a getter to signal that it's potentially expensive.
   /* eslint-disable-next-line no-unused-vars */
   getTexture(scale) {
     return null;
