@@ -11,7 +11,10 @@
     "type": "git",
     "url": "git+https://github.com/PullJosh/scratch-js.git"
   },
-  "author": "Josh Pullen",
+  "author": "Josh Pullen <hello@joshuapullen.com> (https://joshuapullen.com/)",
+  "contributors": [
+    "adroitwhiz <adroitwhiz@protonmail.com> (https://github.com/adroitwhiz)"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/PullJosh/scratch-js/issues"
