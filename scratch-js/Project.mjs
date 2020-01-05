@@ -13,8 +13,8 @@ export default class Project {
     }
     this.stage._project = this;
 
-    this.renderer = new Renderer();
-    this.input = new Input(this.renderer.stage, key => {
+    this.renderer = new Renderer(this);
+    this.input = new Input(this.stage, this.renderer.stage, key => {
       this.fireTrigger(Trigger.KEY_PRESSED, { key });
     });
 
@@ -40,8 +40,8 @@ export default class Project {
         return this.renderer.checkPointCollision(
           sprite,
           {
-            x: this.input.mouse.x + 240,
-            y: 180 - this.input.mouse.y
+            x: this.input.mouse.x,
+            y: this.input.mouse.y
           },
           false
         );
@@ -102,6 +102,10 @@ export default class Project {
       for (const spriteName in this.sprites) {
         const sprite = this.sprites[spriteName];
         sprite.clones = [];
+      }
+
+      for (const sprite of this.spritesAndStage) {
+        sprite.effects.clear();
       }
     }
 

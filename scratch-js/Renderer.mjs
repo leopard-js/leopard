@@ -1,16 +1,167 @@
-export default class Renderer {
-  constructor(renderTarget, { w = 480, h = 360 } = {}) {
-    this.stage = this.createStage(w, h);
-    this.ctx = this.stage.getContext("2d");
+import Matrix from "./renderer/Matrix.mjs";
+import PenSkin from "./renderer/PenSkin.mjs";
+import Rectangle from "./renderer/Rectangle.mjs";
+import ShaderManager from "./renderer/ShaderManager.mjs";
+import SkinCache from "./renderer/SkinCache.mjs";
 
-    if (renderTarget !== undefined) {
+import { Sprite, Stage } from "./Sprite.mjs";
+
+export default class Renderer {
+  constructor(project, renderTarget) {
+    const w = project.stage.width;
+    const h = project.stage.height;
+    this.project = project;
+    this.stage = this.createStage(w, h);
+    this.gl = this.stage.getContext("webgl", { antialias: false });
+
+    if (renderTarget) {
       this.setRenderTarget(renderTarget);
     } else {
       this.renderTarget = null;
     }
 
-    this.penStage = this.createStage(w, h);
-    this.penLayer = this.penStage.getContext("2d");
+    this._shaderManager = new ShaderManager(this);
+    this._skinCache = new SkinCache(this);
+
+    this._currentShader = null;
+    this._currentFramebuffer = null;
+    this._screenSpaceScale = 1;
+
+    // Initialize a bunch of WebGL state
+    const gl = this.gl;
+
+    // Use premultiplied alpha for proper color blending.
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+
+    // Initialize vertex buffer. This will draw one 2D quadrilateral.
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+    // These are 6 points which make up 2 triangles which make up 1 quad/rectangle.
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      // Prettier mangles the formatting here but every 2 array values make one (x, y) pair
+      // and every 6 values make one triangle
+      new Float32Array([0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0]),
+      gl.STATIC_DRAW
+    );
+
+    // Set the active texture unit to 0.
+    gl.activeTexture(gl.TEXTURE0);
+
+    this._penSkin = new PenSkin(this, w, h);
+
+    // This framebuffer is where sprites are drawn for e.g. "touching" checks.
+    this._collisionBuffer = this._createFramebufferInfo(
+      w,
+      h,
+      gl.NEAREST,
+      true // stencil
+    );
+  }
+
+  // Create a framebuffer info object, which contains the following:
+  // * The framebuffer itself.
+  // * The texture backing the framebuffer.
+  // * The resolution (width and height) of the framebuffer.
+  _createFramebufferInfo(width, height, filtering, stencil = false) {
+    // Create an empty texture with this skin's dimensions.
+    const gl = this.gl;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filtering);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filtering);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null
+    );
+
+    // Create a framebuffer backed by said texture. This means we can draw onto the framebuffer,
+    // and the results appear in the texture.
+    const framebufferInfo = {
+      texture,
+      width,
+      height,
+      framebuffer: gl.createFramebuffer()
+    };
+    this._setFramebuffer(framebufferInfo);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      texture,
+      0
+    );
+
+    // The depth buffer is unnecessary, but WebGL only guarantees
+    // that certain combinations of framebuffer attachments will work, and "stencil but no depth" is not among them.
+    if (stencil) {
+      const renderbuffer = gl.createRenderbuffer();
+      gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+      gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, width, height);
+      gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER,
+        gl.DEPTH_STENCIL_ATTACHMENT,
+        gl.RENDERBUFFER,
+        renderbuffer
+      );
+    }
+
+    return framebufferInfo;
+  }
+
+  _setShader(shader) {
+    if (shader !== this._currentShader) {
+      const gl = this.gl;
+      gl.useProgram(shader.program);
+
+      // These attributes and uniforms don't ever change, but must be set whenever a new shader program is used.
+
+      const attribLocation = shader.attrib("a_position");
+      gl.enableVertexAttribArray(attribLocation);
+      // Bind the 'a_position' vertex attribute to the current contents of `gl.ARRAY_BUFFER`, which in this case
+      // is a quadrilateral (as buffered earlier).
+      gl.vertexAttribPointer(
+        attribLocation,
+        2, // every 2 array elements make one vertex.
+        gl.FLOAT, // data type
+        false, // normalized
+        0, // stride (space between attributes)
+        0 // offset (index of the first attribute to start from)
+      );
+
+      this._currentShader = shader;
+      this._updateStageSize();
+    }
+  }
+
+  _setFramebuffer(framebufferInfo) {
+    if (framebufferInfo !== this._currentFramebuffer) {
+      if (framebufferInfo === null) {
+        // The "null" framebuffer means the drawing buffer which we're displaying to the screen.
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        this._updateStageSize();
+      } else {
+        this.gl.bindFramebuffer(
+          this.gl.FRAMEBUFFER,
+          framebufferInfo.framebuffer
+        );
+        // Make sure to update the drawing viewport to the current framebuffer size.
+        this.gl.viewport(0, 0, framebufferInfo.width, framebufferInfo.height);
+      }
+      this._currentFramebuffer = framebufferInfo;
+    }
   }
 
   setRenderTarget(renderTarget) {
@@ -19,30 +170,134 @@ export default class Renderer {
     }
     this.renderTarget = renderTarget;
     this.renderTarget.classList.add("scratch-js__project");
-    this.renderTarget.style.width = `${this.stage.width}px`;
-    this.renderTarget.style.height = `${this.stage.height}px`;
+    this.renderTarget.style.width = `${this.project.stage.width}px`;
+    this.renderTarget.style.height = `${this.project.stage.height}px`;
 
     this.renderTarget.append(this.stage);
   }
 
-  update(stage, sprites) {
-    this.ctx.clearRect(0, 0, this.stage.width, this.stage.height);
+  // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
+  _renderLayers(layers, options = {}) {
+    options = Object.assign(
+      {},
+      {
+        drawMode: ShaderManager.DrawModes.DEFAULT,
+        renderSpeechBubbles: true
+      },
+      options
+    );
 
-    this.renderSprite(stage, this.ctx);
+    // If we're given a list of layers, filter by that.
+    // If we're given a filter function in the options, filter by that too.
+    // If we're given both, then only include layers which match both.
+    const shouldRestrictLayers = layers instanceof Set;
+    const shouldFilterLayers = typeof options.filter === "function";
+    const shouldIncludeLayer = layer =>
+      !(
+        (shouldRestrictLayers && !layers.has(layer)) ||
+        (shouldFilterLayers && !options.filter(layer))
+      );
 
-    this.ctx.drawImage(this.penStage, 0, 0);
-
-    for (const sprite of Object.values(sprites)) {
-      if (sprite.visible) {
-        this.renderSprite(sprite, this.ctx);
-        if (sprite._speechBubble.text) {
-          this.renderSpriteSpeechBubble(sprite, this.ctx);
-        }
-      }
+    // Stage
+    if (shouldIncludeLayer(this.project.stage)) {
+      this.renderSprite(
+        this.project.stage,
+        options.drawMode,
+        options.beforeRenderingSkin
+      );
     }
 
-    this.ctx.font = "12px monospace";
-    this.ctx.fillStyle = "#aaa";
+    // Pen layer
+    if (shouldIncludeLayer(this._penSkin)) {
+      const penMatrix = Matrix.create();
+      Matrix.scale(
+        penMatrix,
+        penMatrix,
+        this._penSkin.width,
+        -this._penSkin.height
+      );
+      Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
+      this._renderSkin(
+        this._penSkin,
+        options.drawMode,
+        penMatrix,
+        1,
+        null,
+        options.beforeRenderingSkin
+      );
+    }
+
+    // Sprites + clones
+    for (const sprite of this.project.spritesAndClones) {
+      // Stage doesn't have "visible" defined, so check if it's strictly false
+      if (shouldIncludeLayer(sprite) && sprite.visible !== false) {
+        this.renderSprite(
+          sprite,
+          options.drawMode,
+          options.beforeRenderingSkin,
+          options.renderSpeechBubbles
+        );
+      }
+    }
+  }
+
+  _updateStageSize() {
+    if (this._currentShader) {
+      // The shader is passed things in "Scratch-space" (-240, 240) and (-180, 180).
+      // This tells it those dimensions so it can convert them to OpenGL "clip-space" (-1, 1).
+      this.gl.uniform2f(
+        this._currentShader.uniform("u_stageSize"),
+        this.project.stage.width,
+        this.project.stage.height
+      );
+    }
+
+    if (this._currentFramebuffer === null) {
+      this.gl.viewport(
+        0,
+        0,
+        this.gl.drawingBufferWidth,
+        this.gl.drawingBufferHeight
+      );
+    }
+  }
+
+  // Keep the canvas size in sync with the CSS size.
+  _resize() {
+    const stageSize = this.stage.getBoundingClientRect();
+    const ratio = window.devicePixelRatio;
+    const adjustedWidth = Math.round(stageSize.width * ratio);
+    const adjustedHeight = Math.round(stageSize.height * ratio);
+    if (
+      this.stage.width !== adjustedWidth ||
+      this.stage.height !== adjustedHeight
+    ) {
+      this.stage.width = adjustedWidth;
+      this.stage.height = adjustedHeight;
+      this._screenSpaceScale = Math.max(
+        adjustedWidth / this.project.stage.width,
+        adjustedHeight / this.project.stage.height
+      );
+
+      this._updateStageSize();
+    }
+  }
+
+  update() {
+    this._resize();
+
+    // Draw to the screen, not to a framebuffer.
+    this._setFramebuffer(null);
+
+    // Clear to opaque white.
+    const gl = this.gl;
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // TODO: find a way to not destroy the skins of hidden sprites
+    this._skinCache.beginTrace();
+    this._renderLayers();
+    this._skinCache.endTrace();
   }
 
   createStage(w, h) {
@@ -50,194 +305,308 @@ export default class Renderer {
     stage.width = w;
     stage.height = h;
 
+    // Size canvas to parent container
+    stage.style.width = stage.style.height = "100%";
+
+    // If the container width is a non-integer size, don't blur the canvas.
+    // Chrome:
+    stage.style.imageRendering = "pixelated";
+    // Firefox:
+    stage.style.imageRendering = "crisp-edges";
+    // Safari + Opera:
+    stage.style.imageRendering = "-webkit-optimize-contrast";
+
     return stage;
   }
 
-  renderSprite(spr, ctx) {
-    ctx.save();
+  _renderSkin(skin, drawMode, matrix, scale, effects, beforeRendering) {
+    const gl = this.gl;
 
-    ctx.translate(this.stage.width / 2, this.stage.height / 2);
-    ctx.translate(spr.x, -spr.y);
-    ctx.rotate(-spr.scratchToRad(spr.direction));
-    ctx.scale(spr.size / 100, spr.size / 100);
-    ctx.translate(-spr.costume.center.x, -spr.costume.center.y);
+    let effectBitmask = 0;
+    if (effects) effectBitmask = effects._bitmask;
+    const shader = this._shaderManager.getShader(drawMode, effectBitmask);
+    this._setShader(shader);
+    gl.uniformMatrix3fv(shader.uniform("u_transform"), false, matrix);
 
-    ctx.drawImage(spr.costume.img, 0, 0);
+    if (effectBitmask !== 0) {
+      for (const effect of Object.keys(effects._effectValues)) {
+        const effectVal = effects._effectValues[effect];
+        if (effectVal !== 0)
+          gl.uniform1f(shader.uniform(`u_${effect}`), effectVal);
+      }
 
-    ctx.restore();
+      // Pixelate effect needs the skin size
+      if (effects._effectValues.pixelate !== 0)
+        gl.uniform2f(shader.uniform("u_skinSize"), skin.width, skin.height);
+    }
+
+    if (typeof beforeRendering === "function") beforeRendering(skin, shader);
+
+    const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
+
+    gl.bindTexture(gl.TEXTURE_2D, skinTexture);
+    // All textures are bound to texture unit 0, so that's where the texture sampler should point
+    gl.uniform1i(shader.uniform("u_texture"), 0);
+
+    // Draw 6 vertices. In this case, they belong to the 2 triangles that make up 1 quadrilateral.
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  renderSpriteSpeechBubble(spr, ctx) {
-    const renderBubble = (x, y, w, h, r, style) => {
-      if (r > w / 2) r = w / 2;
-      if (r > h / 2) r = h / 2;
-      if (r < 0) return;
-
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x + r, y + h, r);
-      if (style === "say") {
-        ctx.lineTo(Math.min(x + 3 * r, x + w - r), y + h);
-        ctx.lineTo(x + r / 2, y + h + r);
-        ctx.lineTo(x + r, y + h);
-      } else if (style === "think") {
-        ctx.ellipse(x + r * 2.25, y + h, (r * 3) / 4, r / 2, 0, 0, Math.PI);
+  // Calculate the transform matrix for a sprite.
+  // TODO: store the transform matrix in the sprite itself. That adds some complexity though,
+  // so it's better off in another PR.
+  _calculateSpriteMatrix(spr) {
+    // These transforms are actually in reverse order because lol matrices
+    const m = Matrix.create();
+    if (!(spr instanceof Stage)) {
+      Matrix.translate(m, m, spr.x, spr.y);
+      switch (spr.rotationStyle) {
+        case Sprite.RotationStyle.ALL_AROUND: {
+          Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
+          break;
+        }
+        case Sprite.RotationStyle.LEFT_RIGHT: {
+          if (spr.direction < 0) Matrix.scale(m, m, -1, 1);
+          break;
+        }
       }
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
 
-      if (style === "think") {
-        ctx.beginPath();
-        ctx.ellipse(
-          x + r,
-          y + h + (r * 3) / 4,
-          r / 3,
-          r / 3,
-          0,
-          0,
-          2 * Math.PI
-        );
-        ctx.fill();
-        ctx.stroke();
-      }
-    };
+      const spriteScale = spr.size / 100;
+      Matrix.scale(m, m, spriteScale, spriteScale);
+    }
+    Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
+    Matrix.scale(m, m, spr.costume.width, spr.costume.height);
 
-    const box = this.getBoundingBox(spr);
+    return m;
+  }
 
-    ctx.font = "16px sans-serif";
-    ctx.textBaseline = "hanging";
+  // Calculate the transform matrix for a speech bubble attached to a sprite.
+  _calculateSpeechBubbleMatrix(spr, speechBubbleSkin) {
+    const sprBounds = this.getBoundingBox(spr);
+    let x;
+    if (
+      speechBubbleSkin.width + sprBounds.right >
+      this.project.stage.width / 2
+    ) {
+      x = sprBounds.left - speechBubbleSkin.width;
+      speechBubbleSkin.flipped = true;
+    } else {
+      x = sprBounds.right;
+      speechBubbleSkin.flipped = false;
+    }
+    x = Math.round(x - speechBubbleSkin.offsetX);
+    const y = Math.round(sprBounds.top - speechBubbleSkin.offsetY);
 
-    const { text, style } = spr._speechBubble;
-    let { width } = ctx.measureText(text);
+    const m = Matrix.create();
+    Matrix.translate(m, m, x, y);
+    Matrix.scale(m, m, speechBubbleSkin.width, speechBubbleSkin.height);
 
-    const maxWidth = this.stage.width - box.right;
-    const padding = 12;
+    return m;
+  }
 
-    width = Math.min(width + 2 * padding, maxWidth);
-    const height = 10 + 2 * padding;
-    const x = box.right;
-    const y = box.top - height;
-
-    ctx.fillStyle = "#fff";
-    ctx.strokeStyle = "#ccc";
-    ctx.lineWidth = 2;
-    renderBubble(x, y, width, height, 12, style);
-
-    ctx.fillStyle = "#444";
-    ctx.fillText(text, x + padding, y + padding, maxWidth - 2 * padding);
+  renderSprite(sprite, drawMode, beforeRenderingSkin, renderBubble = true) {
+    const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
+      ? sprite.size / 100
+      : 1;
+    this._renderSkin(
+      this._skinCache.getSkin(sprite.costume),
+      drawMode,
+      this._calculateSpriteMatrix(sprite),
+      spriteScale,
+      sprite.effects,
+      beforeRenderingSkin
+    );
+    if (renderBubble && sprite._speechBubble && sprite._speechBubble.text) {
+      const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
+      this._renderSkin(
+        speechBubbleSkin,
+        drawMode,
+        this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
+        1,
+        null
+      );
+    }
   }
 
   getBoundingBox(sprite) {
-    const origin = {
-      x: sprite.x + 240,
-      y: -sprite.y + 180
-    };
-
-    const s = sprite.size / 100;
-    const dist = {
-      left: s * sprite.costume.center.x,
-      right: s * (sprite.costume.width - sprite.costume.center.x),
-      up: s * sprite.costume.center.y,
-      down: s * (sprite.costume.height - sprite.costume.center.y)
-    };
-
-    const spriteDirRad = sprite.scratchToRad(sprite.direction);
-    const angle = {
-      left: spriteDirRad + Math.PI,
-      right: spriteDirRad,
-      up: spriteDirRad - Math.PI / 2,
-      down: spriteDirRad + Math.PI / 2
-    };
-
-    const movePoint = (pt, angle, dist) => ({
-      x: pt.x + Math.cos(angle) * dist,
-      y: pt.y + Math.sin(angle) * dist
-    });
-
-    const points = [
-      movePoint(movePoint(origin, angle.up, dist.up), angle.right, dist.right),
-      movePoint(movePoint(origin, angle.up, dist.up), angle.left, dist.left),
-      movePoint(
-        movePoint(origin, angle.down, dist.down),
-        angle.right,
-        dist.right
-      ),
-      movePoint(movePoint(origin, angle.down, dist.down), angle.left, dist.left)
-    ];
-
-    return {
-      left: Math.round(
-        Math.min.apply(
-          Math,
-          points.map(pt => pt.x)
-        )
-      ),
-      right: Math.round(
-        Math.max.apply(
-          Math,
-          points.map(pt => pt.x)
-        )
-      ),
-      top: Math.round(
-        Math.min.apply(
-          Math,
-          points.map(pt => pt.y)
-        )
-      ),
-      bottom: Math.round(
-        Math.max.apply(
-          Math,
-          points.map(pt => pt.y)
-        )
-      )
-    };
+    return Rectangle.fromMatrix(this._calculateSpriteMatrix(sprite));
   }
 
-  checkSpriteCollision(spr1, spr2, fast) {
-    if (!spr1.visible) return false;
-    if (!spr2.visible) return false;
+  // Mask drawing in to only areas where this sprite is opaque.
+  _stencilSprite(spr, colorMask) {
+    const gl = this.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 
-    const box1 = this.getBoundingBox(spr1);
-    const box2 = this.getBoundingBox(spr2);
+    // Enable stenciling. This means that:
+    // 1. Only pixels which pass the "stencil test" will be drawn.
+    // 2. Anything rendered will also draw to the stencil buffer.
+    gl.enable(gl.STENCIL_TEST);
+    // Pass the stencil test regardless of what's in the stencil buffer.
+    // Note that pixels which the shader has discarded will still fail the stencil test.
+    // 1 is the reference value which we use in the next line.
+    gl.stencilFunc(gl.ALWAYS, 1, 1);
+    // If the stencil test passes (in this case, if the shader hasn't discarded the pixel),
+    // draw a 1 to that pixel in the stencil buffer, replacing whatever's already there.
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+    // Don't draw to the color buffer. Only to the stencil buffer.
+    gl.colorMask(false, false, false, false);
+    // Draw the sprite in the "silhouette" mode, which discards transparent pixels.
+    // This, along with the above line, has the effect of not drawing anything to the color buffer, but
+    // creating a "mask" in the stencil buffer that masks out all pixels where this sprite is transparent.
 
-    if (box1.right <= box2.left) return false;
-    if (box1.left >= box2.right) return false;
-    if (box1.bottom <= box2.top) return false;
-    if (box1.top >= box2.bottom) return false;
+    const opts = {
+      drawMode: ShaderManager.DrawModes.SILHOUETTE,
+      renderSpeechBubbles: false
+    };
 
+    // If we mask in the color (for e.g. "color is touching color"),
+    // we need to pass that in as a uniform as well.
+    if (colorMask) {
+      opts.beforeRenderingSkin = (skin, shader) => {
+        gl.uniform4fv(
+          shader.uniform("u_colorMask"),
+          colorMask.toRGBANormalized()
+        );
+      };
+      opts.drawMode = ShaderManager.DrawModes.COLOR_MASK;
+    }
+    this._renderLayers(new Set([spr]), opts);
+
+    // Pass the stencil test if the stencil buffer value equals 1 (e.g. the pixel got masked in above).
+    gl.stencilFunc(gl.EQUAL, 1, 1);
+    // Keep the current stencil buffer values no matter what.
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    // We can draw to the color buffer again. Note that only pixels which pass the stencil test are drawn.
+    gl.colorMask(true, true, true, true);
+  }
+
+  checkSpriteCollision(spr, targets, fast, sprColor) {
+    if (!spr.visible) return false;
+    if (!(targets instanceof Set)) {
+      if (targets instanceof Array) {
+        targets = new Set(targets);
+      } else {
+        targets = new Set([targets]);
+      }
+    }
+
+    const sprBox = this.getBoundingBox(spr).snapToInt();
+
+    // This is an "impossible rectangle"-- its left bound is infinitely far to the right,
+    // its right bound is infinitely to the left, and so on. Its size is effectively -Infinity.
+    // Its only purpose is to be the "identity rectangle" that starts the rectangle union process.
+    const targetBox = Rectangle.fromBounds(
+      Infinity,
+      -Infinity,
+      Infinity,
+      -Infinity
+    );
+    for (const target of targets) {
+      Rectangle.union(
+        targetBox,
+        this.getBoundingBox(target).snapToInt(),
+        targetBox
+      );
+    }
+
+    if (!sprBox.intersects(targetBox)) return false;
     if (fast) return true;
 
-    const left = Math.max(box1.left, box2.left);
-    const right = Math.min(box1.right, box2.right);
-    const top = Math.max(box1.top, box2.top);
-    const bottom = Math.min(box1.bottom, box2.bottom);
+    const cx = this._collisionBuffer.width / 2;
+    const cy = this._collisionBuffer.height / 2;
+    const collisionBox = Rectangle.intersection(sprBox, targetBox).clamp(
+      -cx,
+      cx,
+      -cy,
+      cy
+    );
 
-    const collisionStage = this.createStage(right - left, bottom - top);
-    const collisionCtx = collisionStage.getContext("2d");
+    if (collisionBox.width === 0 || collisionBox.height === 0) return;
 
-    collisionCtx.setTransform(1, 0, 0, 1, 0, 0);
-    collisionCtx.translate(-left, -top);
+    this._setFramebuffer(this._collisionBuffer);
+    // Enable stencil testing then stencil in this sprite, which masks all further drawing to this sprite's area.
+    this._stencilSprite(spr, sprColor);
 
-    collisionCtx.globalCompositeOperation = "source-over";
-    this.renderSprite(spr1, collisionCtx);
+    // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
+    this._renderLayers(targets, {
+      drawMode: ShaderManager.DrawModes.SILHOUETTE
+    });
 
-    collisionCtx.globalCompositeOperation = "source-in";
-    this.renderSprite(spr2, collisionCtx);
+    const gl = this.gl;
+    // Make sure to disable the stencil test so as not to affect other rendering!
+    gl.disable(gl.STENCIL_TEST);
 
-    // If collision stage contains any alpha > 0, there's a collision
-    const w = collisionStage.width;
-    const h = collisionStage.height;
-    const imgData = collisionCtx.getImageData(0, 0, w, h).data;
+    const pixelData = new Uint8Array(
+      collisionBox.width * collisionBox.height * 4
+    );
+    gl.readPixels(
+      collisionBox.left + cx,
+      collisionBox.bottom + cy,
+      collisionBox.width,
+      collisionBox.height,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      pixelData
+    );
 
-    const length = w * h * 4;
-    for (let i = 0; i < length; i += 4) {
-      if (imgData[i + 3] > 0) {
+    // Any opaque pixel = an overlap between the two sprites.
+    for (let i = 0; i < pixelData.length; i += 4) {
+      if (pixelData[i + 3] !== 0) return true;
+    }
+
+    return false;
+  }
+
+  checkColorCollision(spr, targetsColor, sprColor) {
+    const sprBox = this.getBoundingBox(spr).snapToInt();
+
+    const cx = this._collisionBuffer.width / 2;
+    const cy = this._collisionBuffer.height / 2;
+    sprBox.clamp(-cx, cx, -cy, cy);
+
+    if (sprBox.width === 0 || sprBox.height === 0) return false;
+
+    this._setFramebuffer(this._collisionBuffer);
+    const gl = this.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+
+    this._setFramebuffer(this._collisionBuffer);
+    // Enable stencil testing then stencil in this sprite, which masks all further drawing to this sprite's area.
+    this._stencilSprite(spr, sprColor);
+
+    // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
+    this._renderLayers(null, {
+      filter: layer => layer !== spr
+    });
+
+    // Make sure to disable the stencil test so as not to affect other rendering!
+    gl.disable(gl.STENCIL_TEST);
+
+    const pixelData = new Uint8Array(sprBox.width * sprBox.height * 4);
+    gl.readPixels(
+      sprBox.left + cx,
+      sprBox.bottom + cy,
+      sprBox.width,
+      sprBox.height,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      pixelData
+    );
+
+    const color = targetsColor.toRGBA();
+    for (let i = 0; i < pixelData.length; i += 4) {
+      if (
+        // Ensure we're not testing transparent pixels
+        pixelData[i + 3] !== 0 &&
+        // Scratch tests the top 5 bits of the red and green channels,
+        // and the top 4 bits of the blue channel.
+        ((pixelData[i] ^ color[0]) & 0b11111000) === 0 &&
+        ((pixelData[i + 1] ^ color[1]) & 0b11111000) === 0 &&
+        ((pixelData[i + 2] ^ color[2]) & 0b11110000) === 0
+      )
         return true;
-      }
     }
 
     return false;
@@ -247,52 +616,43 @@ export default class Renderer {
     if (!spr.visible) return false;
 
     const box = this.getBoundingBox(spr);
-
-    if (box.right < point.x) return false;
-    if (box.left > point.x) return false;
-    if (box.top > point.y) return false;
-    if (box.bottom < point.y) return false;
-
+    if (!box.containsPoint(point.x, point.y)) return false;
     if (fast) return true;
 
-    const collisionStage = this.createStage(
-      box.right - box.left,
-      box.bottom - box.top
+    // TODO: would it be faster to enable a scissor rectangle?
+    this._setFramebuffer(this._collisionBuffer);
+    const gl = this.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    this._renderLayers(spr);
+
+    const hoveredPixel = new Uint8Array(4);
+    const cx = this._collisionBuffer.width / 2;
+    const cy = this._collisionBuffer.height / 2;
+    gl.readPixels(
+      point.x + cx,
+      point.y + cy,
+      1,
+      1,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      hoveredPixel
     );
-    const collisionCtx = collisionStage.getContext("2d");
-
-    collisionCtx.setTransform(1, 0, 0, 1, 0, 0);
-    collisionCtx.translate(-box.left, -box.top);
-
-    this.renderSprite(spr, collisionCtx);
-
-    const w = collisionStage.width;
-    const h = collisionStage.height;
-    const imgData = collisionCtx.getImageData(0, 0, w, h).data;
-
-    // Check if point has alpha > 0
-    const x = point.x - box.left;
-    const y = point.y - box.top;
-    return imgData[(y * w + x) * 4 + 3] > 0;
+    return hoveredPixel[3] !== 0;
   }
 
   penLine(pt1, pt2, color, size) {
-    this.penLayer.lineWidth = size;
-    this.penLayer.strokeStyle = color;
-    this.penLayer.lineCap = "round";
-
-    this.penLayer.beginPath();
-    this.penLayer.moveTo(pt1.x + 240, 180 - pt1.y);
-    this.penLayer.lineTo(pt2.x + 240, 180 - pt2.y);
-    this.penLayer.stroke();
+    this._penSkin.penLine(pt1, pt2, color, size);
   }
 
   clearPen() {
-    this.penLayer.clearRect(0, 0, this.penStage.width, this.penStage.height);
+    this._penSkin.clear();
   }
 
-  stamp(sprite) {
-    this.renderSprite(sprite, this.penLayer);
+  stamp(spr) {
+    this._setFramebuffer(this._penSkin._framebuffer);
+    this._renderLayers(spr);
   }
 
   displayAskBox(question) {

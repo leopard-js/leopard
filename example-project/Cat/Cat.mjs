@@ -42,6 +42,7 @@ export default class Cat extends Sprite {
     while (true) {
       this.direction += this.vars.dirVel;
       this.penColor.h += 0.5;
+      this.effects.color += 5;
       yield;
     }
   }

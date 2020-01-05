@@ -1,29 +1,32 @@
 export default class Input {
-  constructor(stage, onKeyDown) {
+  constructor(stage, canvas, onKeyDown) {
     this._stage = stage;
+    this._canvas = canvas;
 
     // Allow setting focus to canvas
-    if (this._stage.tabIndex < 0) {
-      this._stage.tabIndex = 0;
+    if (this._canvas.tabIndex < 0) {
+      this._canvas.tabIndex = 0;
     }
 
     this.mouse = { x: 0, y: 0, down: false };
-    this._stage.addEventListener("mousemove", this._mouseMove.bind(this));
-    this._stage.addEventListener("mousedown", this._mouseDown.bind(this));
-    this._stage.addEventListener("mouseup", this._mouseUp.bind(this));
+    this._canvas.addEventListener("mousemove", this._mouseMove.bind(this));
+    this._canvas.addEventListener("mousedown", this._mouseDown.bind(this));
+    this._canvas.addEventListener("mouseup", this._mouseUp.bind(this));
 
-    this._stage.addEventListener("keyup", this._keyup.bind(this));
-    this._stage.addEventListener("keydown", this._keydown.bind(this));
+    this._canvas.addEventListener("keyup", this._keyup.bind(this));
+    this._canvas.addEventListener("keydown", this._keydown.bind(this));
 
     this.keys = [];
     this._onKeyDown = onKeyDown;
   }
 
   _mouseMove(e) {
-    const rect = this._stage.getBoundingClientRect();
+    const rect = this._canvas.getBoundingClientRect();
+    const scaleX = this._stage.width / rect.width;
+    const scaleY = this._stage.height / rect.height;
     const realCoords = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
     };
 
     this.mouse = {
@@ -78,6 +81,6 @@ export default class Input {
   }
 
   focus() {
-    this._stage.focus();
+    this._canvas.focus();
   }
 }

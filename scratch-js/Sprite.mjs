@@ -1,6 +1,55 @@
 import Trigger from "./Trigger.mjs";
 import Color from "./Color.mjs";
 
+import effectNames from "./renderer/effectNames.mjs";
+// This is a wrapper to allow the enabled effects in a sprite to be used as a Map key.
+// By setting an effect, the bitmask is updated as well.
+// This allows the bitmask to be used to uniquely identify a set of enabled effects.
+class _EffectMap {
+  constructor() {
+    this._bitmask = 0;
+    this._effectValues = {};
+
+    for (let i = 0; i < effectNames.length; i++) {
+      const effectName = effectNames[i];
+      this._effectValues[effectName] = 0;
+
+      Object.defineProperty(this, effectName, {
+        get: () => {
+          return this._effectValues[effectName];
+        },
+
+        set: val => {
+          this._effectValues[effectName] = val;
+
+          if (val === 0) {
+            // If the effect value is 0, meaning it's disabled, set its bit in the bitmask to 0.
+            this._bitmask = this._bitmask & ~(1 << i);
+          } else {
+            // Otherwise, set its bit to 1.
+            this._bitmask = this._bitmask | (1 << i);
+          }
+        }
+      });
+    }
+  }
+
+  _clone() {
+    const m = new _EffectMap();
+    for (const effectName of Object.keys(this._effectValues)) {
+      m[effectName] = this[effectName];
+    }
+    return m;
+  }
+
+  clear() {
+    for (const effectName of Object.keys(this._effectValues)) {
+      this._effectValues[effectName] = 0;
+    }
+    this._bitmask = 0;
+  }
+}
+
 class SpriteBase {
   constructor(initialConditions, vars = {}) {
     this._project = null;
@@ -10,6 +59,8 @@ class SpriteBase {
 
     this.triggers = [];
     this.costumes = [];
+
+    this.effects = new _EffectMap();
 
     this._vars = vars;
   }
@@ -72,14 +123,12 @@ class SpriteBase {
     return this.degToRad(this.scratchToDeg(scratchDir));
   }
 
+  // Wrap rotation from -180 to 180.
   normalizeDeg(deg) {
-    return ((deg - 180) % 360) + 180;
-  }
-
-  normalizeScratch(scratchDir) {
-    const deg = this.scratchToDeg(scratchDir);
-    const normalized = this.normalizeDeg(deg);
-    return this.degToScratch(normalized);
+    // This is a pretty big math expression, but it's necessary because in JavaScript,
+    // the % operator means "remainder", not "modulo", and so negative numbers won't "wrap around".
+    // See https://web.archive.org/web/20090717035140if_/javascript.about.com/od/problemsolving/a/modulobug.htm
+    return ((((deg + 180) % 360) + 360) % 360) - 180;
   }
 
   random(a, b) {
@@ -174,6 +223,7 @@ export class Sprite extends SpriteBase {
       x,
       y,
       direction,
+      rotationStyle,
       costumeNumber,
       size,
       visible,
@@ -185,6 +235,7 @@ export class Sprite extends SpriteBase {
     this._x = x;
     this._y = y;
     this._direction = direction;
+    this.rotationStyle = rotationStyle || Sprite.RotationStyle.ALL_AROUND;
     this._costumeNumber = costumeNumber;
     this.size = size;
     this.visible = visible;
@@ -222,6 +273,8 @@ export class Sprite extends SpriteBase {
       timeout: null
     };
 
+    clone.effects = this.effects._clone();
+
     clone.clones = [];
     clone.parent = this;
     this.clones.push(clone);
@@ -254,7 +307,7 @@ export class Sprite extends SpriteBase {
   }
 
   set direction(dir) {
-    this._direction = this.normalizeScratch(dir);
+    this._direction = this.normalizeDeg(dir);
   }
 
   goto(x, y) {
@@ -264,7 +317,7 @@ export class Sprite extends SpriteBase {
       this._project.renderer.penLine(
         { x: this._x, y: this._y },
         { x, y },
-        this._penColor.toRGBString(),
+        this._penColor,
         this.penSize
       );
     }
@@ -322,7 +375,7 @@ export class Sprite extends SpriteBase {
       this._project.renderer.penLine(
         { x: this.x, y: this.y },
         { x: this.x, y: this.y },
-        this._penColor.toRGBString(),
+        this._penColor,
         this.penSize
       );
     }
@@ -354,8 +407,8 @@ export class Sprite extends SpriteBase {
           return this._project.renderer.checkPointCollision(
             this,
             {
-              x: this.mouse.x + 240,
-              y: 180 - this.mouse.y
+              x: this.mouse.x,
+              y: this.mouse.y
             },
             fast
           );
@@ -365,9 +418,40 @@ export class Sprite extends SpriteBase {
           );
           return false;
       }
+    } else if (target instanceof Color) {
+      return this._project.renderer.checkColorCollision(this, target);
     }
 
     return this._project.renderer.checkSpriteCollision(this, target, fast);
+  }
+
+  colorTouching(color, target) {
+    if (typeof target === "string") {
+      console.error(
+        `Cannot find target "${target}" in "touchingColor". Did you mean to pass a sprite class instead?`
+      );
+      return false;
+    }
+
+    if (typeof color === "string") {
+      console.error(
+        `Cannot find color "${color}" in "touchingColor". Did you mean to pass a Color instance instead?`
+      );
+      return false;
+    }
+
+    if (target instanceof Color) {
+      // "Color is touching color"
+      return this._project.renderer.checkColorCollision(this, target, color);
+    } else {
+      // "Color is touching sprite" (not implemented in Scratch!)
+      return this._project.renderer.checkSpriteCollision(
+        this,
+        target,
+        false,
+        color
+      );
+    }
   }
 
   say(text) {
@@ -409,9 +493,28 @@ export class Sprite extends SpriteBase {
   }
 }
 
+Sprite.RotationStyle = Object.freeze({
+  ALL_AROUND: Symbol("ALL_AROUND"),
+  LEFT_RIGHT: Symbol("LEFT_RIGHT"),
+  DONT_ROTATE: Symbol("DONT_ROTATE")
+});
+
 export class Stage extends SpriteBase {
-  constructor(...args) {
-    super(...args);
+  constructor(initialConditions, ...args) {
+    super(initialConditions, ...args);
+
+    // Use defineProperties to make these non-writable.
+    // Changing the width and height of the stage after initialization isn't supported.
+    Object.defineProperties(this, {
+      width: {
+        value: initialConditions.width || 480,
+        enumerable: true
+      },
+      height: {
+        value: initialConditions.height || 360,
+        enumerable: true
+      }
+    });
 
     this.name = "Stage";
   }

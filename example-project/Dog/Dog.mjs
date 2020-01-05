@@ -7,7 +7,7 @@ export default class Dog extends Sprite {
     this.name = "Dog";
 
     this.costumes = [
-      new Costume("dog", "./Dog/costumes/dog.svg", { x: 81, y: 47 })
+      new Costume("dog", "./Dog/costumes/dog.png", { x: 26, y: 15 })
     ];
 
     this.triggers = [
@@ -27,7 +27,7 @@ export default class Dog extends Sprite {
   }
 
   *whenIStartAsClone() {
-    this.size = 50;
+    this.size = 150;
     this.goto(this.random(-240, 240), 200);
     yield* this.glide(this.random(1.5, 2.5), this.x, -200);
     this.deleteThisClone();
@@ -35,9 +35,18 @@ export default class Dog extends Sprite {
 
   *whenIStartAsClone2() {
     this.vars.dirVel = this.random(-5, 5);
+    this.vars.effect = [
+      "whirl",
+      "fisheye",
+      "pixelate",
+      "mosaic",
+      "brightness",
+      "ghost"
+    ][this.random(0, 5)];
 
     while (true) {
       this.direction += this.vars.dirVel;
+      this.effects[this.vars.effect] += 1;
       yield;
     }
   }
