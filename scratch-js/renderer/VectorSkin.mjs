@@ -32,8 +32,14 @@ export default class VectorSkin extends Skin {
     let width = image.naturalWidth * scale;
     let height = image.naturalHeight * scale;
 
-    width = Math.min(width, this._maxTextureSize);
-    height = Math.min(height, this._maxTextureSize);
+    width = Math.round(Math.min(width, this._maxTextureSize));
+    height = Math.round(Math.min(height, this._maxTextureSize));
+
+    // Prevent IndexSizeErrors if the image is too small to render
+    if (width === 0 || height === 0) {
+      this._mipmaps.set(mipLevel, null);
+      return;
+    }
 
     canvas.width = width;
     canvas.height = height;
