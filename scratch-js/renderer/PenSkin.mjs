@@ -14,6 +14,11 @@ export default class PenSkin extends Skin {
     );
     this._framebufferInfo = framebufferInfo;
 
+    this._lastPenState = {
+      size: 0,
+      color: [0, 0, 0, 0]
+    };
+
     this.clear();
   }
 
@@ -34,13 +39,38 @@ export default class PenSkin extends Skin {
     const shader = renderer._shaderManager.getShader(
       ShaderManager.DrawModes.PEN_LINE
     );
-    renderer._setShader(shader);
 
     const gl = this.gl;
-    gl.uniform1f(shader.uniform("u_penSize"), size);
-    gl.uniform2f(shader.uniform("u_penSkinSize"), this.width, this.height);
+
+    // Set the shader, and check if it actually changed.
+    const shaderChanged = renderer._setShader(shader);
+
+    // These uniforms only need to be set if the shader actually changed.
+    if (shaderChanged) {
+      gl.uniform2f(shader.uniform("u_penSkinSize"), this.width, this.height);
+    }
+
+    // Only set the pen color if it changed or the shader changed.
+    const penColor = color.toRGBANormalized();
+    const oldColor = this._lastPenState.color;
+    if (
+      shaderChanged ||
+      penColor[0] !== oldColor[0] ||
+      penColor[1] !== oldColor[1] ||
+      penColor[2] !== oldColor[2] ||
+      penColor[3] !== oldColor[3]
+    ) {
+      this._lastPenState.color = penColor;
+      gl.uniform4fv(shader.uniform("u_penColor"), penColor);
+    }
+
+    // Only set the pen size if it changed or the shader changed.
+    if (shaderChanged || this._lastPenState.size !== size) {
+      this._lastPenState.size = size;
+      gl.uniform1f(shader.uniform("u_penSize"), size);
+    }
+
     gl.uniform4f(shader.uniform("u_penPoints"), pt1.x, pt1.y, pt2.x, pt2.y);
-    gl.uniform4fv(shader.uniform("u_penColor"), color.toRGBANormalized());
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }

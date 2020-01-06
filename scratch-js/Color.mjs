@@ -204,13 +204,13 @@ export default class Color {
   }
 
   toRGBA() {
-    const rgb = hsvToRGB(this.h, this.s, this.v);
-    return [rgb.r, rgb.g, rgb.b, this.a * 255];
+    const rgb = hsvToRGB(this._h, this._s, this._v);
+    return [rgb.r, rgb.g, rgb.b, this._a * 255];
   }
 
   toRGBANormalized() {
-    const rgb = hsvToRGB(this.h, this.s, this.v);
-    return [rgb.r / 255, rgb.g / 255, rgb.b / 255, this.a];
+    const rgb = hsvToRGB(this._h, this._s, this._v);
+    return [rgb.r / 255, rgb.g / 255, rgb.b / 255, this._a];
   }
 
   toString() {

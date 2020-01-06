@@ -143,7 +143,11 @@ export default class Renderer {
 
       this._currentShader = shader;
       this._updateStageSize();
+
+      return true;
     }
+
+    return false;
   }
 
   _setFramebuffer(framebufferInfo) {
