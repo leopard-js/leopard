@@ -4,8 +4,8 @@ export default class Costume {
     this.url = url;
 
     this.img = new Image();
-    this.img.src = this.url;
     this.img.crossOrigin = "Anonymous";
+    this.img.src = this.url;
 
     this.center = center;
   }
