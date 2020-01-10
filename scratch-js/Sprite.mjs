@@ -517,5 +517,8 @@ export class Stage extends SpriteBase {
     });
 
     this.name = "Stage";
+
+    // For obsolete counter blocks.
+    this.__counter = 0;
   }
 }
