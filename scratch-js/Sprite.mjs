@@ -91,7 +91,35 @@ class SpriteBase {
     }
     if (typeof costume === "string") {
       const index = this.costumes.findIndex(c => c.name === costume);
-      if (index > -1) this.costumeNumber = index + 1;
+      if (index > -1) {
+        this.costumeNumber = index + 1;
+      } else {
+        if (this instanceof Stage) {
+          if (costume === "next backdrop") {
+            this.costumeNumber = this.costumeNumber + 1;
+          } else if (costume === "previous backdrop") {
+            this.costumeNumber = this.costumeNumber - 1;
+          } else if (costume === "random backdrop") {
+            const numCostumes = this.costumes.length;
+            if (numCostumes > 1) {
+              const currentIndex = this.costumeNumber - 1;
+              let selectedIndex = Math.floor(Math.random() * (numCostumes - 1));
+              if (selectedIndex === currentIndex) selectedIndex += 1;
+              this.costumeNumber = selectedIndex + 1;
+            }
+          } else if (!(isNaN(costume) || costume.trim().length === 0)) {
+            this.costumeNumber = Number(costume);
+          }
+        } else {
+          if (costume === "next costume") {
+            this.costumeNumber = this.costumeNumber + 1;
+          } else if (costume === "previous costume") {
+            this.costumeNumber = this.costumeNumber - 1;
+          } else if (!(isNaN(costume) || costume.trim().length === 0)) {
+            this.costumeNumber = Number(costume);
+          }
+        }
+      }
     }
   }
 
