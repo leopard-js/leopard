@@ -94,12 +94,21 @@ class SpriteBase {
       if (index > -1) {
         this.costumeNumber = index + 1;
       } else {
-        if (this instanceof Stage) {
-          if (costume === "next backdrop") {
+        switch (costume) {
+          case "next costume":
+          case "next backdrop": {
             this.costumeNumber = this.costumeNumber + 1;
-          } else if (costume === "previous backdrop") {
+            break;
+          }
+
+          case "previous costume":
+          case "previous backdrop": {
             this.costumeNumber = this.costumeNumber - 1;
-          } else if (costume === "random backdrop") {
+            break;
+          }
+
+          case "random costume":
+          case "random backdrop": {
             const numCostumes = this.costumes.length;
             if (numCostumes > 1) {
               const currentIndex = this.costumeNumber - 1;
@@ -107,16 +116,13 @@ class SpriteBase {
               if (selectedIndex === currentIndex) selectedIndex += 1;
               this.costumeNumber = selectedIndex + 1;
             }
-          } else if (!(isNaN(costume) || costume.trim().length === 0)) {
-            this.costumeNumber = Number(costume);
+            break;
           }
-        } else {
-          if (costume === "next costume") {
-            this.costumeNumber = this.costumeNumber + 1;
-          } else if (costume === "previous costume") {
-            this.costumeNumber = this.costumeNumber - 1;
-          } else if (!(isNaN(costume) || costume.trim().length === 0)) {
-            this.costumeNumber = Number(costume);
+
+          default: {
+            if (!(isNaN(costume) || costume.trim().length === 0)) {
+              this.costumeNumber = Number(costume);
+            }
           }
         }
       }
