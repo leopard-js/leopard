@@ -109,13 +109,19 @@ class SpriteBase {
 
           case "random costume":
           case "random backdrop": {
-            const numCostumes = this.costumes.length;
-            if (numCostumes > 1) {
-              const currentIndex = this.costumeNumber - 1;
-              let selectedIndex = Math.floor(Math.random() * (numCostumes - 1));
-              if (selectedIndex === currentIndex) selectedIndex += 1;
-              this.costumeNumber = selectedIndex + 1;
+            // Based on joker314's inclusiveRandIntWithout: https://github.com/LLK/scratch-vm/pull/2011
+            // Note: We use 1 -> length instead of 0 -> length-1, since we want a 1-indexed result.
+            const lower = 1;
+            const upper = this.costumes.length;
+            const excluded = this.costumeNumber;
+
+            const possibleOptions = upper - lower;
+            let randInt = lower + Math.floor(Math.random() * possibleOptions);
+            if (randInt >= excluded) {
+              randInt++;
             }
+
+            this.costumeNumber = randInt;
             break;
           }
 
