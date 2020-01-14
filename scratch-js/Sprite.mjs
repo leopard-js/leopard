@@ -91,7 +91,47 @@ class SpriteBase {
     }
     if (typeof costume === "string") {
       const index = this.costumes.findIndex(c => c.name === costume);
-      if (index > -1) this.costumeNumber = index + 1;
+      if (index > -1) {
+        this.costumeNumber = index + 1;
+      } else {
+        switch (costume) {
+          case "next costume":
+          case "next backdrop": {
+            this.costumeNumber = this.costumeNumber + 1;
+            break;
+          }
+
+          case "previous costume":
+          case "previous backdrop": {
+            this.costumeNumber = this.costumeNumber - 1;
+            break;
+          }
+
+          case "random costume":
+          case "random backdrop": {
+            // Based on joker314's inclusiveRandIntWithout: https://github.com/LLK/scratch-vm/pull/2011
+            // Note: We use 1 -> length instead of 0 -> length-1, since we want a 1-indexed result.
+            const lower = 1;
+            const upper = this.costumes.length;
+            const excluded = this.costumeNumber;
+
+            const possibleOptions = upper - lower;
+            let randInt = lower + Math.floor(Math.random() * possibleOptions);
+            if (randInt >= excluded) {
+              randInt++;
+            }
+
+            this.costumeNumber = randInt;
+            break;
+          }
+
+          default: {
+            if (!(isNaN(costume) || costume.trim().length === 0)) {
+              this.costumeNumber = Number(costume);
+            }
+          }
+        }
+      }
     }
   }
 

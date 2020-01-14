@@ -1,46 +1,38 @@
-import { Project } from "../scratch-js/index.mjs";
+import { Project } from "/scratch-js/index.mjs";
 
 import Stage from "./Stage/Stage.mjs";
-import Dog from "./Dog/Dog.mjs";
-import Cat from "./Cat/Cat.mjs";
+import ScratchCat from "./ScratchCat/ScratchCat.mjs";
+import Gobo from "./Gobo/Gobo.mjs";
+import Giga from "./Giga/Giga.mjs";
 
-const stage = new Stage({ costumeNumber: 1 }, { myGlobalVar: "hello" });
+const stage = new Stage({ costumeNumber: 1 });
 
 const sprites = {
-  cat: new Cat({
-    x: -150,
-    y: -80,
+  ScratchCat: new ScratchCat({
+    x: -183,
+    y: 119.99999999999999,
     direction: 90,
     costumeNumber: 1,
-    size: 100,
+    size: 75,
     visible: true
   }),
-  dog: new Dog({
-    x: 50,
-    y: -100,
-    direction: 45,
+  Gobo: new Gobo({
+    x: -177,
+    y: 14.999999999999993,
+    direction: 90,
     costumeNumber: 1,
-    size: 300,
+    size: 75,
+    visible: true
+  }),
+  Giga: new Giga({
+    x: -172.00000000000003,
+    y: -121.00000000000001,
+    direction: 90,
+    costumeNumber: 1,
+    size: 65,
     visible: true
   })
 };
 
 const project = new Project(stage, sprites);
-
-project.attach("#project");
-
-document.querySelector("#greenFlag").addEventListener("click", () => {
-  project.greenFlag();
-});
-
-// Play on load
-project.greenFlag();
-
-const projElement = document.querySelector("#project");
-document.querySelector("#stage-size").addEventListener("input", event => {
-  const stageWidth = event.target.value;
-  const stageHeight = stageWidth * 0.75;
-
-  projElement.style.width = stageWidth + "px";
-  projElement.style.height = stageHeight + "px";
-});
+export default project;
