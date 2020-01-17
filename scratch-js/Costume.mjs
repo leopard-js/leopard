@@ -7,6 +7,10 @@ export default class Costume {
     this.img.crossOrigin = "Anonymous";
     this.img.src = this.url;
 
+    // TODO: this is super janky, but fixing this fully requires restructuring costume loading
+    this.isBitmap = !this.url.match(/\.svg/);
+    this.resolution = this.isBitmap ? 2 : 1;
+
     this.center = center;
   }
 

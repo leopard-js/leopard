@@ -326,6 +326,9 @@ export default class Renderer {
   _renderSkin(skin, drawMode, matrix, scale, effects, beforeRendering) {
     const gl = this.gl;
 
+    const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
+    if (!skinTexture) return;
+
     let effectBitmask = 0;
     if (effects) effectBitmask = effects._bitmask;
     const shader = this._shaderManager.getShader(drawMode, effectBitmask);
@@ -345,8 +348,6 @@ export default class Renderer {
     }
 
     if (typeof beforeRendering === "function") beforeRendering(skin, shader);
-
-    const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
 
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point
@@ -378,8 +379,22 @@ export default class Renderer {
       const spriteScale = spr.size / 100;
       Matrix.scale(m, m, spriteScale, spriteScale);
     }
-    Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
-    Matrix.scale(m, m, spr.costume.width, spr.costume.height);
+
+    const scalingFactor = 1 / spr.costume.resolution;
+    // Rotation centers are in non-Scratch space (positive y-values = down),
+    // but these transforms are in Scratch space (negative y-values = down).
+    Matrix.translate(
+      m,
+      m,
+      -spr.costume.center.x * scalingFactor,
+      (spr.costume.center.y - spr.costume.height) * scalingFactor
+    );
+    Matrix.scale(
+      m,
+      m,
+      spr.costume.width * scalingFactor,
+      spr.costume.height * scalingFactor
+    );
 
     return m;
   }
