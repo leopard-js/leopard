@@ -43,11 +43,10 @@ export default class SkinCache {
       let skin;
 
       if (obj instanceof Costume) {
-        // TODO: there's gotta be a better way to tell if an image is an SVG
-        if (obj.img.src.endsWith(".svg")) {
-          skin = new VectorSkin(this._renderer, obj.img);
-        } else {
+        if (obj.isBitmap) {
           skin = new BitmapSkin(this._renderer, obj.img);
+        } else {
+          skin = new VectorSkin(this._renderer, obj.img);
         }
       } else {
         // If it's not a costume, assume it's a speech bubble.

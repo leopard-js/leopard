@@ -379,8 +379,22 @@ export default class Renderer {
       const spriteScale = spr.size / 100;
       Matrix.scale(m, m, spriteScale, spriteScale);
     }
-    Matrix.translate(m, m, -spr.costume.center.x, -spr.costume.center.y);
-    Matrix.scale(m, m, spr.costume.width, spr.costume.height);
+
+    const scalingFactor = 1 / spr.costume.resolution;
+    // Rotation centers are in non-Scratch space (positive y-values = down),
+    // but these transforms are in Scratch space (negative y-values = down).
+    Matrix.translate(
+      m,
+      m,
+      -spr.costume.center.x * scalingFactor,
+      (spr.costume.center.y - spr.costume.height) * scalingFactor
+    );
+    Matrix.scale(
+      m,
+      m,
+      spr.costume.width * scalingFactor,
+      spr.costume.height * scalingFactor
+    );
 
     return m;
   }
