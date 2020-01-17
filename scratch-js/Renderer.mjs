@@ -326,6 +326,9 @@ export default class Renderer {
   _renderSkin(skin, drawMode, matrix, scale, effects, beforeRendering) {
     const gl = this.gl;
 
+    const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
+    if (!skinTexture) return;
+
     let effectBitmask = 0;
     if (effects) effectBitmask = effects._bitmask;
     const shader = this._shaderManager.getShader(drawMode, effectBitmask);
@@ -345,8 +348,6 @@ export default class Renderer {
     }
 
     if (typeof beforeRendering === "function") beforeRendering(skin, shader);
-
-    const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
 
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point
