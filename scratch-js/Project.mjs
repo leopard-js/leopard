@@ -156,28 +156,6 @@ export default class Project {
     return [...this.spritesAndClones, this.stage];
   }
 
-  playSound(url) {
-    return new Promise((resolve, reject) => {
-      const audio = new Audio(url);
-
-      const sound = { audio, hasStarted: false };
-
-      const soundEnd = () => {
-        this._stopSound(sound);
-        resolve();
-      };
-      audio.addEventListener("ended", soundEnd);
-      audio.addEventListener("pause", soundEnd);
-      audio.addEventListener("error", reject);
-
-      this.playingSounds.push(sound);
-
-      audio.play().then(() => {
-        sound.hasStarted = true;
-      });
-    });
-  }
-
   _stopSound(sound) {
     if (sound.hasStarted) {
       sound.audio.pause();
@@ -198,9 +176,8 @@ export default class Project {
   }
 
   stopAllSounds() {
-    const playingSoundsCopy = this.playingSounds.slice();
-    for (let i = 0; i < playingSoundsCopy.length; i++) {
-      this._stopSound(playingSoundsCopy[i]);
+    for (const target of this.spritesAndStage) {
+      target.stopAllOfMySounds();
     }
   }
 

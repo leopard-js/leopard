@@ -59,6 +59,7 @@ class SpriteBase {
 
     this.triggers = [];
     this.costumes = [];
+    this.sounds = [];
 
     this.effects = new _EffectMap();
 
@@ -205,17 +206,38 @@ class SpriteBase {
     this._project.restartTimer();
   }
 
-  *playSound(url) {
-    let playing = true;
-    this._project.playSound(url).then(() => {
-      playing = false;
-    });
+  startSound(soundName) {
+    const sound = this.getSound(soundName);
+    if (sound) {
+      return sound.start();
+    } else {
+      return Promise.resolve();
+    }
+  }
 
-    while (playing) yield;
+  *playSoundUntilDone(soundName) {
+    const sound = this.getSound(soundName);
+    if (sound) {
+      yield* sound.playUntilDone();
+    }
+  }
+
+  getSound(soundName) {
+    if (typeof soundName === "number") {
+      return this.sounds[((soundName - 1) % this.sounds.length) + 1];
+    } else {
+      return this.sounds.find(s => s.name === soundName);
+    }
   }
 
   stopAllSounds() {
     this._project.stopAllSounds();
+  }
+
+  stopAllOfMySounds() {
+    for (const sound of this.sounds) {
+      sound.stop();
+    }
   }
 
   broadcast(name) {
@@ -305,6 +327,7 @@ export class Sprite extends SpriteBase {
       trigger => new Trigger(trigger.trigger, trigger.options, trigger._script)
     );
     clone.costumes = this.costumes;
+    clone.sounds = this.sounds;
     clone._vars = Object.assign({}, this._vars);
 
     clone._speechBubble = {
