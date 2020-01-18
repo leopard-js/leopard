@@ -65,10 +65,10 @@ export default class Input {
   }
 
   _getKeyName(e) {
-    if (e.key === "ArrowUp") return "up";
-    if (e.key === "ArrowDown") return "down";
-    if (e.key === "ArrowLeft") return "left";
-    if (e.key === "ArrowRight") return "right";
+    if (e.key === "ArrowUp") return "up arrow";
+    if (e.key === "ArrowDown") return "down arrow";
+    if (e.key === "ArrowLeft") return "left arrow";
+    if (e.key === "ArrowRight") return "right arrow";
     if (e.key === " ") return "space";
     if (e.code.substring(0, 5) === "Digit") return e.code[5];
 
