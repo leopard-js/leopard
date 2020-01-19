@@ -24,8 +24,6 @@ export default class Project {
 
     this.answer = null;
 
-    this.playingSounds = [];
-
     this.step();
   }
 
@@ -154,25 +152,6 @@ export default class Project {
 
   get spritesAndStage() {
     return [...this.spritesAndClones, this.stage];
-  }
-
-  _stopSound(sound) {
-    if (sound.hasStarted) {
-      sound.audio.pause();
-    } else {
-      // Audio can't be paused because it hasn't started yet
-      // (audio.play() is async; can't pause until play starts)
-      sound.audio.addEventListener("playing", () => {
-        // Stop for real ASAP
-        sound.audio.pause();
-      });
-    }
-
-    // Remove from playingSounds
-    const index = this.playingSounds.findIndex(s => s === sound);
-    if (index > -1) {
-      this.playingSounds.splice(index, 1);
-    }
   }
 
   stopAllSounds() {
