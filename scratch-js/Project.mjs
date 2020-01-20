@@ -24,8 +24,6 @@ export default class Project {
 
     this.answer = null;
 
-    this.playingSounds = [];
-
     this.step();
   }
 
@@ -156,51 +154,9 @@ export default class Project {
     return [...this.spritesAndClones, this.stage];
   }
 
-  playSound(url) {
-    return new Promise((resolve, reject) => {
-      const audio = new Audio(url);
-
-      const sound = { audio, hasStarted: false };
-
-      const soundEnd = () => {
-        this._stopSound(sound);
-        resolve();
-      };
-      audio.addEventListener("ended", soundEnd);
-      audio.addEventListener("pause", soundEnd);
-      audio.addEventListener("error", reject);
-
-      this.playingSounds.push(sound);
-
-      audio.play().then(() => {
-        sound.hasStarted = true;
-      });
-    });
-  }
-
-  _stopSound(sound) {
-    if (sound.hasStarted) {
-      sound.audio.pause();
-    } else {
-      // Audio can't be paused because it hasn't started yet
-      // (audio.play() is async; can't pause until play starts)
-      sound.audio.addEventListener("playing", () => {
-        // Stop for real ASAP
-        sound.audio.pause();
-      });
-    }
-
-    // Remove from playingSounds
-    const index = this.playingSounds.findIndex(s => s === sound);
-    if (index > -1) {
-      this.playingSounds.splice(index, 1);
-    }
-  }
-
   stopAllSounds() {
-    const playingSoundsCopy = this.playingSounds.slice();
-    for (let i = 0; i < playingSoundsCopy.length; i++) {
-      this._stopSound(playingSoundsCopy[i]);
+    for (const target of this.spritesAndStage) {
+      target.stopAllOfMySounds();
     }
   }
 
