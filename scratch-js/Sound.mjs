@@ -1,4 +1,4 @@
-import decodeADPCMAudio, { isWavData } from "./lib/decode-adpcm-audio.mjs";
+import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio.mjs";
 
 export default class Sound {
   constructor(name, url) {
@@ -74,6 +74,12 @@ export default class Sound {
 
     const isLatestCallToStart = yield* this.start();
 
+    // If we failed to download the audio buffer, just stop here - the sound will
+    // never play, so it doesn't make sense to wait for it.
+    if (!this.audioBuffer) {
+      return;
+    }
+
     this.source.addEventListener("ended", () => {
       playing = false;
       delete this._markDone;
@@ -114,8 +120,15 @@ export default class Sound {
     return fetch(this.url)
       .then(body => body.arrayBuffer())
       .then(arrayBuffer => {
-        if (isWavData(arrayBuffer)) {
-          return decodeADPCMAudio(arrayBuffer, Sound.audioContext);
+        if (isADPCMData(arrayBuffer)) {
+          return decodeADPCMAudio(arrayBuffer, Sound.audioContext).catch(
+            error => {
+              console.warn(
+                `Failed to load sound "${this.name}" - will not play:\n` + error
+              );
+              return null;
+            }
+          );
         } else {
           return new Promise((resolve, reject) => {
             Sound.audioContext.decodeAudioData(arrayBuffer, resolve, reject);
@@ -132,6 +145,10 @@ export default class Sound {
   }
 
   playMyAudioBuffer() {
+    if (!this.audioBuffer) {
+      return;
+    }
+
     Sound.setupAudioContext();
 
     if (!this.node) {

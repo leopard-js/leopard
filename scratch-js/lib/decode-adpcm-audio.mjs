@@ -117,6 +117,12 @@ export default function decodeADPCMAudio(ab, audioContext) {
 export function isWavData(arrayBuffer) {
   const dataView = new DataView(arrayBuffer);
   return (
-    dataView.getUint32(0) !== 0x52494646 && dataView.getUint32(8) !== 0x57415645
+    dataView.getUint32(0) === 0x52494646 && dataView.getUint32(8) === 0x57415645
   );
+}
+
+export function isADPCMData(arrayBuffer) {
+  const dataView = new DataView(arrayBuffer);
+  const format = dataView.getUint16(20, true);
+  return isWavData(arrayBuffer) && format === 17;
 }
