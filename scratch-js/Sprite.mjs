@@ -206,12 +206,10 @@ class SpriteBase {
     this._project.restartTimer();
   }
 
-  startSound(soundName) {
+  *startSound(soundName) {
     const sound = this.getSound(soundName);
     if (sound) {
-      return sound.start();
-    } else {
-      return Promise.resolve();
+      yield* sound.start();
     }
   }
 
