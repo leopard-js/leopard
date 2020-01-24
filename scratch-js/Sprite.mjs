@@ -224,7 +224,7 @@ class SpriteBase {
 
   getSound(soundName) {
     if (typeof soundName === "number") {
-      return this.sounds[((soundName - 1) % this.sounds.length) + 1];
+      return this.sounds[(soundName - 1) % this.sounds.length];
     } else {
       return this.sounds.find(s => s.name === soundName);
     }
