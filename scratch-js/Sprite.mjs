@@ -1,5 +1,6 @@
-import Trigger from "./Trigger.mjs";
 import Color from "./Color.mjs";
+import Trigger from "./Trigger.mjs";
+import Sound, { EffectChain } from "./Sound.mjs";
 
 import effectNames from "./renderer/effectNames.mjs";
 // This is a wrapper to allow the enabled effects in a sprite to be used as a Map key.
@@ -63,7 +64,17 @@ class SpriteBase {
 
     this.effects = new _EffectMap();
 
+    Sound.setupAudioContext();
+    this.effectChain = new EffectChain({
+      getNonPatchSoundList: this.getSoundsPlayedByMe.bind(this)
+    });
+    this.effectChain.connect(Sound.audioContext.destination);
+
     this._vars = vars;
+  }
+
+  getSoundsPlayedByMe() {
+    return this.sounds.filter(sound => this.effectChain.isTargetOf(sound));
   }
 
   get stage() {
@@ -209,6 +220,7 @@ class SpriteBase {
   *startSound(soundName) {
     const sound = this.getSound(soundName);
     if (sound) {
+      this.effectChain.applyToSound(sound);
       yield* sound.start();
     }
   }
@@ -216,6 +228,8 @@ class SpriteBase {
   *playSoundUntilDone(soundName) {
     const sound = this.getSound(soundName);
     if (sound) {
+      sound.connect(this.effectChain.inputNode);
+      this.effectChain.applyToSound(sound);
       yield* sound.playUntilDone();
     }
   }
@@ -226,6 +240,22 @@ class SpriteBase {
     } else {
       return this.sounds.find(s => s.name === soundName);
     }
+  }
+
+  setAudioEffect(name, value) {
+    this.effectChain.setEffectValue(name, value);
+  }
+
+  changeAudioEffect(name, value) {
+    this.effectChain.changeEffectValue(name, value);
+  }
+
+  getAudioEffect(name) {
+    return this.effectChain.getEffectValue(name);
+  }
+
+  clearAudioEffects() {
+    this.effectChain.resetToInitial();
   }
 
   stopAllSounds() {
@@ -335,6 +365,16 @@ export class Sprite extends SpriteBase {
     };
 
     clone.effects = this.effects._clone();
+
+    // Clones inherit audio effects from the original sprite, for some reason.
+    // Couldn't explain it, but that's the behavior in Scratch 3.0.
+    let original = this;
+    while (original.parent) {
+      original = original.parent;
+    }
+    clone.effectChain = original.effectChain.clone({
+      getNonPatchSoundList: clone.getSoundsPlayedByMe.bind(clone)
+    });
 
     clone.clones = [];
     clone.parent = this;

@@ -104,6 +104,7 @@ export default class Project {
 
       for (const sprite of this.spritesAndStage) {
         sprite.effects.clear();
+        sprite.clearAudioEffects();
       }
     }
 
