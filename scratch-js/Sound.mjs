@@ -620,3 +620,26 @@ EffectChain.effectDescriptors = [
     }
   }
 ];
+
+export class AudioEffectMap {
+  // This class provides a simple interface for setting and getting audio
+  // effects stored on an EffectChain, similar to EffectMap (that class being
+  // for graphic effects). It takes an EffectChain and automatically generates
+  // properties according to the names of the effect descriptors, acting with
+  // the EffectChain's API when accessed.
+
+  constructor(effectChain) {
+    this.effectChain = effectChain;
+
+    for (const {name} of EffectChain.effectDescriptors) {
+      Object.defineProperty(this, name, {
+        get: () => effectChain.getEffectValue(name),
+        set: value => effectChain.setEffectValue(name, value)
+      });
+    }
+  }
+
+  clear() {
+    this.effectChain.resetToInitial();
+  }
+}

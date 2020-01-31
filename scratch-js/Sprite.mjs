@@ -1,6 +1,6 @@
 import Color from "./Color.mjs";
 import Trigger from "./Trigger.mjs";
-import Sound, { EffectChain } from "./Sound.mjs";
+import Sound, { EffectChain, AudioEffectMap } from "./Sound.mjs";
 
 import effectNames from "./renderer/effectNames.mjs";
 // This is a wrapper to allow the enabled effects in a sprite to be used as a Map key.
@@ -62,13 +62,14 @@ class SpriteBase {
     this.costumes = [];
     this.sounds = [];
 
-    this.effects = new _EffectMap();
-
     Sound.setupAudioContext();
     this.effectChain = new EffectChain({
       getNonPatchSoundList: this.getSoundsPlayedByMe.bind(this)
     });
     this.effectChain.connect(Sound.audioContext.destination);
+
+    this.effects = new _EffectMap();
+    this.audioEffects = new AudioEffectMap(this.effectChain);
 
     this._vars = vars;
   }
@@ -242,22 +243,6 @@ class SpriteBase {
     }
   }
 
-  setAudioEffect(name, value) {
-    this.effectChain.setEffectValue(name, value);
-  }
-
-  changeAudioEffect(name, value) {
-    this.effectChain.changeEffectValue(name, value);
-  }
-
-  getAudioEffect(name) {
-    return this.effectChain.getEffectValue(name);
-  }
-
-  clearAudioEffects() {
-    this.effectChain.resetToInitial();
-  }
-
   stopAllSounds() {
     this._project.stopAllSounds();
   }
@@ -375,6 +360,9 @@ export class Sprite extends SpriteBase {
     clone.effectChain = original.effectChain.clone({
       getNonPatchSoundList: clone.getSoundsPlayedByMe.bind(clone)
     });
+
+    // Make a new audioEffects interface which acts on the cloned effect chain.
+    clone.audioEffects = new AudioEffectMap(clone.effectChain);
 
     clone.clones = [];
     clone.parent = this;
