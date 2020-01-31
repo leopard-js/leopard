@@ -117,7 +117,6 @@ export default class Sound {
   }
 
   downloadMyAudioBuffer() {
-    Sound.setupAudioContext();
     return fetch(this.url)
       .then(body => body.arrayBuffer())
       .then(arrayBuffer => {
@@ -149,8 +148,6 @@ export default class Sound {
     if (!this.audioBuffer) {
       return;
     }
-
-    Sound.setupAudioContext();
 
     if (this.source) {
       this.source.disconnect();
@@ -188,16 +185,21 @@ export default class Sound {
     return this.target === target;
   }
 
-  static setupAudioContext() {
-    // Note: "this" refers to the Sound class in static functions.
-    if (!this.audioContext) {
+  // Note: "this" refers to the Sound class in static functions.
+
+  static get audioContext() {
+    this._setupAudioContext();
+    return this._audioContext;
+  }
+
+  static _setupAudioContext() {
+    if (!this._audioContext) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.audioContext = new AudioContext();
+      this._audioContext = new AudioContext();
     }
   }
 
   static decodeADPCMAudio(audioBuffer) {
-    this.setupAudioContext();
     return decodeADPCMAudio(audioBuffer, this.audioContext);
   }
 }
@@ -210,8 +212,6 @@ export class EffectChain {
   // it affects.
 
   constructor(config) {
-    Sound.setupAudioContext();
-
     const {getNonPatchSoundList} = config;
     this.config = config;
 
@@ -255,16 +255,6 @@ export class EffectChain {
     if (!descriptor) {
       return;
     }
-
-    // Technically, no code in this function depends on the audio context being
-    // available; we call it here so that the function descriptors don't need
-    // to do so themselves. (Just as technically, we'd never need to run
-    // setupAudioContext now; it's run right when EffectChain is constructed,
-    // so that we have access to creating the input Gain node. But I prefer to
-    // avoid depending on the internals of functions defined outside of
-    // whatever function I'm currently working on, so that the code is more
-    // dependable if generally unrelated code changes in the future.)
-    Sound.setupAudioContext();
 
     // updateAudioEffect doesn't take a value - it only reflects the existing
     // value in the actual effects applied to nodes and sounds!

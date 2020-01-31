@@ -62,7 +62,6 @@ class SpriteBase {
     this.costumes = [];
     this.sounds = [];
 
-    Sound.setupAudioContext();
     this.effectChain = new EffectChain({
       getNonPatchSoundList: this.getSoundsPlayedByMe.bind(this)
     });
