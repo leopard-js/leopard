@@ -212,7 +212,7 @@ export class EffectChain {
   // it affects.
 
   constructor(config) {
-    const {getNonPatchSoundList} = config;
+    const { getNonPatchSoundList } = config;
     this.config = config;
 
     this.inputNode = Sound.audioContext.createGain();
@@ -239,7 +239,9 @@ export class EffectChain {
 
     const initials = EffectChain.getInitialEffectValues();
     if (this.effectValues) {
-      for (const [name, initialValue] of Object.entries(EffectChain.getInitialEffectValues())) {
+      for (const [name, initialValue] of Object.entries(
+        EffectChain.getInitialEffectValues()
+      )) {
         if (EffectChain.getEffectDescriptor(name).reset !== false) {
           this.setEffectValue(name, initialValue);
         }
@@ -305,11 +307,11 @@ export class EffectChain {
       // values here.
 
       if (!previous) {
-        previous = {output: this.inputNode};
+        previous = { output: this.inputNode };
       }
 
       if (!next && this.target) {
-        next = {input: this.target};
+        next = { input: this.target };
       }
 
       // "Patch" effects are applied by sending audio data through an ordered
@@ -396,7 +398,7 @@ export class EffectChain {
     if (last) {
       last = this.effectNodes[last.name];
     } else {
-      last = {output: this.inputNode};
+      last = { output: this.inputNode };
     }
 
     last.output.disconnect();
@@ -405,7 +407,11 @@ export class EffectChain {
 
   setEffectValue(name, value) {
     value = Number(value);
-    if (name in this.effectValues && !isNaN(value) && value !== this.effectValues[name]) {
+    if (
+      name in this.effectValues &&
+      !isNaN(value) &&
+      value !== this.effectValues[name]
+    ) {
       this.effectValues[name] = value;
       this.clampEffectValue(name);
       this.updateAudioEffect(name);
@@ -439,7 +445,9 @@ export class EffectChain {
   }
 
   clone(newConfig) {
-    const newEffectChain = new EffectChain(Object.assign({}, this.config, newConfig));
+    const newEffectChain = new EffectChain(
+      Object.assign({}, this.config, newConfig)
+    );
 
     for (const [name, value] of Object.entries(this.effectValues)) {
       const descriptor = EffectChain.getEffectDescriptor(name);
@@ -473,7 +481,7 @@ export class EffectChain {
     // function has been implemented in only the latest of a few modern
     // browsers. :P
     const initials = {};
-    for (const {name, initial} of this.effectDescriptors) {
+    for (const { name, initial } of this.effectDescriptors) {
       initials[name] = initial;
     }
     return initials;
@@ -501,7 +509,9 @@ export class EffectChain {
     // corresponds to the previous item in the original list. Thus, if that
     // previous item matches the provided name, by definition, we'll have found
     // the item which comes after it.
-    return this.effectDescriptors.slice(1).find((_, i) => this.effectDescriptors[i].name === name);
+    return this.effectDescriptors
+      .slice(1)
+      .find((_, i) => this.effectDescriptors[i].name === name);
   }
 
   static getPreviousEffectDescriptor(name) {
@@ -512,7 +522,9 @@ export class EffectChain {
     // using the more typical [i + 1] way of accessing an adjacent item.
     // (In getNextEffectDescriptor(), we don't need to offset the index like
     // that, because the shift already lines up the index as we need it.)
-    return this.effectDescriptors.slice(0, -1).find((_, i) => this.effectDescriptors[i + 1].name === name);
+    return this.effectDescriptors
+      .slice(0, -1)
+      .find((_, i) => this.effectDescriptors[i + 1].name === name);
   }
 }
 
@@ -564,16 +576,24 @@ EffectChain.effectDescriptors = [
       input.connect(rightGain);
       leftGain.connect(channelMerger, 0, 0);
       rightGain.connect(channelMerger, 0, 1);
-      return {input, output, leftGain, rightGain, channelMerger};
+      return { input, output, leftGain, rightGain, channelMerger };
     },
-    set(value, {input, output, leftGain, rightGain}) {
+    set(value, { input, output, leftGain, rightGain }) {
       const p = (value + 100) / 200;
-      const leftVal = Math.cos(p * Math.PI / 2);
-      const rightVal = Math.sin(p * Math.PI / 2);
-      const {currentTime} = Sound.audioContext;
-      const {decayWait, decayDuration} = EffectChain;
-      leftGain.gain.setTargetAtTime(leftVal, currentTime + decayWait, decayDuration);
-      rightGain.gain.setTargetAtTime(rightVal, currentTime + decayWait, decayDuration);
+      const leftVal = Math.cos((p * Math.PI) / 2);
+      const rightVal = Math.sin((p * Math.PI) / 2);
+      const { currentTime } = Sound.audioContext;
+      const { decayWait, decayDuration } = EffectChain;
+      leftGain.gain.setTargetAtTime(
+        leftVal,
+        currentTime + decayWait,
+        decayDuration
+      );
+      rightGain.gain.setTargetAtTime(
+        rightVal,
+        currentTime + decayWait,
+        decayDuration
+      );
     }
   },
   {
@@ -582,7 +602,7 @@ EffectChain.effectDescriptors = [
     isPatch: false,
     set(value, sound) {
       const interval = value / 10;
-      const ratio = Math.pow(2, (interval / 12));
+      const ratio = Math.pow(2, interval / 12);
       sound.setPlaybackRate(ratio);
     }
   },
@@ -602,7 +622,7 @@ EffectChain.effectDescriptors = [
         node
       };
     },
-    set(value, {node}) {
+    set(value, { node }) {
       node.gain.linearRampToValueAtTime(
         value / 100,
         Sound.audioContext.currentTime + EffectChain.decayDuration
@@ -621,7 +641,7 @@ export class AudioEffectMap {
   constructor(effectChain) {
     this.effectChain = effectChain;
 
-    for (const {name} of EffectChain.effectDescriptors) {
+    for (const { name } of EffectChain.effectDescriptors) {
       Object.defineProperty(this, name, {
         get: () => effectChain.getEffectValue(name),
         set: value => effectChain.setEffectValue(name, value)
