@@ -74,7 +74,8 @@ export default function decodeADPCMAudio(ab, audioContext) {
     const offset = blocks.data + 8;
     let i = offset;
     let j = 0;
-    while (true) { // eslint-disable-line
+    // eslint-disable-next-line
+    while (true) {
       if ((i - offset) % blockSize === 0 && lastByte < 0) {
         if (i >= dv.byteLength) break;
         sample = dv.getInt16(i, true);
