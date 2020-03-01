@@ -5,7 +5,7 @@
   "main": "scratch-js/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint 'scratch-js/**'"
+    "lint": "eslint \"./scratch-js/**.mjs\""
   },
   "repository": {
     "type": "git",
