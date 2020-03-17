@@ -11,7 +11,12 @@ export default class Giga extends Sprite {
 
     this.triggers = [
       new Trigger(Trigger.CLICKED, this.whenthisspriteclicked),
-      new Trigger(Trigger.GREEN_FLAG, this.whenGreenFlagClicked)
+      new Trigger(Trigger.GREEN_FLAG, this.whenGreenFlagClicked),
+      new Trigger(
+        Trigger.BACKDROP_CHANGED,
+        { backdrop: "giga" },
+        this.whenBackdropChanged
+      )
     ];
 
     this.visible = false;
@@ -23,5 +28,9 @@ export default class Giga extends Sprite {
 
   *whenGreenFlagClicked() {
     this.costume = "giga-a";
+  }
+
+  *whenBackdropChanged() {
+      yield* this.sayAndWait("It's me!", 2);
   }
 }
