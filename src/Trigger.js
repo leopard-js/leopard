@@ -3,6 +3,7 @@ const KEY_PRESSED = Symbol("KEY_PRESSED");
 const BROADCAST = Symbol("BROADCAST");
 const CLICKED = Symbol("CLICKED");
 const CLONE_START = Symbol("CLONE_START");
+const BACKDROP_CHANGED = Symbol("BACKDROP_CHANGED");
 
 export default class Trigger {
   constructor(trigger, options, script) {
@@ -64,5 +65,9 @@ export default class Trigger {
   }
   static get CLONE_START() {
     return CLONE_START;
+  }
+
+  static get BACKDROP_CHANGED() {
+      return BACKDROP_CHANGED;
   }
 }
