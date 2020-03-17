@@ -12,7 +12,12 @@ export default class Gobo extends Sprite {
 
     this.triggers = [
       new Trigger(Trigger.CLICKED, this.whenthisspriteclicked),
-      new Trigger(Trigger.GREEN_FLAG, this.whenGreenFlagClicked)
+      new Trigger(Trigger.GREEN_FLAG, this.whenGreenFlagClicked),
+      new Trigger(
+        Trigger.BACKDROP_CHANGED,
+        { backdrop: "gobo" },
+        this.whenBackdropChanged
+      )
     ];
 
     this.visible = false;
@@ -24,5 +29,9 @@ export default class Gobo extends Sprite {
 
   *whenGreenFlagClicked() {
     this.costume = "goboA";
+  }
+
+  *whenBackdropChanged() {
+      yield* this.sayAndWait("It's me!", 2);
   }
 }

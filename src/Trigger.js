@@ -4,6 +4,7 @@ const BROADCAST = Symbol("BROADCAST");
 const CLICKED = Symbol("CLICKED");
 const CLONE_START = Symbol("CLONE_START");
 const TIMER_GREATER_THAN = Symbol("TIMER_GREATER_THAN");
+const BACKDROP_CHANGED = Symbol("BACKDROP_CHANGED");
 
 export default class Trigger {
   constructor(trigger, options, script) {
@@ -84,5 +85,8 @@ export default class Trigger {
   }
   static get TIMER_GREATER_THAN() {
     return TIMER_GREATER_THAN;
+  }
+  static get BACKDROP_CHANGED() {
+    return BACKDROP_CHANGED;
   }
 }

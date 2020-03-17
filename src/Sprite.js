@@ -97,6 +97,7 @@ class SpriteBase {
 
   set costumeNumber(number) {
     this._costumeNumber = ((number - 1) % this.costumes.length) + 1;
+    if (this.fireBackdropChanged) this.fireBackdropChanged();
   }
 
   set costume(costume) {
@@ -645,5 +646,11 @@ export class Stage extends SpriteBase {
 
     // For obsolete counter blocks.
     this.__counter = 0;
+  }
+
+  fireBackdropChanged() {
+    this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
+      backdrop: this.costume.name
+    });
   }
 }
