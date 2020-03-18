@@ -313,6 +313,10 @@ class SpriteBase {
   get answer() {
     return this._project.answer;
   }
+
+  loudness() {
+    return this._project.loudnessHandler.getLoudness();
+  }
 }
 
 export class Sprite extends SpriteBase {

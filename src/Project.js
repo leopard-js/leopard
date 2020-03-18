@@ -1,6 +1,7 @@
 import Trigger from "./Trigger.js";
 import Renderer from "./Renderer.js";
 import Input from "./Input.js";
+import LoudnessHandler from "./Loudness.js";
 
 export default class Project {
   constructor(stage, sprites = {}, { frameRate = 30 } = {}) {
@@ -19,6 +20,8 @@ export default class Project {
       this.fireTrigger(Trigger.KEY_PRESSED, { key });
     });
 
+    this.loudnessHandler = new LoudnessHandler();
+
     this.runningTriggers = [];
     // Used to keep track of what edge-activated trigger predicates evaluted to
     // on the previous step.
@@ -27,6 +30,16 @@ export default class Project {
     this.restartTimer();
 
     this.answer = null;
+
+    if (
+      this.spritesAndStage.some(spr =>
+        spr.triggers.some(
+          trig => trig.trigger === Trigger.LOUDNESS_GREATER_THAN
+        )
+      )
+    ) {
+      this.loudnessHandler.connect();
+    }
 
     // Run project code at specified framerate
     setInterval(() => {
@@ -88,6 +101,11 @@ export default class Project {
       switch (trigger.trigger) {
         case Trigger.TIMER_GREATER_THAN:
           predicate = this.timer > trigger.option("VALUE", target);
+          break;
+        case Trigger.LOUDNESS_GREATER_THAN:
+          predicate =
+            this.loudnessHandler.getLoudness() >
+            trigger.option("VALUE", target);
           break;
         default:
           throw new Error(`Unimplemented trigger ${trigger.trigger}`);
