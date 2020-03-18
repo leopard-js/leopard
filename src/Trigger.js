@@ -3,6 +3,7 @@ const KEY_PRESSED = Symbol("KEY_PRESSED");
 const BROADCAST = Symbol("BROADCAST");
 const CLICKED = Symbol("CLICKED");
 const CLONE_START = Symbol("CLONE_START");
+const LOUDNESS_GREATER_THAN = Symbol("LOUDNESS_GREATER_THAN");
 const TIMER_GREATER_THAN = Symbol("TIMER_GREATER_THAN");
 
 export default class Trigger {
@@ -22,7 +23,10 @@ export default class Trigger {
   }
 
   get isEdgeActivated() {
-    return this.trigger === TIMER_GREATER_THAN;
+    return (
+      this.trigger === TIMER_GREATER_THAN ||
+      this.trigger === LOUDNESS_GREATER_THAN
+    );
   }
 
   // Evaluate the given trigger option, whether it's a value or a function that
@@ -81,6 +85,9 @@ export default class Trigger {
   }
   static get CLONE_START() {
     return CLONE_START;
+  }
+  static get LOUDNESS_GREATER_THAN() {
+    return LOUDNESS_GREATER_THAN;
   }
   static get TIMER_GREATER_THAN() {
     return TIMER_GREATER_THAN;
