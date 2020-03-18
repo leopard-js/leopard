@@ -863,6 +863,13 @@ export class Stage extends SpriteBase {
       }
     });
 
+    this.fence = {
+      left: -this.width / 2,
+      right: this.width / 2,
+      top: this.height / 2,
+      bottom: -this.height / 2
+    };
+
     this.name = "Stage";
 
     // For obsolete counter blocks.
@@ -873,13 +880,5 @@ export class Stage extends SpriteBase {
     return this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
       backdrop: this.costume.name
     });
-  }
-  get fence() {
-    return {
-      left: -this.width / 2,
-      right: this.width / 2,
-      top: this.height / 2,
-      bottom: -this.height / 2
-    };
   }
 }
