@@ -227,8 +227,7 @@ class SpriteBase {
   }
 
   get timer() {
-    const ms = new Date() - this._project.timerStart;
-    return ms / 1000;
+    return this._project.timer;
   }
 
   restartTimer() {
@@ -304,6 +303,10 @@ class SpriteBase {
 
   get answer() {
     return this._project.answer;
+  }
+
+  loudness() {
+    return this._project.loudnessHandler.getLoudness();
   }
 }
 

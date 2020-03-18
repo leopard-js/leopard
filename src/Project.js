@@ -2,6 +2,7 @@ import Trigger from "./Trigger.js";
 import Renderer from "./Renderer.js";
 import Input from "./Input.js";
 import { Stage } from "./Sprite.js";
+import LoudnessHandler from "./Loudness.js";
 
 export default class Project {
   constructor(stage, sprites = {}, { frameRate = 30 } = {}) {
@@ -20,11 +21,25 @@ export default class Project {
       this.fireTrigger(Trigger.KEY_PRESSED, { key });
     });
 
+    this.loudnessHandler = new LoudnessHandler();
+
     this.runningTriggers = [];
 
     this.restartTimer();
 
     this.answer = null;
+
+    if (
+      this.spritesAndStage.some(spr =>
+        spr.triggers.some(
+          trig => trig.trigger === Trigger.LOUDNESS_GREATER_THAN
+        )
+      )
+    ) {
+      this.loudnessHandler.connect();
+    }
+
+    this._prevLoudness = 0;
 
     // Run project code at specified framerate
     setInterval(() => {
@@ -82,6 +97,12 @@ export default class Project {
   }
 
   step() {
+    if (this.loudnessHandler.loudness > this._prevLoudness) {
+      this.fireGreatherThanTrigger(Trigger.LOUDNESS_GREATER_THAN);
+    }
+    this._prevLoudness = this.loudnessHandler.loudness;
+    this.fireGreatherThanTrigger(Trigger.TIMER_GREATER_THAN);
+
     // Step all triggers
     const alreadyRunningTriggers = this.runningTriggers;
     for (let i = 0; i < alreadyRunningTriggers.length; i++) {
@@ -143,6 +164,30 @@ export default class Project {
       ];
     }
 
+    return this._startTriggers(matchingTriggers);
+  }
+
+  fireGreatherThanTrigger(trigger) {
+    // GreaterThanTrigger are a bit different; we need to check if the value is bigger.
+    let triggerMatcher = () => true;
+    let triggerBeforeExecute = () => {};
+    switch (trigger) {
+      case Trigger.LOUDNESS_GREATER_THAN:
+        triggerMatcher = trig =>
+          trig.options.loudness < this.loudnessHandler.loudness;
+        break;
+      case Trigger.TIMER_GREATER_THAN:
+        triggerMatcher = trig =>
+          trig.options.timer < this.timer && !this.executed;
+        triggerBeforeExecute = trig => (trig.executed = true);
+        break;
+      default:
+        return;
+    }
+    const matchingTriggers = this.spritesAndStage.flatMap(spr =>
+      spr.triggers.filter(triggerMatcher)
+    );
+    matchingTriggers.forEach(triggerBeforeExecute);
     return this._startTriggers(matchingTriggers);
   }
 
@@ -208,6 +253,16 @@ export default class Project {
 
   restartTimer() {
     this.timerStart = new Date();
+    this.spritesAndStage.forEach(spr =>
+      spr.triggers.forEach(trig => {
+        if (trig.trigger === Trigger.TIMER_GREATER_THAN) trig.executed = false;
+      })
+    );
+  }
+
+  get timer() {
+    const ms = new Date() - this.timerStart;
+    return ms / 1000;
   }
 
   async askAndWait(question) {
