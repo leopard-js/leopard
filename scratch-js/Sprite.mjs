@@ -700,18 +700,16 @@ export class Stage extends SpriteBase {
       }
     });
 
-    this.name = "Stage";
-
-    // For obsolete counter blocks.
-    this.__counter = 0;
-  }
-
-  get fence() {
-    return {
+    this.fence = {
       left: -this.width / 2,
       right: this.width / 2,
       top: this.height / 2,
       bottom: -this.height / 2
     };
+
+    this.name = "Stage";
+
+    // For obsolete counter blocks.
+    this.__counter = 0;
   }
 }
