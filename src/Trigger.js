@@ -36,6 +36,10 @@ export default class Trigger {
   start(target) {
     this.stop();
 
+    if (this.trigger === Trigger.TIMER_GREATER_THAN && this.executed)
+      return new Promise(resolve => resolve());
+    this.executed = true;
+
     const boundScript = this._script.bind(target);
 
     this.done = false;

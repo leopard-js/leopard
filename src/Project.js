@@ -184,9 +184,11 @@ export default class Project {
       default:
         return;
     }
-    const matchingTriggers = this.spritesAndStage.flatMap(spr =>
-      spr.triggers.filter(triggerMatcher)
-    );
+    const matchingTriggers = this.spritesAndStage.flatMap(spr => {
+      return spr.triggers
+        .filter(trig => trig.trigger === trigger && triggerMatcher(trig))
+        .map(trig => ({ trigger: trig, target: spr }));
+    });
     matchingTriggers.forEach(triggerBeforeExecute);
     return this._startTriggers(matchingTriggers);
   }

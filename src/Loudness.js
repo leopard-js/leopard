@@ -1,7 +1,8 @@
 import Sound from "Sound.js";
 
-// https://github.com/LLK/scratch-audio/blob/develop/src/Loudness.js
+const IGNORABLE_ERROR = ["NotAllowedError", "NotFoundError"];
 
+// https://github.com/LLK/scratch-audio/blob/develop/src/Loudness.js
 export default class LoudnessHandler {
   constructor() {
     this.mic = null;
@@ -12,19 +13,22 @@ export default class LoudnessHandler {
     return Sound.audioContext;
   }
 
-  connect() {
+  async connect() {
     if (this.hasConnected) return;
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then(stream => {
-        this.hasConnected = true;
-        this.audioStream = stream;
-        this.mic = this.audioContext.createMediaStreamSource(stream);
-        this.analyser = this.audioContext.createAnalyser();
-        this.mic.connect(this.analyser);
-        this.micDataArray = new Float32Array(this.analyser.fftSize);
-      })
-      .catch(() => {});
+    return navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+      this.hasConnected = true;
+      this.audioStream = stream;
+      this.mic = this.audioContext.createMediaStreamSource(stream);
+      this.analyser = this.audioContext.createAnalyser();
+      this.mic.connect(this.analyser);
+      this.micDataArray = new Float32Array(this.analyser.fftSize);
+    }).catch(e => {
+      if (IGNORABLE_ERROR.includes(e.name)) {
+        console.warn("Mic is not available.");
+      } else {
+        throw e;
+      }
+    });
   }
 
   get loudness() {
@@ -48,8 +52,8 @@ export default class LoudnessHandler {
     return -1;
   }
 
-  getLoudness() {
-    this.connect();
+  async getLoudness() {
+    await this.connect();
     return this.loudness;
   }
 }
