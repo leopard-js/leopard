@@ -553,6 +553,8 @@ export class Sprite extends SpriteBase {
             },
             fast
           );
+        case "edge":
+          return !!this.nearestEdge();
         default:
           console.error(
             `Cannot find target "${target}" in "touching". Did you mean to pass a sprite class instead?`
@@ -625,10 +627,6 @@ export class Sprite extends SpriteBase {
         nearestEdge = null;
       }
       return nearestEdge;
-  }
-
-  touchingEdge() {
-    return !!this.nearestEdge();
   }
 
   say(text) {
