@@ -15,20 +15,23 @@ export default class LoudnessHandler {
 
   async connect() {
     if (this.hasConnected) return;
-    return navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
-      this.hasConnected = true;
-      this.audioStream = stream;
-      this.mic = this.audioContext.createMediaStreamSource(stream);
-      this.analyser = this.audioContext.createAnalyser();
-      this.mic.connect(this.analyser);
-      this.micDataArray = new Float32Array(this.analyser.fftSize);
-    }).catch(e => {
-      if (IGNORABLE_ERROR.includes(e.name)) {
-        console.warn("Mic is not available.");
-      } else {
-        throw e;
-      }
-    });
+    return navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then(stream => {
+        this.hasConnected = true;
+        this.audioStream = stream;
+        this.mic = this.audioContext.createMediaStreamSource(stream);
+        this.analyser = this.audioContext.createAnalyser();
+        this.mic.connect(this.analyser);
+        this.micDataArray = new Float32Array(this.analyser.fftSize);
+      })
+      .catch(e => {
+        if (IGNORABLE_ERROR.includes(e.name)) {
+          console.warn("Mic is not available.");
+        } else {
+          throw e;
+        }
+      });
   }
 
   get loudness() {
