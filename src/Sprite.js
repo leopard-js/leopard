@@ -790,10 +790,6 @@ export class Sprite extends SpriteBase {
       return nearestEdge;
   }
 
-  touchingEdge() {
-    return !!this.nearestEdge();
-  }
-
   say(text) {
     clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "say", timeout: null };
