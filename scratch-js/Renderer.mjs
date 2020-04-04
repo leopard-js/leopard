@@ -152,6 +152,7 @@ export default class Renderer {
 
   _setFramebuffer(framebufferInfo) {
     if (framebufferInfo !== this._currentFramebuffer) {
+      this._currentFramebuffer = framebufferInfo;
       if (framebufferInfo === null) {
         // The "null" framebuffer means the drawing buffer which we're displaying to the screen.
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
@@ -164,7 +165,6 @@ export default class Renderer {
         // Make sure to update the drawing viewport to the current framebuffer size.
         this.gl.viewport(0, 0, framebufferInfo.width, framebufferInfo.height);
       }
-      this._currentFramebuffer = framebufferInfo;
     }
   }
 
