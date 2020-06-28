@@ -1,4 +1,4 @@
-import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio.mjs";
+import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio.js";
 
 export default class Sound {
   constructor(name, url) {

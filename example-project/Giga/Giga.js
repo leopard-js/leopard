@@ -1,9 +1,4 @@
-import {
-  Sprite,
-  Trigger,
-  Costume,
-  Color
-} from "/scratch-js/index.mjs";
+import { Sprite, Trigger, Costume, Color } from "/scratch-js/index.js";
 
 export default class Giga extends Sprite {
   constructor(...args) {

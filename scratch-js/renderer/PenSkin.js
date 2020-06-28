@@ -1,5 +1,5 @@
-import Skin from "./Skin.mjs";
-import ShaderManager from "./ShaderManager.mjs";
+import Skin from "./Skin.js";
+import ShaderManager from "./ShaderManager.js";
 
 export default class PenSkin extends Skin {
   constructor(renderer, width, height) {

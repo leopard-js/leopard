@@ -1,5 +1,5 @@
-import { SpriteShader, PenLineShader } from "./Shaders.mjs";
-import effectNames from "./effectNames.mjs";
+import { SpriteShader, PenLineShader } from "./Shaders.js";
+import effectNames from "./effectNames.js";
 
 // Everything contained in a shader. It contains both the program, and the locations of the shader inputs.
 class Shader {

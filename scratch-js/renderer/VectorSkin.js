@@ -1,4 +1,4 @@
-import Skin from "./Skin.mjs";
+import Skin from "./Skin.js";
 
 // This means that the smallest mipmap will be 1/(2**4)th the size of the sprite's "100%" size.
 const MIPMAP_OFFSET = 4;

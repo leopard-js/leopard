@@ -1,8 +1,8 @@
-import BitmapSkin from "./BitmapSkin.mjs";
-import SpeechBubbleSkin from "./SpeechBubbleSkin.mjs";
-import VectorSkin from "./VectorSkin.mjs";
+import BitmapSkin from "./BitmapSkin.js";
+import SpeechBubbleSkin from "./SpeechBubbleSkin.js";
+import VectorSkin from "./VectorSkin.js";
 
-import Costume from "../Costume.mjs";
+import Costume from "../Costume.js";
 
 // This is a class which manages the creation and destruction of Skin objects.
 // A Skin is the renderer's version of a "costume". It is backed by an image, but you render it by getting its texture.

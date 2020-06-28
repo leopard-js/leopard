@@ -1,4 +1,4 @@
-import Skin from "./Skin.mjs";
+import Skin from "./Skin.js";
 
 const bubbleStyle = {
   maxLineWidth: 170,

@@ -1,7 +1,7 @@
-import Trigger from "./Trigger.mjs";
-import Renderer from "./Renderer.mjs";
-import Input from "./Input.mjs";
-import { Stage } from "./Sprite.mjs";
+import Trigger from "./Trigger.js";
+import Renderer from "./Renderer.js";
+import Input from "./Input.js";
+import { Stage } from "./Sprite.js";
 
 export default class Project {
   constructor(stage, sprites = {}) {

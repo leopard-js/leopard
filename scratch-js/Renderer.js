@@ -1,10 +1,10 @@
-import Matrix from "./renderer/Matrix.mjs";
-import PenSkin from "./renderer/PenSkin.mjs";
-import Rectangle from "./renderer/Rectangle.mjs";
-import ShaderManager from "./renderer/ShaderManager.mjs";
-import SkinCache from "./renderer/SkinCache.mjs";
+import Matrix from "./renderer/Matrix.js";
+import PenSkin from "./renderer/PenSkin.js";
+import Rectangle from "./renderer/Rectangle.js";
+import ShaderManager from "./renderer/ShaderManager.js";
+import SkinCache from "./renderer/SkinCache.js";
 
-import { Sprite, Stage } from "./Sprite.mjs";
+import { Sprite, Stage } from "./Sprite.js";
 
 export default class Renderer {
   constructor(project, renderTarget) {

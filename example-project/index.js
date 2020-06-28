@@ -1,9 +1,9 @@
-import { Project } from "/scratch-js/index.mjs";
+import { Project } from "/scratch-js/index.js";
 
-import Stage from "./Stage/Stage.mjs";
-import ScratchCat from "./ScratchCat/ScratchCat.mjs";
-import Gobo from "./Gobo/Gobo.mjs";
-import Giga from "./Giga/Giga.mjs";
+import Stage from "./Stage/Stage.js";
+import ScratchCat from "./ScratchCat/ScratchCat.js";
+import Gobo from "./Gobo/Gobo.js";
+import Giga from "./Giga/Giga.js";
 
 const stage = new Stage({ costumeNumber: 1 });
 

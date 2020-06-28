@@ -1,4 +1,4 @@
-import Skin from "./Skin.mjs";
+import Skin from "./Skin.js";
 
 export default class BitmapSkin extends Skin {
   constructor(renderer, image) {
