@@ -2,6 +2,7 @@
   "name": "@leopardjs/leopard",
   "version": "1.0.0",
   "description": "Make Scratch-like projects with JavaScript.",
+  "private": false,
   "browser": true,
   "main": "dist/index.umd.js",
   "module": "dist/index.esm.js",
