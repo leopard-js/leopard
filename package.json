@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "description": "Library for making Scratch-like projects with JavaScript.",
   "browser": true,
-  "main": "dist/cjs/index.min.js",
-  "module": "dist/esm/index.min.js",
+  "main": "dist/index.umd.js",
+  "module": "dist/index.esm.js",
   "scripts": {
     "dev": "rollup -c --watch",
     "build": "rollup -c",
