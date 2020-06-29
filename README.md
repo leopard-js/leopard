@@ -1,20 +1,20 @@
-# scratch-js
+# Leopard
 
 ![Scratch translation example](./translation-example.png)
 
 ## What is this?
 
-There are two main components to `scratch-js`:
+There are two main components to Leopard:
 
-### 1. `scratch-js`: A Javascript Library For Creating Games
+### 1. `Leopard`: A Javascript Library For Creating Games
 
-`scratch-js` is a library which makes it easy to create games in Javascript. The library handles rendering sprites, collision detection, audio, and more. It is designed to be easy-to-use for real human beings. If you're a person, you can make games with `scratch-js`.
+Leopard is a library which makes it easy to create games in Javascript. The library handles rendering sprites, collision detection, audio, and more. It is designed to be easy-to-use for real human beings. If you're a person, you can make games with Leopard.
 
-But `scratch-js` also has a second trick up its sleeve...
+But Leopard also has a second trick up its sleeve...
 
 ### 2. `sb-edit`: A Compiler to Transform Scratch Projects
 
-The design of the `scratch-js` library closely mimics that of the [Scratch](https://scratch.mit.edu/) programming language. This is no accident; it allows for **direct, easy translation from Scratch to JavaScript.** There are a lot of reasons why this is difficult without the library (mostly the way that Scratch handles asynchronous code), but with `scratch-js` alongside, the translation is stupid simple.
+The design of the Leopard library closely mimics that of the [Scratch](https://scratch.mit.edu/) programming language. This is no accident; it allows for **direct, easy translation from Scratch to JavaScript.** There are a lot of reasons why this is difficult without the library (mostly the way that Scratch handles asynchronous code), but with Leopard alongside, the translation is stupid simple.
 
 All of this means that a compiler can exist which translates Scratch projects directly into usable Javascript. This isn't ugly compilation that leaves little room for human input. The final code is clear and concise, exactly the same as the Scratch project from which it is created.
 
@@ -23,11 +23,9 @@ All of this means that a compiler can exist which translates Scratch projects di
 ### Step 1: Get the code
 
 ```
-> git clone https://github.com/PullJosh/scratch-js.git
-> cd scratch-js
+> git clone https://github.com/PullJosh/leopard.git
+> cd leopard
 ```
-
-(Note that the `cd` command takes us into the repo directory, **NOT** the `scratch-js` folder within it!)
 
 ### Step 2: Serve the files
 

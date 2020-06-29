@@ -173,7 +173,7 @@ export default class Renderer {
       renderTarget = document.querySelector(renderTarget);
     }
     this.renderTarget = renderTarget;
-    this.renderTarget.classList.add("scratch-js__project");
+    this.renderTarget.classList.add("leopard__project");
     this.renderTarget.style.width = `${this.project.stage.width}px`;
     this.renderTarget.style.height = `${this.project.stage.height}px`;
 
@@ -676,20 +676,20 @@ export default class Renderer {
 
   displayAskBox(question) {
     const askBox = document.createElement("form");
-    askBox.classList.add("scratch-js__askBox");
+    askBox.classList.add("leopard__askBox");
 
     const askText = document.createElement("span");
-    askText.classList.add("scratch-js__askText");
+    askText.classList.add("leopard__askText");
     askText.innerText = question;
     askBox.append(askText);
 
     const askInput = document.createElement("input");
     askInput.type = "text";
-    askInput.classList.add("scratch-js__askInput");
+    askInput.classList.add("leopard__askInput");
     askBox.append(askInput);
 
     const askButton = document.createElement("button");
-    askButton.classList.add("scratch-js__askButton");
+    askButton.classList.add("leopard__askButton");
     askButton.innerText = "Answer";
     askBox.append(askButton);
 

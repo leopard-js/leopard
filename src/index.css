@@ -1,7 +1,7 @@
-.scratch-js__project {
+.leopard__project {
   position: relative;
 }
-.scratch-js__askBox {
+.leopard__askBox {
   position: absolute;
   left: 10px;
   right: 10px;
@@ -21,17 +21,17 @@
   border-radius: 8px;
   font-family: Arial, Helvetica, sans-serif;
 }
-.scratch-js__askBox:not(:first-of-type) {
+.leopard__askBox:not(:first-of-type) {
   /* If there are multiple ask boxes, show the oldest (first) one */
   display: none;
 }
-.scratch-js__askText {
+.leopard__askText {
   grid-area: text;
   font-weight: bold;
   margin-bottom: 8px;
   user-select: none;
 }
-.scratch-js__askInput {
+.leopard__askInput {
   grid-area: input;
   box-sizing: border-box;
   width: 100%;
@@ -40,13 +40,13 @@
   font: inherit;
   padding: 4px 8px;
 }
-.scratch-js__askInput:focus,
-.scratch-js__askButton:focus {
+.leopard__askInput:focus,
+.leopard__askButton:focus {
   outline: none;
   border-color: hsl(215, 100%, 65%);
   box-shadow: 0 0 0 3px hsla(215, 100%, 65%, 0.2);
 }
-.scratch-js__askButton {
+.leopard__askButton {
   grid-area: button;
   margin-left: 8px;
   font-size: 0;
@@ -59,7 +59,7 @@
   border-radius: 4px;
   position: relative;
 }
-.scratch-js__askButton::after {
+.leopard__askButton::after {
   content: " ";
   position: absolute;
   top: 50%;
