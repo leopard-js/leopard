@@ -2,11 +2,18 @@
   "name": "scratch-js",
   "version": "0.1.0",
   "description": "Library for making Scratch-like projects with JavaScript.",
-  "main": "scratch-js/index.js",
+  "browser": true,
+  "main": "dist/cjs/index.min.js",
+  "module": "dist/esm/index.min.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint \"./scratch-js/**.js\""
+    "dev": "rollup -c --watch",
+    "build": "rollup -c",
+    "prepare": "npm run build",
+    "lint": "eslint \"./src/**.js\""
   },
+  "files": [
+    "dist/"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PullJosh/scratch-js.git"
@@ -25,6 +32,9 @@
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.9.0",
     "eslint-plugin-prettier": "^3.1.2",
-    "prettier": "^1.19.1"
+    "prettier": "^1.19.1",
+    "rollup": "^2.18.1",
+    "rollup-plugin-postcss": "^3.1.2",
+    "rollup-plugin-terser": "^6.1.0"
   }
 }

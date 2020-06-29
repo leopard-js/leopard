@@ -1,4 +1,4 @@
-import { Project } from "/scratch-js/index.js";
+import { Project } from "../dist/index.esm.js";
 
 import Stage from "./Stage/Stage.js";
 import ScratchCat from "./ScratchCat/ScratchCat.js";

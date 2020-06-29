@@ -1,4 +1,4 @@
-import { Sprite, Trigger, Costume, Color } from "/scratch-js/index.js";
+import { Sprite, Trigger, Costume, Color } from "../../dist/index.esm.js";
 
 export default class ScratchCat extends Sprite {
   constructor(...args) {

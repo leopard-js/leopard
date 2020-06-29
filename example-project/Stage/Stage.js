@@ -3,7 +3,7 @@ import {
   Trigger,
   Costume,
   Color
-} from "/scratch-js/index.js";
+} from "../../dist/index.esm.js";
 
 export default class Stage extends StageBase {
   constructor(...args) {
