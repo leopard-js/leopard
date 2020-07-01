@@ -13,7 +13,7 @@ export default [
       {
         file: "dist/index.umd.js",
         format: "umd",
-        name: "scratchjs",
+        name: "leopard",
         sourcemap: true
       }
     ],
