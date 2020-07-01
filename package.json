@@ -1,5 +1,5 @@
 {
-  "name": "@leopardjs/leopard",
+  "name": "leopard",
   "version": "1.0.0",
   "description": "Make Scratch-like projects with JavaScript.",
   "private": false,
