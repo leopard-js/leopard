@@ -221,14 +221,15 @@ export default class Renderer {
         -this._penSkin.height
       );
       Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
-      this._renderSkin(
+
+      this._setSkinUniforms(
         this._penSkin,
         options.drawMode,
         penMatrix,
         1,
-        null,
-        options.beforeRenderingSkin
+        null
       );
+      this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
     // Sprites + clones
@@ -323,7 +324,7 @@ export default class Renderer {
     return stage;
   }
 
-  _renderSkin(skin, drawMode, matrix, scale, effects, beforeRendering) {
+  _setSkinUniforms(skin, drawMode, matrix, scale, effects) {
     const gl = this.gl;
 
     const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
@@ -347,14 +348,9 @@ export default class Renderer {
         gl.uniform2f(shader.uniform("u_skinSize"), skin.width, skin.height);
     }
 
-    if (typeof beforeRendering === "function") beforeRendering(skin, shader);
-
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point
     gl.uniform1i(shader.uniform("u_texture"), 0);
-
-    // Draw 6 vertices. In this case, they belong to the 2 triangles that make up 1 quadrilateral.
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
   // Calculate the transform matrix for a sprite.
@@ -427,23 +423,28 @@ export default class Renderer {
     const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
       ? sprite.size / 100
       : 1;
-    this._renderSkin(
+
+    this._setSkinUniforms(
       this._skinCache.getSkin(sprite.costume),
       drawMode,
       this._calculateSpriteMatrix(sprite),
       spriteScale,
-      sprite.effects,
-      beforeRenderingSkin
+      sprite.effects
     );
+    if (typeof beforeRenderingSkin === "function") beforeRenderingSkin();
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+
     if (renderBubble && sprite._speechBubble && sprite._speechBubble.text) {
       const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
-      this._renderSkin(
+
+      this._setSkinUniforms(
         speechBubbleSkin,
         drawMode,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
         1,
         null
       );
+      this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
   }
 
