@@ -2,7 +2,7 @@ import Color from "./Color.js";
 import Trigger from "./Trigger.js";
 import Sound, { EffectChain, AudioEffectMap } from "./Sound.js";
 
-import effectNames from "./renderer/effectNames.js";
+import { effectNames } from "./renderer/effectInfo.js";
 // This is a wrapper to allow the enabled effects in a sprite to be used as a Map key.
 // By setting an effect, the bitmask is updated as well.
 // This allows the bitmask to be used to uniquely identify a set of enabled effects.
