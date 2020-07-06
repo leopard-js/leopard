@@ -3,6 +3,7 @@ import PenSkin from "./renderer/PenSkin.js";
 import Rectangle from "./renderer/Rectangle.js";
 import ShaderManager from "./renderer/ShaderManager.js";
 import SkinCache from "./renderer/SkinCache.js";
+import { effectBitmasks } from "./renderer/effectInfo.js";
 
 import { Sprite, Stage } from "./Sprite.js";
 
@@ -315,7 +316,7 @@ export default class Renderer {
     return stage;
   }
 
-  _setSkinUniforms(skin, drawMode, matrix, scale, effects) {
+  _setSkinUniforms(skin, drawMode, matrix, scale, effects, effectMask) {
     const gl = this.gl;
 
     const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
@@ -323,6 +324,7 @@ export default class Renderer {
 
     let effectBitmask = 0;
     if (effects) effectBitmask = effects._bitmask;
+    if (typeof effectMask === "number") effectBitmask &= effectMask;
     const shader = this._shaderManager.getShader(drawMode, effectBitmask);
     this._setShader(shader);
     gl.uniformMatrix3fv(shader.uniform("u_transform"), false, matrix);
@@ -420,7 +422,8 @@ export default class Renderer {
       options.drawMode,
       this._calculateSpriteMatrix(sprite),
       spriteScale,
-      sprite.effects
+      sprite.effects,
+      options.effectMask
     );
     if (Array.isArray(options.colorMask))
       this.gl.uniform4fv(
@@ -476,7 +479,9 @@ export default class Renderer {
 
     const opts = {
       drawMode: ShaderManager.DrawModes.SILHOUETTE,
-      renderSpeechBubbles: false
+      renderSpeechBubbles: false,
+      // Ignore ghost effect
+      effectMask: ~effectBitmasks.ghost
     };
 
     // If we mask in the color (for e.g. "color is touching color"),
@@ -544,7 +549,9 @@ export default class Renderer {
 
     // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
     this._renderLayers(targets, {
-      drawMode: ShaderManager.DrawModes.SILHOUETTE
+      drawMode: ShaderManager.DrawModes.SILHOUETTE,
+      // Ignore ghost effect
+      effectMask: ~effectBitmasks.ghost
     });
 
     const gl = this.gl;
@@ -639,7 +646,7 @@ export default class Renderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    this._renderLayers(new Set([spr]));
+    this._renderLayers(new Set([spr]), { effectMask: ~effectBitmasks.ghost });
 
     const hoveredPixel = new Uint8Array(4);
     const cx = this._collisionBuffer.width / 2;
