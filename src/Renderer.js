@@ -204,11 +204,7 @@ export default class Renderer {
 
     // Stage
     if (shouldIncludeLayer(this.project.stage)) {
-      this.renderSprite(
-        this.project.stage,
-        options.drawMode,
-        options.beforeRenderingSkin
-      );
+      this.renderSprite(this.project.stage, options);
     }
 
     // Pen layer
@@ -236,12 +232,7 @@ export default class Renderer {
     for (const sprite of this.project.spritesAndClones) {
       // Stage doesn't have "visible" defined, so check if it's strictly false
       if (shouldIncludeLayer(sprite) && sprite.visible !== false) {
-        this.renderSprite(
-          sprite,
-          options.drawMode,
-          options.beforeRenderingSkin,
-          options.renderSpeechBubbles
-        );
+        this.renderSprite(sprite, options);
       }
     }
   }
@@ -419,27 +410,32 @@ export default class Renderer {
     return m;
   }
 
-  renderSprite(sprite, drawMode, beforeRenderingSkin, renderBubble = true) {
+  renderSprite(sprite, options) {
     const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
       ? sprite.size / 100
       : 1;
 
     this._setSkinUniforms(
       this._skinCache.getSkin(sprite.costume),
-      drawMode,
+      options.drawMode,
       this._calculateSpriteMatrix(sprite),
       spriteScale,
       sprite.effects
     );
-    if (typeof beforeRenderingSkin === "function") beforeRenderingSkin();
+    if (typeof options.beforeRenderingSkin === "function")
+      options.beforeRenderingSkin();
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
-    if (renderBubble && sprite._speechBubble && sprite._speechBubble.text) {
+    if (
+      options.renderSpeechBubbles &&
+      sprite._speechBubble &&
+      sprite._speechBubble.text
+    ) {
       const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
 
       this._setSkinUniforms(
         speechBubbleSkin,
-        drawMode,
+        options.drawMode,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
         1,
         null
