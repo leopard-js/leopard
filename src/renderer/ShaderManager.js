@@ -119,6 +119,11 @@ class ShaderManager {
       gl.attachShader(program, fragShader);
       gl.linkProgram(program);
 
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        const info = gl.getProgramInfoLog(program);
+        throw new Error("Could not compile WebGL program. \n" + info);
+      }
+
       const shader = new Shader(gl, program);
       shaderMap.set(effectBitmask, shader);
       return shader;
