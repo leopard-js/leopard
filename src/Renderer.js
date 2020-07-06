@@ -422,8 +422,11 @@ export default class Renderer {
       spriteScale,
       sprite.effects
     );
-    if (typeof options.beforeRenderingSkin === "function")
-      options.beforeRenderingSkin();
+    if (Array.isArray(options.colorMask))
+      this.gl.uniform4fv(
+        this._currentShader.uniform("u_colorMask"),
+        options.colorMask
+      );
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
     if (
@@ -479,12 +482,7 @@ export default class Renderer {
     // If we mask in the color (for e.g. "color is touching color"),
     // we need to pass that in as a uniform as well.
     if (colorMask) {
-      opts.beforeRenderingSkin = (skin, shader) => {
-        gl.uniform4fv(
-          shader.uniform("u_colorMask"),
-          colorMask.toRGBANormalized()
-        );
-      };
+      opts.colorMask = colorMask.toRGBANormalized();
       opts.drawMode = ShaderManager.DrawModes.COLOR_MASK;
     }
     this._renderLayers(new Set([spr]), opts);
