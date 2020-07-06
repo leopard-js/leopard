@@ -435,7 +435,7 @@ export default class Renderer {
     if (
       options.renderSpeechBubbles &&
       sprite._speechBubble &&
-      sprite._speechBubble.text
+      sprite._speechBubble.text !== ""
     ) {
       const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
 
