@@ -544,12 +544,12 @@ export class Sprite extends SpriteBase {
 
   say(text) {
     clearTimeout(this._speechBubble.timeout);
-    this._speechBubble = { text, style: "say", timeout: null };
+    this._speechBubble = { text: String(text), style: "say", timeout: null };
   }
 
   think(text) {
     clearTimeout(this._speechBubble.timeout);
-    this._speechBubble = { text, style: "think", timeout: null };
+    this._speechBubble = { text: String(text), style: "think", timeout: null };
   }
 
   *sayAndWait(text, seconds) {
