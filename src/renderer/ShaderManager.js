@@ -1,5 +1,5 @@
 import { SpriteShader, PenLineShader } from "./Shaders.js";
-import effectNames from "./effectNames.js";
+import { effectNames, effectBitmasks } from "./effectInfo.js";
 
 // Everything contained in a shader. It contains both the program, and the locations of the shader inputs.
 class Shader {
@@ -98,8 +98,9 @@ class ShaderManager {
 
       // Add #defines for each enabled effect.
       for (let i = 0; i < effectNames.length; i++) {
-        if ((effectBitmask & (1 << i)) !== 0) {
-          define += `#define EFFECT_${effectNames[i]}\n`;
+        const effectName = effectNames[i];
+        if ((effectBitmask & effectBitmasks[effectName]) !== 0) {
+          define += `#define EFFECT_${effectName}\n`;
         }
       }
 
@@ -117,6 +118,11 @@ class ShaderManager {
       gl.attachShader(program, vertShader);
       gl.attachShader(program, fragShader);
       gl.linkProgram(program);
+
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        const info = gl.getProgramInfoLog(program);
+        throw new Error("Could not compile WebGL program. \n" + info);
+      }
 
       const shader = new Shader(gl, program);
       shaderMap.set(effectBitmask, shader);

@@ -3,6 +3,7 @@ import PenSkin from "./renderer/PenSkin.js";
 import Rectangle from "./renderer/Rectangle.js";
 import ShaderManager from "./renderer/ShaderManager.js";
 import SkinCache from "./renderer/SkinCache.js";
+import { effectBitmasks } from "./renderer/effectInfo.js";
 
 import { Sprite, Stage } from "./Sprite.js";
 
@@ -204,11 +205,7 @@ export default class Renderer {
 
     // Stage
     if (shouldIncludeLayer(this.project.stage)) {
-      this.renderSprite(
-        this.project.stage,
-        options.drawMode,
-        options.beforeRenderingSkin
-      );
+      this.renderSprite(this.project.stage, options);
     }
 
     // Pen layer
@@ -221,26 +218,22 @@ export default class Renderer {
         -this._penSkin.height
       );
       Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
-      this._renderSkin(
+
+      this._setSkinUniforms(
         this._penSkin,
         options.drawMode,
         penMatrix,
         1,
-        null,
-        options.beforeRenderingSkin
+        null
       );
+      this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
     // Sprites + clones
     for (const sprite of this.project.spritesAndClones) {
       // Stage doesn't have "visible" defined, so check if it's strictly false
       if (shouldIncludeLayer(sprite) && sprite.visible !== false) {
-        this.renderSprite(
-          sprite,
-          options.drawMode,
-          options.beforeRenderingSkin,
-          options.renderSpeechBubbles
-        );
+        this.renderSprite(sprite, options);
       }
     }
   }
@@ -323,7 +316,7 @@ export default class Renderer {
     return stage;
   }
 
-  _renderSkin(skin, drawMode, matrix, scale, effects, beforeRendering) {
+  _setSkinUniforms(skin, drawMode, matrix, scale, effects, effectMask) {
     const gl = this.gl;
 
     const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
@@ -331,6 +324,7 @@ export default class Renderer {
 
     let effectBitmask = 0;
     if (effects) effectBitmask = effects._bitmask;
+    if (typeof effectMask === "number") effectBitmask &= effectMask;
     const shader = this._shaderManager.getShader(drawMode, effectBitmask);
     this._setShader(shader);
     gl.uniformMatrix3fv(shader.uniform("u_transform"), false, matrix);
@@ -347,14 +341,9 @@ export default class Renderer {
         gl.uniform2f(shader.uniform("u_skinSize"), skin.width, skin.height);
     }
 
-    if (typeof beforeRendering === "function") beforeRendering(skin, shader);
-
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point
     gl.uniform1i(shader.uniform("u_texture"), 0);
-
-    // Draw 6 vertices. In this case, they belong to the 2 triangles that make up 1 quadrilateral.
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
   // Calculate the transform matrix for a sprite.
@@ -423,27 +412,41 @@ export default class Renderer {
     return m;
   }
 
-  renderSprite(sprite, drawMode, beforeRenderingSkin, renderBubble = true) {
+  renderSprite(sprite, options) {
     const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
       ? sprite.size / 100
       : 1;
-    this._renderSkin(
+
+    this._setSkinUniforms(
       this._skinCache.getSkin(sprite.costume),
-      drawMode,
+      options.drawMode,
       this._calculateSpriteMatrix(sprite),
       spriteScale,
       sprite.effects,
-      beforeRenderingSkin
+      options.effectMask
     );
-    if (renderBubble && sprite._speechBubble && sprite._speechBubble.text) {
+    if (Array.isArray(options.colorMask))
+      this.gl.uniform4fv(
+        this._currentShader.uniform("u_colorMask"),
+        options.colorMask
+      );
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+
+    if (
+      options.renderSpeechBubbles &&
+      sprite._speechBubble &&
+      sprite._speechBubble.text
+    ) {
       const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
-      this._renderSkin(
+
+      this._setSkinUniforms(
         speechBubbleSkin,
-        drawMode,
+        options.drawMode,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
         1,
         null
       );
+      this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
   }
 
@@ -476,18 +479,15 @@ export default class Renderer {
 
     const opts = {
       drawMode: ShaderManager.DrawModes.SILHOUETTE,
-      renderSpeechBubbles: false
+      renderSpeechBubbles: false,
+      // Ignore ghost effect
+      effectMask: ~effectBitmasks.ghost
     };
 
     // If we mask in the color (for e.g. "color is touching color"),
     // we need to pass that in as a uniform as well.
     if (colorMask) {
-      opts.beforeRenderingSkin = (skin, shader) => {
-        gl.uniform4fv(
-          shader.uniform("u_colorMask"),
-          colorMask.toRGBANormalized()
-        );
-      };
+      opts.colorMask = colorMask.toRGBANormalized();
       opts.drawMode = ShaderManager.DrawModes.COLOR_MASK;
     }
     this._renderLayers(new Set([spr]), opts);
@@ -549,7 +549,9 @@ export default class Renderer {
 
     // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
     this._renderLayers(targets, {
-      drawMode: ShaderManager.DrawModes.SILHOUETTE
+      drawMode: ShaderManager.DrawModes.SILHOUETTE,
+      // Ignore ghost effect
+      effectMask: ~effectBitmasks.ghost
     });
 
     const gl = this.gl;
@@ -644,7 +646,7 @@ export default class Renderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    this._renderLayers(spr);
+    this._renderLayers(new Set([spr]), { effectMask: ~effectBitmasks.ghost });
 
     const hoveredPixel = new Uint8Array(4);
     const cx = this._collisionBuffer.width / 2;
