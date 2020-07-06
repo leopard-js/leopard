@@ -645,7 +645,7 @@ export default class Renderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    this._renderLayers(spr);
+    this._renderLayers(new Set([spr]));
 
     const hoveredPixel = new Uint8Array(4);
     const cx = this._collisionBuffer.width / 2;
