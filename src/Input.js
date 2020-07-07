@@ -56,6 +56,8 @@ export default class Input {
   }
 
   _keydown(e) {
+    e.preventDefault();
+
     const key = this._getKeyName(e);
     if (this.keys.indexOf(key) === -1) {
       this.keys.push(key);
