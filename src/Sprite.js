@@ -55,8 +55,9 @@ class SpriteBase {
   constructor(initialConditions, vars = {}) {
     this._project = null;
 
-    const { costumeNumber } = initialConditions;
+    const { costumeNumber, layerOrder = 0 } = initialConditions;
     this._costumeNumber = costumeNumber;
+    this._layerOrder = layerOrder;
 
     this.triggers = [];
     this.costumes = [];

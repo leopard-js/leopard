@@ -9,28 +9,31 @@ const stage = new Stage({ costumeNumber: 1 });
 
 const sprites = {
   ScratchCat: new ScratchCat({
-    x: -183,
-    y: 119.99999999999999,
+    x: 0,
+    y: 30,
     direction: 90,
     costumeNumber: 1,
     size: 75,
-    visible: true
+    visible: true,
+    layerOrder: 1
   }),
   Gobo: new Gobo({
-    x: -177,
-    y: 14.999999999999993,
+    x: -20,
+    y: -10,
     direction: 90,
     costumeNumber: 1,
     size: 75,
-    visible: true
+    visible: true,
+    layerOrder: 3
   }),
   Giga: new Giga({
-    x: -172.00000000000003,
-    y: -121.00000000000001,
+    x: 20,
+    y: -10,
     direction: 90,
     costumeNumber: 1,
     size: 65,
-    visible: true
+    visible: true,
+    layerOrder: 2
   })
 };
 

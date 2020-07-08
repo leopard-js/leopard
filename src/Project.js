@@ -8,6 +8,8 @@ export default class Project {
     this.stage = stage;
     this.sprites = sprites;
 
+    Object.freeze(sprites); // Prevent adding/removing sprites while project is running
+
     for (const sprite of this.spritesAndClones) {
       sprite._project = this;
     }
@@ -148,7 +150,9 @@ export default class Project {
   }
 
   get spritesAndClones() {
-    return Object.values(this.sprites).flatMap(sprite => sprite.andClones());
+    return Object.values(this.sprites)
+      .flatMap(sprite => sprite.andClones())
+      .sort((a, b) => a._layerOrder - b._layerOrder);
   }
 
   get spritesAndStage() {
