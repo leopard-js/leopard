@@ -159,6 +159,28 @@ export default class Project {
     return [...this.spritesAndClones, this.stage];
   }
 
+  changeSpriteLayer(sprite, layerDelta, relativeToSprite = sprite) {
+    let spritesArray = this.spritesAndClones;
+
+    const originalIndex = spritesArray.indexOf(sprite);
+    const relativeToIndex = spritesArray.indexOf(relativeToSprite);
+
+    let newIndex = relativeToIndex + layerDelta;
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex > spritesArray.length - 1) newIndex = spritesArray.length - 1;
+
+    // Remove sprite from originalIndex and insert at newIndex
+    spritesArray.splice(originalIndex, 1);
+    spritesArray.splice(newIndex, 0, sprite);
+
+    // spritesArray is sorted correctly, but to influence
+    // the actual order of the sprites we need to update
+    // each one's _layerOrder property.
+    spritesArray.forEach((sprite, index) => {
+      sprite._layerOrder = index + 1;
+    });
+  }
+
   stopAllSounds() {
     for (const target of this.spritesAndStage) {
       target.stopAllOfMySounds();

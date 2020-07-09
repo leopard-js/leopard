@@ -152,6 +152,22 @@ class SpriteBase {
     return this.costumes[this.costumeNumber - 1];
   }
 
+  moveAhead(value = Infinity) {
+    if (typeof value === "number") {
+      this._project.changeSpriteLayer(this, value);
+    } else {
+      this._project.changeSpriteLayer(this, 1, value);
+    }
+  }
+
+  moveBehind(value = Infinity) {
+    if (typeof value === "number") {
+      this._project.changeSpriteLayer(this, -value);
+    } else {
+      this._project.changeSpriteLayer(this, -1, value);
+    }
+  }
+
   degToRad(deg) {
     return (deg * Math.PI) / 180;
   }
