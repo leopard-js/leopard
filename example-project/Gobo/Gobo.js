@@ -14,6 +14,8 @@ export default class Gobo extends Sprite {
       new Trigger(Trigger.CLICKED, this.whenthisspriteclicked),
       new Trigger(Trigger.GREEN_FLAG, this.whenGreenFlagClicked)
     ];
+
+    this.visible = false;
   }
 
   *whenthisspriteclicked() {
