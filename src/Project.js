@@ -4,7 +4,7 @@ import Input from "./Input.js";
 import { Stage } from "./Sprite.js";
 
 export default class Project {
-  constructor(stage, sprites = {}) {
+  constructor(stage, sprites = {}, { frameRate = 30 } = {}) {
     this.stage = stage;
     this.sprites = sprites;
 
@@ -26,7 +26,13 @@ export default class Project {
 
     this.answer = null;
 
-    this.step();
+    // Run project code at specified framerate
+    setInterval(() => {
+      this.step();
+    }, 1000 / frameRate);
+
+    // Render project as fast as possible
+    this._renderLoop();
   }
 
   attach(renderTarget) {
@@ -86,7 +92,9 @@ export default class Project {
     this.runningTriggers = this.runningTriggers.filter(
       ({ trigger }) => !trigger.done
     );
+  }
 
+  render() {
     // Render to canvas
     this.renderer.update(this.stage, this.spritesAndClones);
 
@@ -96,8 +104,11 @@ export default class Project {
         watcher.updateDOM(this.renderer.renderTarget);
       }
     }
+  }
 
-    window.requestAnimationFrame(this.step.bind(this));
+  _renderLoop() {
+    requestAnimationFrame(this._renderLoop.bind(this));
+    this.render();
   }
 
   fireTrigger(trigger, options) {
