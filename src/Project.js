@@ -87,7 +87,15 @@ export default class Project {
       ({ trigger }) => !trigger.done
     );
 
+    // Render to canvas
     this.renderer.update(this.stage, this.spritesAndClones);
+
+    // Update watchers
+    for (const sprite of [...Object.values(this.sprites), this.stage]) {
+      for (const watcher of Object.values(sprite.watchers)) {
+        watcher.updateDOM(this.renderer.renderTarget);
+      }
+    }
 
     window.requestAnimationFrame(this.step.bind(this));
   }

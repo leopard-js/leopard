@@ -60,6 +60,7 @@ class SpriteBase {
     this._layerOrder = layerOrder;
 
     this.triggers = [];
+    this.watchers = {};
     this.costumes = [];
     this.sounds = [];
 
