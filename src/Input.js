@@ -68,24 +68,13 @@ export default class Input {
 
   _getKeyName(e) {
     switch (e.key) {
-      case "ArrowUp":
-        return "up arrow";
-        break;
-      case "ArrowDown":
-        return "down arrow";
-        break;
-      case "ArrowLeft":
-        return "left arrow";
-        break;
-      case "ArrowRight":
-        return "right arrow";
-        break;
-      case " ":
-        return "space";
-        break;
+      case "ArrowUp"   : return "up arrow"   ; break;
+      case "ArrowDown" : return "down arrow" ; break;
+      case "ArrowLeft" : return "left arrow" ; break;
+      case "ArrowRight": return "right arrow"; break;
+      case " "         : return "space"      ; break;
       default:
-        if (e.code.substring(0, 5) === "Digit") return e.code[5];
-        break;
+        if (e.code.substring(0, 5) === "Digit") return e.code[5]; break;
     }/*
     if (e.key === "ArrowUp") return "up arrow";
     if (e.key === "ArrowDown") return "down arrow";
