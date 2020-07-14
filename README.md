@@ -16,7 +16,7 @@ But Leopard also has a second trick up its sleeve...
 
 The design of the Leopard library closely mimics that of the [Scratch](https://scratch.mit.edu/) programming language. This is no accident; it allows for **direct, easy translation from Scratch to JavaScript.** There are a lot of reasons why this is difficult without the library (mostly the way that Scratch handles asynchronous code), but with Leopard alongside, the translation is stupid simple.
 
-All of this means that a compiler can exist which translates Scratch projects directly into usable Javascript. This isn't ugly compilation that leaves little room for human input. The final code is clear and concise, exactly the same as the Scratch project from which it is created.
+All of this means that a compiler can exist which translates Scratch projects directly into usable Javascript via [sb-edit](https://github.com/PullJosh/sb-edit). This isn't ugly compilation that leaves little room for human input. The final code is clear and concise, exactly the same as the Scratch project from which it is created.
 
 ## Usage
 
