@@ -25,6 +25,7 @@ All of this means that a compiler can exist which translates Scratch projects di
 ```
 > git clone https://github.com/PullJosh/leopard.git
 > cd leopard
+> npm install
 ```
 
 ### Step 2: Serve the files
