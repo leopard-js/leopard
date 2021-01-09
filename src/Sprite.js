@@ -201,6 +201,15 @@ class SpriteBase {
     return ((((deg + 180) % 360) + 360) % 360) - 180;
   }
 
+  // Given a generator function, return a version of it that runs in "warp mode" (no yields).
+  warp(procedure) {
+    const bound = procedure.bind(this);
+    return (...args) => {
+      const inst = bound(...args);
+      while (!inst.next().done);
+    };
+  }
+
   random(a, b) {
     const min = Math.min(a, b);
     const max = Math.max(a, b);
