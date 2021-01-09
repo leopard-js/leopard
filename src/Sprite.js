@@ -203,8 +203,9 @@ class SpriteBase {
 
   // Given a generator function, return a version of it that runs in "warp mode" (no yields).
   warp(procedure) {
+    const bound = procedure.bind(this);
     return (...args) => {
-      const inst = procedure(...args);
+      const inst = bound(...args);
       while (!inst.next().done);
     };
   }
