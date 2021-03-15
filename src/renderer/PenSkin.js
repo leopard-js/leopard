@@ -61,7 +61,13 @@ export default class PenSkin extends Skin {
       penColor[3] !== oldColor[3]
     ) {
       this._lastPenState.color = penColor;
-      gl.uniform4fv(shader.uniform("u_penColor"), penColor);
+      gl.uniform4f(
+        shader.uniform("u_penColor"),
+        penColor[0] * penColor[3],
+        penColor[1] * penColor[3],
+        penColor[2] * penColor[3],
+        penColor[3]
+      );
     }
 
     // Only set the pen size if it changed or the shader changed.
@@ -70,7 +76,24 @@ export default class PenSkin extends Skin {
       gl.uniform1f(shader.uniform("u_penSize"), size);
     }
 
-    gl.uniform4f(shader.uniform("u_penPoints"), pt1.x, pt1.y, pt2.x, pt2.y);
+    const lineDiffX = pt2.x - pt1.x;
+    const lineDiffY = pt2.y - pt1.y;
+
+    gl.uniform4f(
+      shader.uniform("u_penPoints"),
+      pt1.x,
+      pt1.y,
+      lineDiffX,
+      lineDiffY
+    );
+
+    // Fun fact: Doing this calculation in the shader has the potential to overflow the floating-point range.
+    // 'mediump' precision is only required to have a range up to 2^14 (16384), so any lines longer than 2^7 (128)
+    // can overflow that, because you're squaring the operands, and they could end up as "infinity".
+    // Even GLSL's `length` function won't save us here:
+    // https://asawicki.info/news_1596_watch_out_for_reduced_precision_normalizelength_in_opengl_es
+    const lineLength = Math.sqrt(lineDiffX * lineDiffX + lineDiffY * lineDiffY);
+    gl.uniform1f(shader.uniform("u_lineLength"), lineLength);
 
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
