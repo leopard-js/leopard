@@ -129,7 +129,7 @@ export default class Renderer {
 
       // These attributes and uniforms don't ever change, but must be set whenever a new shader program is used.
 
-      const attribLocation = shader.attrib("a_position");
+      const attribLocation = shader.attribs.a_position;
       gl.enableVertexAttribArray(attribLocation);
       // Bind the 'a_position' vertex attribute to the current contents of `gl.ARRAY_BUFFER`, which in this case
       // is a quadrilateral (as buffered earlier).
@@ -243,7 +243,7 @@ export default class Renderer {
       // The shader is passed things in "Scratch-space" (-240, 240) and (-180, 180).
       // This tells it those dimensions so it can convert them to OpenGL "clip-space" (-1, 1).
       this.gl.uniform2f(
-        this._currentShader.uniform("u_stageSize"),
+        this._currentShader.uniforms.u_stageSize,
         this.project.stage.width,
         this.project.stage.height
       );
@@ -327,23 +327,23 @@ export default class Renderer {
     if (typeof effectMask === "number") effectBitmask &= effectMask;
     const shader = this._shaderManager.getShader(drawMode, effectBitmask);
     this._setShader(shader);
-    gl.uniformMatrix3fv(shader.uniform("u_transform"), false, matrix);
+    gl.uniformMatrix3fv(shader.uniforms.u_transform, false, matrix);
 
     if (effectBitmask !== 0) {
       for (const effect of Object.keys(effects._effectValues)) {
         const effectVal = effects._effectValues[effect];
         if (effectVal !== 0)
-          gl.uniform1f(shader.uniform(`u_${effect}`), effectVal);
+          gl.uniform1f(shader.uniforms[`u_${effect}`], effectVal);
       }
 
       // Pixelate effect needs the skin size
       if (effects._effectValues.pixelate !== 0)
-        gl.uniform2f(shader.uniform("u_skinSize"), skin.width, skin.height);
+        gl.uniform2f(shader.uniforms.u_skinSize, skin.width, skin.height);
     }
 
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
     // All textures are bound to texture unit 0, so that's where the texture sampler should point
-    gl.uniform1i(shader.uniform("u_texture"), 0);
+    gl.uniform1i(shader.uniforms.u_texture, 0);
   }
 
   // Calculate the transform matrix for a sprite.
@@ -427,7 +427,7 @@ export default class Renderer {
     );
     if (Array.isArray(options.colorMask))
       this.gl.uniform4fv(
-        this._currentShader.uniform("u_colorMask"),
+        this._currentShader.uniforms.u_colorMask,
         options.colorMask
       );
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
