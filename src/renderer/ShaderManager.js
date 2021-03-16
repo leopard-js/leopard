@@ -6,19 +6,19 @@ class Shader {
   constructor(gl, program) {
     this.gl = gl;
     this.program = program;
-    this._uniformLocations = new Map();
-    this._attribLocations = new Map();
+    this.uniforms = {};
+    this.attribs = {};
 
+    // In order to pass a value into a shader as an attribute or uniform, you need to know its location.
+    // This maps the names of attributes and uniforms to their locations, accessible via the `uniforms` and `attribs`
+    // properties.
     const numActiveUniforms = gl.getProgramParameter(
       program,
       gl.ACTIVE_UNIFORMS
     );
     for (let i = 0; i < numActiveUniforms; i++) {
-      const uniformInfo = gl.getActiveUniform(program, i);
-      this._uniformLocations.set(
-        uniformInfo.name,
-        gl.getUniformLocation(program, uniformInfo.name)
-      );
+      const { name } = gl.getActiveUniform(program, i);
+      this.uniforms[name] = gl.getUniformLocation(program, name);
     }
 
     const numActiveAttributes = gl.getProgramParameter(
@@ -26,23 +26,9 @@ class Shader {
       gl.ACTIVE_ATTRIBUTES
     );
     for (let i = 0; i < numActiveAttributes; i++) {
-      const attribInfo = gl.getActiveAttrib(program, i);
-      this._attribLocations.set(
-        attribInfo.name,
-        gl.getAttribLocation(program, attribInfo.name)
-      );
+      const { name } = gl.getActiveAttrib(program, i);
+      this.attribs[name] = gl.getAttribLocation(program, name);
     }
-  }
-
-  // In order to pass a value into a shader as an attribute or uniform, you need to know its location.
-  // That's what these two functions do. You give them the name of an attribute or uniform,
-  // and they tell you where the attribute or uniform is located so you can specify its value.
-  attrib(attribName) {
-    return this._attribLocations.get(attribName);
-  }
-
-  uniform(uniformName) {
-    return this._uniformLocations.get(uniformName);
   }
 }
 
