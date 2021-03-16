@@ -37,6 +37,7 @@ class ShaderManager {
     this.renderer = renderer;
     this.gl = renderer.gl;
 
+    // We compile shaders on-demand. Create one shader cache per draw mode.
     this._shaderCache = {};
     for (const drawMode of Object.keys(ShaderManager.DrawModes)) {
       this._shaderCache[drawMode] = new Map();
@@ -60,6 +61,8 @@ class ShaderManager {
 
   getShader(drawMode, effectBitmask = 0) {
     const gl = this.gl;
+    // Each combination of enabled effects is compiled to a different shader, with only the needed effect code.
+    // Check if we've already compiled the shader with this set of enabled effects.
     const shaderMap = this._shaderCache[drawMode];
     if (shaderMap.has(effectBitmask)) {
       return shaderMap.get(effectBitmask);
@@ -118,12 +121,15 @@ class ShaderManager {
 }
 
 ShaderManager.DrawModes = {
+  // Used for drawing sprites normally
   DEFAULT: "DEFAULT",
-  PEN_LINE: "PEN_LINE",
+  // Used for "touching" tests. Discards transparent pixels.
   SILHOUETTE: "SILHOUETTE",
-  COLOR_MASK: "COLOR_MASK"
+  // Used for "color is touching color" tests. Only renders sprite colors which are close to the color passed in, and
+  // discards all pixels of a different color.
+  COLOR_MASK: "COLOR_MASK",
+  // Used for drawing pen lines.
+  PEN_LINE: "PEN_LINE"
 };
-
-// TODO: effects.
 
 export default ShaderManager;
