@@ -541,7 +541,7 @@ export default class Renderer {
       cy
     );
 
-    if (collisionBox.width === 0 || collisionBox.height === 0) return;
+    if (collisionBox.width === 0 || collisionBox.height === 0) return false;
 
     this._setFramebuffer(this._collisionBuffer);
     // Enable stencil testing then stencil in this sprite, which masks all further drawing to this sprite's area.
