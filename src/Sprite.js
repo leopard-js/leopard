@@ -614,20 +614,20 @@ export class Sprite extends SpriteBase {
     let dy = -Math.sin(rad);
     switch (nearestEdge) {
       case Sprite.Edge.LEFT:
-      dx = Math.max(0.2, Math.abs(dx));
-      break;
+        dx = Math.max(0.2, Math.abs(dx));
+        break;
       case Sprite.Edge.RIGHT:
-      dx = -Math.max(0.2, Math.abs(dx));
-      break;
+        dx = -Math.max(0.2, Math.abs(dx));
+        break;
       case Sprite.Edge.TOP:
-      dy = Math.max(0.2, Math.abs(dy));
-      break;
+        dy = Math.max(0.2, Math.abs(dy));
+        break;
       case Sprite.Edge.BOTTOM:
-      dy = -Math.max(0.2, Math.abs(dy));
-      break;
+        dy = -Math.max(0.2, Math.abs(dy));
+        break;
     }
     this.direction = this.degToScratch(this.radToDeg(Math.atan2(dy, dx)));
-    const {x, y} = this.keepInFence(this.x, this.y);
+    const { x, y } = this.keepInFence(this.x, this.y);
     this.goto(x, y);
   }
 
@@ -635,12 +635,13 @@ export class Sprite extends SpriteBase {
     // https://github.com/LLK/scratch-vm/blob/develop/src/sprites/rendered-target.js#L949
     const fence = this.stage.fence;
     const bounds = this._project.renderer.getBoundingBox(this);
-    bounds.left += (newX - this.x);
-    bounds.right += (newX - this.x);
-    bounds.top += (newY - this.y);
-    bounds.bottom += (newY - this.y);
+    bounds.left += newX - this.x;
+    bounds.right += newX - this.x;
+    bounds.top += newY - this.y;
+    bounds.bottom += newY - this.y;
 
-    let dx = 0, dy = 0;
+    let dx = 0,
+      dy = 0;
     if (bounds.left < fence.left) {
       dx += fence.left - bounds.left;
     }
@@ -653,10 +654,10 @@ export class Sprite extends SpriteBase {
     if (bounds.bottom < fence.bottom) {
       dy += fence.bottom - bounds.bottom;
     }
-    return ({
+    return {
       x: newX + dx,
       y: newY + dy
-    });
+    };
   }
 
   get penDown() {
@@ -759,35 +760,35 @@ export class Sprite extends SpriteBase {
   }
 
   nearestEdge() {
-      const bounds = this._project.renderer.getBoundingBox(this);
-      const {width: stageWidth, height: stageHeight} = this.stage;
-      const distLeft = Math.max(0, (stageWidth / 2) + bounds.left);
-      const distTop = Math.max(0, (stageHeight / 2) - bounds.top);
-      const distRight = Math.max(0, (stageWidth / 2) - bounds.right);
-      const distBottom = Math.max(0, (stageHeight / 2) + bounds.bottom);
-      // Find the nearest edge.
-      let nearestEdge = '';
-      let minDist = Infinity;
-      if (distLeft < minDist) {
-        minDist = distLeft;
-        nearestEdge = Sprite.Edge.LEFT;
-      }
-      if (distTop < minDist) {
-        minDist = distTop;
-        nearestEdge = Sprite.Edge.TOP;
-      }
-      if (distRight < minDist) {
-        minDist = distRight;
-        nearestEdge = Sprite.Edge.RIGHT;
-      }
-      if (distBottom < minDist) {
-        minDist = distBottom;
-        nearestEdge = Sprite.Edge.BOTTOM;
-      }
-      if (minDist > 0) {
-        nearestEdge = null;
-      }
-      return nearestEdge;
+    const bounds = this._project.renderer.getBoundingBox(this);
+    const { width: stageWidth, height: stageHeight } = this.stage;
+    const distLeft = Math.max(0, stageWidth / 2 + bounds.left);
+    const distTop = Math.max(0, stageHeight / 2 - bounds.top);
+    const distRight = Math.max(0, stageWidth / 2 - bounds.right);
+    const distBottom = Math.max(0, stageHeight / 2 + bounds.bottom);
+    // Find the nearest edge.
+    let nearestEdge = "";
+    let minDist = Infinity;
+    if (distLeft < minDist) {
+      minDist = distLeft;
+      nearestEdge = Sprite.Edge.LEFT;
+    }
+    if (distTop < minDist) {
+      minDist = distTop;
+      nearestEdge = Sprite.Edge.TOP;
+    }
+    if (distRight < minDist) {
+      minDist = distRight;
+      nearestEdge = Sprite.Edge.RIGHT;
+    }
+    if (distBottom < minDist) {
+      minDist = distBottom;
+      nearestEdge = Sprite.Edge.BOTTOM;
+    }
+    if (minDist > 0) {
+      nearestEdge = null;
+    }
+    return nearestEdge;
   }
 
   say(text) {
