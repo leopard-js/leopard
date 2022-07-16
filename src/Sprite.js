@@ -609,9 +609,9 @@ export class Sprite extends SpriteBase {
   ifOnEdgeBounce() {
     const nearestEdge = this.nearestEdge();
     if (!nearestEdge) return;
-    const rad = this.degToRad(this.scratchToDeg(this.direction));
+    const rad = this.scratchToRad(this.direction);
     let dx = Math.cos(rad);
-    let dy = -Math.sin(rad);
+    let dy = Math.sin(rad);
     switch (nearestEdge) {
       case Sprite.Edge.LEFT:
         dx = Math.max(0.2, Math.abs(dx));
@@ -620,13 +620,13 @@ export class Sprite extends SpriteBase {
         dx = -Math.max(0.2, Math.abs(dx));
         break;
       case Sprite.Edge.TOP:
-        dy = Math.max(0.2, Math.abs(dy));
-        break;
-      case Sprite.Edge.BOTTOM:
         dy = -Math.max(0.2, Math.abs(dy));
         break;
+      case Sprite.Edge.BOTTOM:
+        dy = Math.max(0.2, Math.abs(dy));
+        break;
     }
-    this.direction = this.degToScratch(this.radToDeg(Math.atan2(dy, dx)));
+    this.direction = this.radToScratch(Math.atan2(dy, dx));
     const { x, y } = this.keepInFence(this.x, this.y);
     this.goto(x, y);
   }
