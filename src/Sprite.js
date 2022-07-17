@@ -346,7 +346,7 @@ export class Sprite extends SpriteBase {
 
     this._penDown = penDown || false;
     this.penSize = penSize || 1;
-    this._penColor = penColor || Color.rgb(0, 0, 0);
+    this._penColor = penColor || Color.rgb(0, 0, 255);
 
     this._speechBubble = {
       text: "",
