@@ -41,6 +41,15 @@ export default class Rectangle {
     return result;
   }
 
+  // Initialize from another rectangle.
+  static copy(src, dst) {
+    dst.left = src.left;
+    dst.right = src.right;
+    dst.bottom = src.bottom;
+    dst.top = src.top;
+    return dst;
+  }
+
   // Push this rectangle out to integer bounds.
   // This takes a conservative approach and will always expand the rectangle outwards.
   snapToInt() {
