@@ -5,7 +5,7 @@ import SpeechBubbleSkin from "./renderer/SpeechBubbleSkin.js";
 import VectorSkin from "./renderer/VectorSkin.js";
 import Rectangle from "./renderer/Rectangle.js";
 import ShaderManager from "./renderer/ShaderManager.js";
-import { effectBitmasks } from "./renderer/effectInfo.js";
+import { effectNames, effectBitmasks } from "./renderer/effectInfo.js";
 
 import Costume from "./Costume.js";
 import { Sprite, Stage } from "./Sprite.js";
@@ -245,14 +245,12 @@ export default class Renderer {
       );
       Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
 
-      this._setSkinUniforms(
+      this._renderSkin(
         this._penSkin,
         options.drawMode,
         penMatrix,
-        1,
-        null
+        1 /* spriteScale */
       );
-      this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
 
     // Sprites + clones
@@ -339,36 +337,6 @@ export default class Renderer {
     return stage;
   }
 
-  _setSkinUniforms(skin, drawMode, matrix, scale, effects, effectMask) {
-    const gl = this.gl;
-
-    const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
-    if (!skinTexture) return;
-
-    let effectBitmask = 0;
-    if (effects) effectBitmask = effects._bitmask;
-    if (typeof effectMask === "number") effectBitmask &= effectMask;
-    const shader = this._shaderManager.getShader(drawMode, effectBitmask);
-    this._setShader(shader);
-    gl.uniformMatrix3fv(shader.uniforms.u_transform, false, matrix);
-
-    if (effectBitmask !== 0) {
-      for (const effect of Object.keys(effects._effectValues)) {
-        const effectVal = effects._effectValues[effect];
-        if (effectVal !== 0)
-          gl.uniform1f(shader.uniforms[`u_${effect}`], effectVal);
-      }
-
-      // Pixelate effect needs the skin size
-      if (effects._effectValues.pixelate !== 0)
-        gl.uniform2f(shader.uniforms.u_skinSize, skin.width, skin.height);
-    }
-
-    gl.bindTexture(gl.TEXTURE_2D, skinTexture);
-    // All textures are bound to texture unit 0, so that's where the texture sampler should point
-    gl.uniform1i(shader.uniforms.u_texture, 0);
-  }
-
   // Calculate the transform matrix for a sprite.
   // TODO: store the transform matrix in the sprite itself. That adds some complexity though,
   // so it's better off in another PR.
@@ -435,25 +403,57 @@ export default class Renderer {
     return m;
   }
 
+  _renderSkin(skin, drawMode, matrix, scale, effects, effectMask, colorMask) {
+    const gl = this.gl;
+
+    const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
+    // Skip rendering the skin if it has no texture.
+    if (!skinTexture) return;
+
+    let effectBitmask = effects ? effects._bitmask : 0;
+    if (typeof effectMask === "number") effectBitmask &= effectMask;
+    const shader = this._shaderManager.getShader(drawMode, effectBitmask);
+    this._setShader(shader);
+    gl.uniformMatrix3fv(shader.uniforms.u_transform, false, matrix);
+
+    if (effectBitmask !== 0) {
+      for (const effect of effectNames) {
+        const effectVal = effects._effectValues[effect];
+        if (effectVal !== 0)
+          gl.uniform1f(shader.uniforms[`u_${effect}`], effectVal);
+      }
+
+      // Pixelate effect needs the skin size
+      if (effects._effectValues.pixelate !== 0)
+        gl.uniform2f(shader.uniforms.u_skinSize, skin.width, skin.height);
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, skinTexture);
+    // All textures are bound to texture unit 0, so that's where the texture sampler should point
+    gl.uniform1i(shader.uniforms.u_texture, 0);
+
+    // Enable color masking mode if set
+    if (Array.isArray(colorMask))
+      this.gl.uniform4fv(this._currentShader.uniforms.u_colorMask, colorMask);
+
+    // Actually draw the skin
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+  }
+
   renderSprite(sprite, options) {
     const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
       ? sprite.size / 100
       : 1;
 
-    this._setSkinUniforms(
+    this._renderSkin(
       this._getSkin(sprite.costume),
       options.drawMode,
       this._calculateSpriteMatrix(sprite),
       spriteScale,
       sprite.effects,
-      options.effectMask
+      options.effectMask,
+      options.colorMask
     );
-    if (Array.isArray(options.colorMask))
-      this.gl.uniform4fv(
-        this._currentShader.uniforms.u_colorMask,
-        options.colorMask
-      );
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
 
     if (
       options.renderSpeechBubbles &&
@@ -462,14 +462,12 @@ export default class Renderer {
     ) {
       const speechBubbleSkin = this._getSkin(sprite._speechBubble);
 
-      this._setSkinUniforms(
+      this.renderSkin(
         speechBubbleSkin,
         options.drawMode,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
-        1,
-        null
+        1 /* spriteScale */
       );
-      this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
     }
   }
 
