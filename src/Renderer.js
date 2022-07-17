@@ -259,7 +259,7 @@ export default class Renderer {
         this._penSkin,
         options.drawMode,
         penMatrix,
-        1 /* spriteScale */
+        1 /* scale */
       );
     }
 
