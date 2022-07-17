@@ -1,10 +1,13 @@
 import Matrix from "./renderer/Matrix.js";
+import BitmapSkin from "./renderer/BitmapSkin.js";
 import PenSkin from "./renderer/PenSkin.js";
+import SpeechBubbleSkin from "./renderer/SpeechBubbleSkin.js";
+import VectorSkin from "./renderer/VectorSkin.js";
 import Rectangle from "./renderer/Rectangle.js";
 import ShaderManager from "./renderer/ShaderManager.js";
-import SkinCache from "./renderer/SkinCache.js";
 import { effectBitmasks } from "./renderer/effectInfo.js";
 
+import Costume from "./Costume.js";
 import { Sprite, Stage } from "./Sprite.js";
 
 export default class Renderer {
@@ -22,7 +25,7 @@ export default class Renderer {
     }
 
     this._shaderManager = new ShaderManager(this);
-    this._skinCache = new SkinCache(this);
+    this._skins = new WeakMap();
 
     this._currentShader = null;
     this._currentFramebuffer = null;
@@ -61,6 +64,29 @@ export default class Renderer {
       gl.NEAREST,
       true // stencil
     );
+  }
+
+  // Retrieve a given object (e.g. costume or speech bubble)'s skin. If it doesn't exist, make one.
+  _getSkin(obj) {
+    if (this._skins.has(obj)) {
+      const skin = this._skins.get(obj);
+      return skin;
+    } else {
+      let skin;
+
+      if (obj instanceof Costume) {
+        if (obj.isBitmap) {
+          skin = new BitmapSkin(this, obj.img);
+        } else {
+          skin = new VectorSkin(this, obj.img);
+        }
+      } else {
+        // If it's not a costume, assume it's a speech bubble.
+        skin = new SpeechBubbleSkin(this, obj);
+      }
+      this._skins.set(obj, skin);
+      return skin;
+    }
   }
 
   // Create a framebuffer info object, which contains the following:
@@ -291,10 +317,7 @@ export default class Renderer {
     gl.clearColor(1, 1, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // TODO: find a way to not destroy the skins of hidden sprites
-    this._skinCache.beginTrace();
     this._renderLayers();
-    this._skinCache.endTrace();
   }
 
   createStage(w, h) {
@@ -418,7 +441,7 @@ export default class Renderer {
       : 1;
 
     this._setSkinUniforms(
-      this._skinCache.getSkin(sprite.costume),
+      this._getSkin(sprite.costume),
       options.drawMode,
       this._calculateSpriteMatrix(sprite),
       spriteScale,
@@ -437,7 +460,7 @@ export default class Renderer {
       sprite._speechBubble &&
       sprite._speechBubble.text !== ""
     ) {
-      const speechBubbleSkin = this._skinCache.getSkin(sprite._speechBubble);
+      const speechBubbleSkin = this._getSkin(sprite._speechBubble);
 
       this._setSkinUniforms(
         speechBubbleSkin,
