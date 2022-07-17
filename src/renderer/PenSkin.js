@@ -79,10 +79,14 @@ export default class PenSkin extends Skin {
     const lineDiffX = pt2.x - pt1.x;
     const lineDiffY = pt2.y - pt1.y;
 
+    // Offset pen lines of size 1 and 3 so they lie on integer coords.
+    // https://github.com/LLK/scratch-render/blob/791b2750cef140e714b002fd275b5f8434e6df9b/src/PenSkin.js#L167-L170
+    const offset = size === 1 || size === 3 ? 0.5 : 0;
+
     gl.uniform4f(
       shader.uniforms.u_penPoints,
-      pt1.x,
-      pt1.y,
+      pt1.x + offset,
+      pt1.y + offset,
       lineDiffX,
       lineDiffY
     );
