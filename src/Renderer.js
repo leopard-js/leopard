@@ -1,4 +1,5 @@
 import Matrix from "./renderer/Matrix.js";
+import Drawable from "./renderer/Drawable.js";
 import BitmapSkin from "./renderer/BitmapSkin.js";
 import PenSkin from "./renderer/PenSkin.js";
 import SpeechBubbleSkin from "./renderer/SpeechBubbleSkin.js";
@@ -8,7 +9,6 @@ import ShaderManager from "./renderer/ShaderManager.js";
 import { effectNames, effectBitmasks } from "./renderer/effectInfo.js";
 
 import Costume from "./Costume.js";
-import { Sprite, Stage } from "./Sprite.js";
 
 export default class Renderer {
   constructor(project, renderTarget) {
@@ -25,6 +25,7 @@ export default class Renderer {
     }
 
     this._shaderManager = new ShaderManager(this);
+    this._drawables = new WeakMap();
     this._skins = new WeakMap();
 
     this._currentShader = null;
@@ -69,24 +70,33 @@ export default class Renderer {
   // Retrieve a given object (e.g. costume or speech bubble)'s skin. If it doesn't exist, make one.
   _getSkin(obj) {
     if (this._skins.has(obj)) {
-      const skin = this._skins.get(obj);
-      return skin;
-    } else {
-      let skin;
-
-      if (obj instanceof Costume) {
-        if (obj.isBitmap) {
-          skin = new BitmapSkin(this, obj.img);
-        } else {
-          skin = new VectorSkin(this, obj.img);
-        }
-      } else {
-        // If it's not a costume, assume it's a speech bubble.
-        skin = new SpeechBubbleSkin(this, obj);
-      }
-      this._skins.set(obj, skin);
-      return skin;
+      return this._skins.get(obj);
     }
+
+    let skin;
+
+    if (obj instanceof Costume) {
+      if (obj.isBitmap) {
+        skin = new BitmapSkin(this, obj.img);
+      } else {
+        skin = new VectorSkin(this, obj.img);
+      }
+    } else {
+      // If it's not a costume, assume it's a speech bubble.
+      skin = new SpeechBubbleSkin(this, obj);
+    }
+    this._skins.set(obj, skin);
+    return skin;
+  }
+
+  // Retrieve the renderer-specific data object for a given sprite or clone. If it doesn't exist, make one.
+  _getDrawable(sprite) {
+    if (this._drawables.has(sprite)) {
+      return this._drawables.get(sprite);
+    }
+    const drawable = new Drawable(this, sprite);
+    this._drawables.set(sprite, drawable);
+    return drawable;
   }
 
   // Create a framebuffer info object, which contains the following:
@@ -337,48 +347,6 @@ export default class Renderer {
     return stage;
   }
 
-  // Calculate the transform matrix for a sprite.
-  // TODO: store the transform matrix in the sprite itself. That adds some complexity though,
-  // so it's better off in another PR.
-  _calculateSpriteMatrix(spr) {
-    // These transforms are actually in reverse order because lol matrices
-    const m = Matrix.create();
-    if (!(spr instanceof Stage)) {
-      Matrix.translate(m, m, spr.x, spr.y);
-      switch (spr.rotationStyle) {
-        case Sprite.RotationStyle.ALL_AROUND: {
-          Matrix.rotate(m, m, spr.scratchToRad(spr.direction));
-          break;
-        }
-        case Sprite.RotationStyle.LEFT_RIGHT: {
-          if (spr.direction < 0) Matrix.scale(m, m, -1, 1);
-          break;
-        }
-      }
-
-      const spriteScale = spr.size / 100;
-      Matrix.scale(m, m, spriteScale, spriteScale);
-    }
-
-    const scalingFactor = 1 / spr.costume.resolution;
-    // Rotation centers are in non-Scratch space (positive y-values = down),
-    // but these transforms are in Scratch space (negative y-values = down).
-    Matrix.translate(
-      m,
-      m,
-      -spr.costume.center.x * scalingFactor,
-      (spr.costume.center.y - spr.costume.height) * scalingFactor
-    );
-    Matrix.scale(
-      m,
-      m,
-      spr.costume.width * scalingFactor,
-      spr.costume.height * scalingFactor
-    );
-
-    return m;
-  }
-
   // Calculate the transform matrix for a speech bubble attached to a sprite.
   _calculateSpeechBubbleMatrix(spr, speechBubbleSkin) {
     const sprBounds = this.getBoundingBox(spr);
@@ -448,7 +416,7 @@ export default class Renderer {
     this._renderSkin(
       this._getSkin(sprite.costume),
       options.drawMode,
-      this._calculateSpriteMatrix(sprite),
+      this._getDrawable(sprite).getMatrix(),
       spriteScale,
       sprite.effects,
       options.effectMask,
@@ -472,7 +440,7 @@ export default class Renderer {
   }
 
   getBoundingBox(sprite) {
-    return Rectangle.fromMatrix(this._calculateSpriteMatrix(sprite));
+    return Rectangle.fromMatrix(this._getDrawable(sprite).getMatrix());
   }
 
   // Mask drawing in to only areas where this sprite is opaque.
