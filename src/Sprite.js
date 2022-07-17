@@ -527,6 +527,17 @@ export class Sprite extends SpriteBase {
             },
             fast
           );
+        case "edge": {
+          const bounds = this._project.renderer.getTightBoundingBox(this);
+          const stageWidth = this.stage.width;
+          const stageHeight = this.stage.height;
+          return (
+            bounds.left < -stageWidth / 2 ||
+            bounds.right > stageWidth / 2 ||
+            bounds.top > stageHeight / 2 ||
+            bounds.bottom < -stageHeight / 2
+          );
+        }
         default:
           console.error(
             `Cannot find target "${target}" in "touching". Did you mean to pass a sprite class instead?`

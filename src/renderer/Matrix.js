@@ -94,4 +94,13 @@ export default class Matrix {
     dst[8] = src[8];
     return dst;
   }
+
+  // Transform a 2D point by the given matrix
+  static transformPoint(m, dst, src) {
+    const x = src[0];
+    const y = src[1];
+    dst[0] = m[0] * x + m[3] * y + m[6];
+    dst[1] = m[1] * x + m[4] * y + m[7];
+    return dst;
+  }
 }
