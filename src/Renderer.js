@@ -10,6 +10,10 @@ import { effectNames, effectBitmasks } from "./renderer/effectInfo.js";
 
 import Costume from "./Costume.js";
 
+// Rectangle used for checking collision bounds.
+// Rather than create a new one each time, we can just reuse this one.
+const __collisionBox = new Rectangle();
+
 export default class Renderer {
   constructor(project, renderTarget) {
     const w = project.stage.width;
@@ -503,7 +507,10 @@ export default class Renderer {
       }
     }
 
-    const sprBox = this.getBoundingBox(spr).snapToInt();
+    const sprBox = Rectangle.copy(
+      this.getBoundingBox(spr),
+      __collisionBox
+    ).snapToInt();
 
     // This is an "impossible rectangle"-- its left bound is infinitely far to the right,
     // its right bound is infinitely to the left, and so on. Its size is effectively -Infinity.
@@ -515,12 +522,9 @@ export default class Renderer {
       -Infinity
     );
     for (const target of targets) {
-      Rectangle.union(
-        targetBox,
-        this.getBoundingBox(target).snapToInt(),
-        targetBox
-      );
+      Rectangle.union(targetBox, this.getBoundingBox(target), targetBox);
     }
+    targetBox.snapToInt();
 
     if (!sprBox.intersects(targetBox)) return false;
     if (fast) return true;
@@ -573,7 +577,10 @@ export default class Renderer {
   }
 
   checkColorCollision(spr, targetsColor, sprColor) {
-    const sprBox = this.getBoundingBox(spr).snapToInt();
+    const sprBox = Rectangle.copy(
+      this.getBoundingBox(spr),
+      __collisionBox
+    ).snapToInt();
 
     const cx = this._collisionBuffer.width / 2;
     const cy = this._collisionBuffer.height / 2;
