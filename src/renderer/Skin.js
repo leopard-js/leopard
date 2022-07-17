@@ -10,6 +10,12 @@ export default class Skin {
     return null;
   }
 
+  // Get the skin image's ImageData at a given (screen-space) scale.
+  // eslint-disable-next-line no-unused-vars
+  getImageData(scale) {
+    throw new Error("getImageData not implemented for this skin type");
+  }
+
   // Helper function to create a texture from an image and handle all the boilerplate.
   _makeTexture(image, filtering) {
     const gl = this.gl;

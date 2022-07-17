@@ -439,6 +439,10 @@ export default class Renderer {
     }
   }
 
+  getTightBoundingBox(sprite) {
+    return this._getDrawable(sprite).getTightBoundingBox();
+  }
+
   getBoundingBox(sprite) {
     return Rectangle.fromMatrix(this._getDrawable(sprite).getMatrix());
   }
