@@ -634,7 +634,7 @@ export class Sprite extends SpriteBase {
   keepInFence(newX, newY) {
     // https://github.com/LLK/scratch-vm/blob/develop/src/sprites/rendered-target.js#L949
     const fence = this.stage.fence;
-    const bounds = this._project.renderer.getBoundingBox(this);
+    const bounds = this._project.renderer.getTightBoundingBox(this);
     bounds.left += newX - this.x;
     bounds.right += newX - this.x;
     bounds.top += newY - this.y;
