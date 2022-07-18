@@ -29,7 +29,7 @@ class SpriteTransformDiff {
     this._lastY = this._sprite.y;
     this._lastRotation = this._sprite.direction;
     this._lastRotationStyle = this._sprite.rotationStyle;
-    this._lastScale = this._sprite.scale;
+    this._lastSize = this._sprite.size;
     this._lastCostume = this._sprite.costume;
     this._lastCostumeLoaded = this._sprite.costume.img.complete;
     this._unset = false;
@@ -41,7 +41,7 @@ class SpriteTransformDiff {
       this._lastY !== this._sprite.y ||
       this._lastRotation !== this._sprite.direction ||
       this._lastRotationStyle !== this._sprite.rotationStyle ||
-      this._lastScale !== this._sprite.scale ||
+      this._lastSize !== this._sprite.size ||
       this._lastCostume !== this._sprite.costume ||
       this._lastCostumeLoaded !== this._sprite.costume.img.complete ||
       this._unset
