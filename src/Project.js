@@ -1,7 +1,6 @@
 import Trigger from "./Trigger.js";
 import Renderer from "./Renderer.js";
 import Input from "./Input.js";
-import { Stage } from "./Sprite.js";
 
 export default class Project {
   constructor(stage, sprites = {}, { frameRate = 30 } = {}) {
@@ -41,37 +40,16 @@ export default class Project {
   attach(renderTarget) {
     this.renderer.setRenderTarget(renderTarget);
     this.renderer.stage.addEventListener("click", () => {
-      const wasClicked = sprite => {
-        if (sprite instanceof Stage) {
-          return true;
-        }
+      const clickedSprite = this.renderer.pick(this.spritesAndStage, {
+        x: this.input.mouse.x,
+        y: this.input.mouse.y
+      });
+      if (!clickedSprite) return;
 
-        return this.renderer.checkPointCollision(
-          sprite,
-          {
-            x: this.input.mouse.x,
-            y: this.input.mouse.y
-          },
-          false
-        );
-      };
-
-      let matchingTriggers = [];
-      for (let i = 0; i < this.spritesAndStage.length; i++) {
-        const sprite = this.spritesAndStage[i];
-        const spriteClickedTriggers = sprite.triggers.filter(tr =>
-          tr.matches(Trigger.CLICKED, {}, sprite)
-        );
-        if (spriteClickedTriggers.length > 0) {
-          if (wasClicked(sprite)) {
-            matchingTriggers = [
-              ...matchingTriggers,
-              ...spriteClickedTriggers.map(trigger => ({
-                trigger,
-                target: sprite
-              }))
-            ];
-          }
+      const matchingTriggers = [];
+      for (const trigger of clickedSprite.triggers) {
+        if (trigger.matches(Trigger.CLICKED, {}, clickedSprite)) {
+          matchingTriggers.push({ trigger, target: clickedSprite });
         }
       }
 

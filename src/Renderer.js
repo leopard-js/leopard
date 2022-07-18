@@ -14,6 +14,14 @@ import Costume from "./Costume.js";
 // Rather than create a new one each time, we can just reuse this one.
 const __collisionBox = new Rectangle();
 
+const idToColor = id => [
+  (((id + 1) >> 16) & 0xff) / 255,
+  (((id + 1) >> 8) & 0xff) / 255,
+  ((id + 1) & 0xff) / 255
+];
+
+const colorToId = ([r, g, b]) => ((r << 16) | (g << 8) | b) - 1;
+
 export default class Renderer {
   constructor(project, renderTarget) {
     const w = project.stage.width;
@@ -224,7 +232,6 @@ export default class Renderer {
   // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
   _renderLayers(layers, options = {}) {
     options = Object.assign(
-      {},
       {
         drawMode: ShaderManager.DrawModes.DEFAULT,
         renderSpeechBubbles: true
@@ -375,7 +382,16 @@ export default class Renderer {
     return m;
   }
 
-  _renderSkin(skin, drawMode, matrix, scale, effects, effectMask, colorMask) {
+  _renderSkin(
+    skin,
+    drawMode,
+    matrix,
+    scale,
+    effects,
+    effectMask,
+    colorMask,
+    spriteId
+  ) {
     const gl = this.gl;
 
     const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
@@ -407,6 +423,13 @@ export default class Renderer {
     // Enable color masking mode if set
     if (Array.isArray(colorMask))
       this.gl.uniform4fv(this._currentShader.uniforms.u_colorMask, colorMask);
+
+    if (drawMode === ShaderManager.DrawModes.SPRITE_ID) {
+      this.gl.uniform3fv(
+        this._currentShader.uniforms.u_spriteId,
+        idToColor(spriteId)
+      );
+    }
 
     // Actually draw the skin
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
@@ -631,6 +654,49 @@ export default class Renderer {
     }
 
     return false;
+  }
+
+  // Pick the topmost sprite at the given point (if one exists).
+  pick(sprites, point) {
+    this._setFramebuffer(this._collisionBuffer);
+    const gl = this.gl;
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    for (let i = 0; i < sprites.length; i++) {
+      const sprite = sprites[i];
+      this._renderSkin(
+        this._getSkin(sprite.costume),
+        ShaderManager.DrawModes.SPRITE_ID,
+        this._getDrawable(sprite).getMatrix(),
+        1 /* scale */,
+        sprite.effects,
+        null,
+        null,
+        i
+      );
+    }
+
+    this._renderLayers(new Set([sprites]), {
+      effectMask: ~effectBitmasks.ghost
+    });
+
+    const hoveredPixel = new Uint8Array(4);
+    const cx = this._collisionBuffer.width / 2;
+    const cy = this._collisionBuffer.height / 2;
+    gl.readPixels(
+      point.x + cx,
+      point.y + cy,
+      1,
+      1,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      hoveredPixel
+    );
+
+    const index = colorToId(hoveredPixel);
+    if (index === -1) return null;
+    return sprites[index];
   }
 
   checkPointCollision(spr, point, fast) {
