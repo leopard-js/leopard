@@ -40,11 +40,13 @@ export default class Project {
   attach(renderTarget) {
     this.renderer.setRenderTarget(renderTarget);
     this.renderer.stage.addEventListener("click", () => {
-      const clickedSprite = this.renderer.pick(this.spritesAndStage, {
+      let clickedSprite = this.renderer.pick(this.spritesAndClones, {
         x: this.input.mouse.x,
         y: this.input.mouse.y
       });
-      if (!clickedSprite) return;
+      if (!clickedSprite) {
+        clickedSprite = this.stage;
+      }
 
       const matchingTriggers = [];
       for (const trigger of clickedSprite.triggers) {
