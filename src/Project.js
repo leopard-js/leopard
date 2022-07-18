@@ -103,11 +103,11 @@ export default class Project {
     const edgeActivated = this._matchingTriggers(tr => tr.isEdgeActivated);
     const triggersToStart = [];
     for (const triggerWithTarget of edgeActivated) {
-      const { trigger } = triggerWithTarget;
+      const { trigger, target } = triggerWithTarget;
       let predicate;
       switch (trigger.trigger) {
         case Trigger.TIMER_GREATER_THAN:
-          predicate = this.timer > trigger.option("VALUE");
+          predicate = this.timer > trigger.option("VALUE", target);
           break;
         default:
           throw new Error(`Unimplemented trigger ${trigger.trigger}`);
