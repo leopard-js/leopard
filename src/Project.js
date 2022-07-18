@@ -21,6 +21,9 @@ export default class Project {
     });
 
     this.runningTriggers = [];
+    // Used to keep track of what edge-activated trigger predicates evaluted to
+    // on the previous step.
+    this._prevStepTriggerPredicates = new WeakMap();
 
     this.restartTimer();
 
@@ -57,7 +60,7 @@ export default class Project {
       for (let i = 0; i < this.spritesAndStage.length; i++) {
         const sprite = this.spritesAndStage[i];
         const spriteClickedTriggers = sprite.triggers.filter(tr =>
-          tr.matches(Trigger.CLICKED, {})
+          tr.matches(Trigger.CLICKED, {}, sprite)
         );
         if (spriteClickedTriggers.length > 0) {
           if (wasClicked(sprite)) {
@@ -81,7 +84,51 @@ export default class Project {
     this.input.focus();
   }
 
+  // Find triggers which match the given condition
+  _matchingTriggers(triggerMatches) {
+    let matchingTriggers = [];
+    const targets = this.spritesAndStage;
+    for (const target of targets) {
+      const matchingTargetTriggers = target.triggers.filter(tr =>
+        triggerMatches(tr, target)
+      );
+      for (const match of matchingTargetTriggers) {
+        matchingTriggers.push({ trigger: match, target });
+      }
+    }
+    return matchingTriggers;
+  }
+
+  _stepEdgeActivatedTriggers() {
+    const edgeActivated = this._matchingTriggers(tr => tr.isEdgeActivated);
+    const triggersToStart = [];
+    for (const triggerWithTarget of edgeActivated) {
+      const { trigger } = triggerWithTarget;
+      let predicate;
+      switch (trigger.trigger) {
+        case Trigger.TIMER_GREATER_THAN:
+          predicate = this.timer > trigger.option("VALUE");
+          break;
+        default:
+          throw new Error(`Unimplemented trigger ${trigger.trigger}`);
+      }
+
+      // Default to false
+      const prevPredicate = !!this._prevStepTriggerPredicates.get(trigger);
+      this._prevStepTriggerPredicates.set(trigger, predicate);
+
+      // The predicate evaluated to false last time and true this time
+      // Activate the trigger
+      if (!prevPredicate && predicate) {
+        triggersToStart.push(triggerWithTarget);
+      }
+    }
+    this._startTriggers(triggersToStart);
+  }
+
   step() {
+    this._stepEdgeActivatedTriggers();
+
     // Step all triggers
     const alreadyRunningTriggers = this.runningTriggers;
     for (let i = 0; i < alreadyRunningTriggers.length; i++) {
@@ -129,19 +176,9 @@ export default class Project {
       }
     }
 
-    // Find triggers which match conditions
-    let matchingTriggers = [];
-    for (let i = 0; i < this.spritesAndStage.length; i++) {
-      const sprite = this.spritesAndStage[i];
-      const spriteTriggers = sprite.triggers.filter(tr =>
-        tr.matches(trigger, options)
-      );
-
-      matchingTriggers = [
-        ...matchingTriggers,
-        ...spriteTriggers.map(trigger => ({ trigger, target: sprite }))
-      ];
-    }
+    const matchingTriggers = this._matchingTriggers((tr, target) =>
+      tr.matches(trigger, options, target)
+    );
 
     return this._startTriggers(matchingTriggers);
   }
@@ -204,6 +241,11 @@ export default class Project {
     for (const target of this.spritesAndStage) {
       target.stopAllOfMySounds();
     }
+  }
+
+  get timer() {
+    const ms = new Date() - this.timerStart;
+    return ms / 1000;
   }
 
   restartTimer() {

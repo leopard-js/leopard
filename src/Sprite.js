@@ -236,8 +236,7 @@ class SpriteBase {
   }
 
   get timer() {
-    const ms = new Date() - this._project.timerStart;
-    return ms / 1000;
+    return this._project.timer;
   }
 
   restartTimer() {
@@ -396,7 +395,7 @@ export class Sprite extends SpriteBase {
 
     // Trigger CLONE_START:
     const triggers = clone.triggers.filter(tr =>
-      tr.matches(Trigger.CLONE_START)
+      tr.matches(Trigger.CLONE_START, {}, clone)
     );
     this._project._startTriggers(
       triggers.map(trigger => ({ trigger, target: clone }))
