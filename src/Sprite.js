@@ -760,7 +760,7 @@ export class Sprite extends SpriteBase {
   }
 
   nearestEdge() {
-    const bounds = this._project.renderer.getBoundingBox(this);
+    const bounds = this._project.renderer.getTightBoundingBox(this);
     const { width: stageWidth, height: stageHeight } = this.stage;
     const distLeft = Math.max(0, stageWidth / 2 + bounds.left);
     const distTop = Math.max(0, stageHeight / 2 - bounds.top);
