@@ -434,7 +434,7 @@ export default class Renderer {
     ) {
       const speechBubbleSkin = this._getSkin(sprite._speechBubble);
 
-      this.renderSkin(
+      this._renderSkin(
         speechBubbleSkin,
         options.drawMode,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
