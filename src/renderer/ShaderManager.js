@@ -69,15 +69,12 @@ class ShaderManager {
     } else {
       let shaderCode;
       switch (drawMode) {
-        case ShaderManager.DrawModes.DEFAULT:
-        case ShaderManager.DrawModes.SILHOUETTE:
-        case ShaderManager.DrawModes.COLOR_MASK: {
-          shaderCode = SpriteShader;
-          break;
-        }
-
         case ShaderManager.DrawModes.PEN_LINE: {
           shaderCode = PenLineShader;
+          break;
+        }
+        default: {
+          shaderCode = SpriteShader;
           break;
         }
       }
@@ -128,6 +125,9 @@ ShaderManager.DrawModes = {
   // Used for "color is touching color" tests. Only renders sprite colors which are close to the color passed in, and
   // discards all pixels of a different color.
   COLOR_MASK: "COLOR_MASK",
+  // Used for picking the topmost sprite and identifying which one it is.
+  // Assigns a color to each sprite.
+  SPRITE_ID: "SPRITE_ID",
   // Used for drawing pen lines.
   PEN_LINE: "PEN_LINE"
 };

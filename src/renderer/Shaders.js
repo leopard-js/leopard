@@ -65,6 +65,10 @@ uniform vec4 u_colorMask;
 const vec3 COLOR_MASK_TOLERANCE = vec3(3.0 / 255.0);
 #endif
 
+#ifdef DRAW_MODE_SPRITE_ID
+uniform vec3 u_spriteId;
+#endif
+
 #ifdef EFFECT_color
 // Taken from http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 rgb2hsv(vec3 c)
@@ -171,6 +175,10 @@ void main() {
   if (color.a == 0.0) {
     discard;
   }
+  #endif
+
+  #ifdef DRAW_MODE_SPRITE_ID
+  color = color.a > 0.0 ? vec4(u_spriteId, 1.0) : vec4(0.0, 0.0, 0.0, 0.0);
   #endif
 
   gl_FragColor = color;
