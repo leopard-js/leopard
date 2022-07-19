@@ -5,8 +5,7 @@ const IGNORABLE_ERROR = ["NotAllowedError", "NotFoundError"];
 // https://github.com/LLK/scratch-audio/blob/develop/src/Loudness.js
 export default class LoudnessHandler {
   constructor() {
-    this.mic = null;
-    this.hasConnected = null;
+    this.hasConnected = false;
   }
 
   get audioContext() {
@@ -20,9 +19,9 @@ export default class LoudnessHandler {
       .then(stream => {
         this.hasConnected = true;
         this.audioStream = stream;
-        this.mic = this.audioContext.createMediaStreamSource(stream);
+        const mic = this.audioContext.createMediaStreamSource(stream);
         this.analyser = this.audioContext.createAnalyser();
-        this.mic.connect(this.analyser);
+        mic.connect(this.analyser);
         this.micDataArray = new Float32Array(this.analyser.fftSize);
       })
       .catch(e => {
@@ -35,7 +34,7 @@ export default class LoudnessHandler {
   }
 
   get loudness() {
-    if (this.mic && this.audioStream.active) {
+    if (this.hasConnected && this.audioStream.active) {
       this.analyser.getFloatTimeDomainData(this.micDataArray);
       let sum = 0;
       for (let i = 0; i < this.micDataArray.length; i++) {
@@ -55,8 +54,8 @@ export default class LoudnessHandler {
     return -1;
   }
 
-  async getLoudness() {
-    await this.connect();
+  getLoudness() {
+    this.connect();
     return this.loudness;
   }
 }
