@@ -5,7 +5,8 @@ const IGNORABLE_ERROR = ["NotAllowedError", "NotFoundError"];
 // https://github.com/LLK/scratch-audio/blob/develop/src/Loudness.js
 export default class LoudnessHandler {
   constructor() {
-    this.hasConnected = false;
+    // TODO: use a TypeScript enum
+    this.connectionState = "NOT_CONNECTED";
   }
 
   get audioContext() {
@@ -13,7 +14,10 @@ export default class LoudnessHandler {
   }
 
   async connect() {
-    if (this.hasConnected) return;
+    // If we're in the middle of connecting, or failed to connect,
+    // don't attempt to connect again
+    if (this.connectionState !== "NOT_CONNECTED") return;
+    this.connectionState = "CONNECTING";
     return navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then(stream => {
@@ -23,8 +27,10 @@ export default class LoudnessHandler {
         this.analyser = this.audioContext.createAnalyser();
         mic.connect(this.analyser);
         this.micDataArray = new Float32Array(this.analyser.fftSize);
+        this.connectionState = "CONNECTED";
       })
       .catch(e => {
+        this.connectionState = "ERROR";
         if (IGNORABLE_ERROR.includes(e.name)) {
           console.warn("Mic is not available.");
         } else {
@@ -34,7 +40,9 @@ export default class LoudnessHandler {
   }
 
   get loudness() {
-    if (!this.hasConnected || !this.audioStream.active) return -1;
+    if (this.connectionState !== "CONNECTED" || !this.audioStream.active) {
+      return -1;
+    }
 
     this.analyser.getFloatTimeDomainData(this.micDataArray);
     let sum = 0;
