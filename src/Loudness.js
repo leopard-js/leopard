@@ -34,24 +34,27 @@ export default class LoudnessHandler {
   }
 
   get loudness() {
-    if (this.hasConnected && this.audioStream.active) {
-      this.analyser.getFloatTimeDomainData(this.micDataArray);
-      let sum = 0;
-      for (let i = 0; i < this.micDataArray.length; i++) {
-        sum += Math.pow(this.micDataArray[i], 2);
-      }
-      let rms = Math.sqrt(sum / this.micDataArray.length);
-      if (this._lastValue) {
-        rms = Math.max(rms, this._lastValue * 0.6);
-      }
-      this._lastValue = rms;
-      rms *= 1.63;
-      rms = Math.sqrt(rms);
-      rms = Math.round(rms * 100);
-      rms = Math.min(rms, 100);
-      return rms;
+    if (!this.hasConnected || !this.audioStream.active) return -1;
+
+    this.analyser.getFloatTimeDomainData(this.micDataArray);
+    let sum = 0;
+    // compute the RMS of the sound
+    for (let i = 0; i < this.micDataArray.length; i++) {
+      sum += Math.pow(this.micDataArray[i], 2);
     }
-    return -1;
+    let rms = Math.sqrt(sum / this.micDataArray.length);
+    // smoothe the value with the last one, if it is descending
+    if (this._lastValue) {
+      rms = Math.max(rms, this._lastValue * 0.6);
+    }
+    this._lastValue = rms;
+
+    // scale the measurement so it's more sensitive to quieter sounds
+    rms *= 1.63;
+    rms = Math.sqrt(rms);
+    rms = Math.round(rms * 100);
+    rms = Math.min(rms, 100);
+    return rms;
   }
 
   getLoudness() {
