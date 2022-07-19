@@ -315,7 +315,7 @@ class SpriteBase {
   }
 
   get loudness() {
-    return this._project.loudnessHandler.getLoudness();
+    return this._project.loudness;
   }
 }
 
