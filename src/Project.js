@@ -21,6 +21,8 @@ export default class Project {
     });
 
     this.loudnessHandler = new LoudnessHandler();
+    // Only update loudness once per step.
+    this._cachedLoudness = null;
 
     this.runningTriggers = [];
     // Used to keep track of what edge-activated trigger predicates evaluted to
@@ -30,16 +32,6 @@ export default class Project {
     this.restartTimer();
 
     this.answer = null;
-
-    if (
-      this.spritesAndStage.some(spr =>
-        spr.triggers.some(
-          trig => trig.trigger === Trigger.LOUDNESS_GREATER_THAN
-        )
-      )
-    ) {
-      this.loudnessHandler.connect();
-    }
 
     // Run project code at specified framerate
     setInterval(() => {
@@ -103,9 +95,7 @@ export default class Project {
           predicate = this.timer > trigger.option("VALUE", target);
           break;
         case Trigger.LOUDNESS_GREATER_THAN:
-          predicate =
-            this.loudnessHandler.getLoudness() >
-            trigger.option("VALUE", target);
+          predicate = this.loudness > trigger.option("VALUE", target);
           break;
         default:
           throw new Error(`Unimplemented trigger ${trigger.trigger}`);
@@ -125,6 +115,7 @@ export default class Project {
   }
 
   step() {
+    this._cachedLoudness = null;
     this._stepEdgeActivatedTriggers();
 
     // Step all triggers
@@ -252,5 +243,12 @@ export default class Project {
 
   async askAndWait(question) {
     this.answer = await this.renderer.displayAskBox(question);
+  }
+
+  get loudness() {
+    if (this._cachedLoudness === null) {
+      this._cachedLoudness = this.loudnessHandler.getLoudness();
+    }
+    return this._cachedLoudness;
   }
 }
