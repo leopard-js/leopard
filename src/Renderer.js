@@ -14,12 +14,18 @@ import Costume from "./Costume.js";
 // Rather than create a new one each time, we can just reuse this one.
 const __collisionBox = new Rectangle();
 
+// Convert a sprite ID/index number to a 24-bit color. The lowest 8 bits are
+// stored in the blue channel, then green, then red.
+// RGB [0, 0, 0] is reserved for "no sprite here".
+// This allows for up to 2^24 - 2 different sprites to be rendered at once.
 const idToColor = id => [
   (((id + 1) >> 16) & 0xff) / 255,
   (((id + 1) >> 8) & 0xff) / 255,
   ((id + 1) & 0xff) / 255
 ];
 
+// Convert a 24-bit color back into a sprite ID/index number.
+// -1 means "no sprite here".
 const colorToId = ([r, g, b]) => ((r << 16) | (g << 8) | b) - 1;
 
 export default class Renderer {
@@ -390,7 +396,7 @@ export default class Renderer {
     effects,
     effectMask,
     colorMask,
-    spriteId
+    spriteColorId
   ) {
     const gl = this.gl;
 
@@ -424,10 +430,13 @@ export default class Renderer {
     if (Array.isArray(colorMask))
       this.gl.uniform4fv(this._currentShader.uniforms.u_colorMask, colorMask);
 
+    // Used for mapping drawn sprites back to their indices in a list.
+    // By looking at the color of a given pixel, we can tell which sprite is
+    // the topmost one drawn on that pixel.
     if (drawMode === ShaderManager.DrawModes.SPRITE_ID) {
       this.gl.uniform3fv(
         this._currentShader.uniforms.u_spriteId,
-        idToColor(spriteId)
+        idToColor(spriteColorId)
       );
     }
 
