@@ -18,25 +18,24 @@ export default class LoudnessHandler {
     // don't attempt to connect again
     if (this.connectionState !== "NOT_CONNECTED") return;
     this.connectionState = "CONNECTING";
-    return navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then(stream => {
-        this.hasConnected = true;
-        this.audioStream = stream;
-        const mic = this.audioContext.createMediaStreamSource(stream);
-        this.analyser = this.audioContext.createAnalyser();
-        mic.connect(this.analyser);
-        this.micDataArray = new Float32Array(this.analyser.fftSize);
-        this.connectionState = "CONNECTED";
-      })
-      .catch(e => {
-        this.connectionState = "ERROR";
-        if (IGNORABLE_ERROR.includes(e.name)) {
-          console.warn("Mic is not available.");
-        } else {
-          throw e;
-        }
-      });
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.hasConnected = true;
+      this.audioStream = stream;
+      const mic = this.audioContext.createMediaStreamSource(stream);
+      this.analyser = this.audioContext.createAnalyser();
+      mic.connect(this.analyser);
+      this.micDataArray = new Float32Array(this.analyser.fftSize);
+      this.connectionState = "CONNECTED";
+    } catch (e) {
+      this.connectionState = "ERROR";
+      if (IGNORABLE_ERROR.includes(e.name)) {
+        console.warn("Mic is not available.");
+      } else {
+        throw e;
+      }
+    }
   }
 
   get loudness() {
