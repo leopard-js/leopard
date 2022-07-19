@@ -649,7 +649,7 @@ export class Stage extends SpriteBase {
   }
 
   fireBackdropChanged() {
-    this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
+    return this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
       backdrop: this.costume.name
     });
   }
