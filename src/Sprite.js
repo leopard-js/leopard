@@ -314,7 +314,7 @@ class SpriteBase {
     return this._project.answer;
   }
 
-  async loudness() {
+  get loudness() {
     return this._project.loudnessHandler.getLoudness();
   }
 }
