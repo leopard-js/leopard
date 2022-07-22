@@ -21,6 +21,9 @@ export default class LoudnessHandler {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Chrome blocks usage of audio until the user interacts with the page.
+      // By calling `resume` here, we will wait until that happens.
+      await Sound.audioContext.resume();
       this.hasConnected = true;
       this.audioStream = stream;
       const mic = this.audioContext.createMediaStreamSource(stream);

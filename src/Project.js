@@ -2,6 +2,7 @@ import Trigger from "./Trigger.js";
 import Renderer from "./Renderer.js";
 import Input from "./Input.js";
 import LoudnessHandler from "./Loudness.js";
+import Sound from "./Sound.js";
 
 export default class Project {
   constructor(stage, sprites = {}, { frameRate = 30 } = {}) {
@@ -45,6 +46,14 @@ export default class Project {
   attach(renderTarget) {
     this.renderer.setRenderTarget(renderTarget);
     this.renderer.stage.addEventListener("click", () => {
+      // Chrome requires a user gesture on the page before we can start the
+      // audio context.
+      // When we click the stage, that counts as a user gesture, so try
+      // resuming the audio context.
+      if (Sound.audioContext.state === "suspended") {
+        Sound.audioContext.resume();
+      }
+
       let clickedSprite = this.renderer.pick(this.spritesAndClones, {
         x: this.input.mouse.x,
         y: this.input.mouse.y
@@ -65,6 +74,13 @@ export default class Project {
   }
 
   greenFlag() {
+    // Chrome requires a user gesture on the page before we can start the
+    // audio context.
+    // When greenFlag is triggered, it's likely that the cause of it was some
+    // kind of button click, so try resuming the audio context.
+    if (Sound.audioContext.state === "suspended") {
+      Sound.audioContext.resume();
+    }
     this.fireTrigger(Trigger.GREEN_FLAG);
     this.input.focus();
   }
