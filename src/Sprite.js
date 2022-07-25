@@ -300,7 +300,7 @@ class SpriteBase {
 
   *askAndWait(question) {
     if (this._speechBubble) {
-      this.say(null);
+      this.say("");
     }
 
     let done = false;
