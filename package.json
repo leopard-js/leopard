@@ -1,6 +1,6 @@
 {
   "name": "leopard",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Make Scratch-like projects with JavaScript.",
   "private": false,
   "browser": true,
