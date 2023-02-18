@@ -318,6 +318,57 @@ class SpriteBase {
   get loudness() {
     return this._project.loudness;
   }
+
+  toBoolean(value) {
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      if (value === '' || value === '0' || value.toLowerCase() === 'false') {
+        return false;
+      }
+      return true;
+    }
+
+    return Boolean(value);
+  }
+
+  compare(v1, v2) {
+    if (v1 === v2) {
+      return 0;
+    }
+
+    let n1 = Number(v1);
+    let n2 = Number(v2);
+    if (
+      (n1 === Infinity && n2 === Infinity) ||
+      (n1 === -Infinity && n2 === -Infinity)
+    ) {
+      return 0;
+    }
+
+    if (n1 === 0 && (v1 === null || typeof v1 === 'string' && v1.trim().length === 0)) {
+      n1 = NaN;
+    } else if (n2 === 0 && (v2 === null || typeof v2 === 'string' && v2.trim().length === 0)) {
+      n2 = NaN;
+    }
+
+    if (!isNaN(n1) && !isNaN(n2)) {
+      return n1 - n2;
+    }
+
+    const s1 = String(v1).toLowerCase();
+    const s2 = String(v2).toLowerCase();
+
+    if (s1 === s2) {
+      return 0;
+    } else if (s1 < s2) {
+      return -1;
+    } else {
+      return 1;
+    }
+  }
 }
 
 export class Sprite extends SpriteBase {
