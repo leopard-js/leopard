@@ -28,7 +28,7 @@
   "bugs": {
     "url": "https://github.com/PullJosh/leopard/issues"
   },
-  "homepage": "https://leopardjs.now.sh/",
+  "homepage": "https://leopardjs.com/",
   "devDependencies": {
     "eslint": "^8.20.0",
     "eslint-config-prettier": "^8.5.0",
