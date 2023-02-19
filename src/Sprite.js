@@ -96,7 +96,7 @@ class SpriteBase {
   }
 
   set costumeNumber(number) {
-    this._costumeNumber = ((number - 1) % this.costumes.length) + 1;
+    this._costumeNumber = this.wrapClamp(number, 1, this.costumes.length);
     if (this.fireBackdropChanged) this.fireBackdropChanged();
   }
 
@@ -200,6 +200,16 @@ class SpriteBase {
     // the % operator means "remainder", not "modulo", and so negative numbers won't "wrap around".
     // See https://web.archive.org/web/20090717035140if_/javascript.about.com/od/problemsolving/a/modulobug.htm
     return ((((deg + 180) % 360) + 360) % 360) - 180;
+  }
+
+  // Keep a number between two limits, wrapping "extra" into the range.
+  // wrapClamp(7, 1, 5) == 2
+  // wrapClamp(0, 1, 5) == 5
+  // wrapClamp(-11, -10, 6) == 6
+  // Borrowed from scratch-vm (src/util/math-util.js)
+  wrapClamp(n, min, max) {
+    const range = (max - min) + 1;
+    return n - (Math.floor((n - min) / range) * range);
   }
 
   // Given a generator function, return a version of it that runs in "warp mode" (no yields).
