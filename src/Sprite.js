@@ -319,6 +319,21 @@ class SpriteBase {
     return this._project.loudness;
   }
 
+  toNumber(value) {
+    if (typeof value === 'number') {
+      if (isNaN(value)) {
+        return 0;
+      }
+      return value;
+    }
+
+    const n = Number(value);
+    if (Number.isNaN(n)) {
+      return 0;
+    }
+    return n;
+  }
+
   toBoolean(value) {
     if (typeof value === 'boolean') {
       return value;
@@ -332,6 +347,22 @@ class SpriteBase {
     }
 
     return Boolean(value);
+  }
+
+  toString(value) {
+    return String(value);
+  }
+
+  stringIncludes(string, substring) {
+    return string.toLowerCase().includes(substring.toLowerCase());
+  }
+
+  arrayIncludes(array, value) {
+    return array.some(item => this.compare(item, value) === 0);
+  }
+
+  indexInArray(array, value) {
+    return array.findIndex(item => this.compare(item, value) === 0);
   }
 
   compare(v1, v2) {
