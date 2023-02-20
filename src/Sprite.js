@@ -361,6 +361,20 @@ class SpriteBase {
     return array.some(item => this.compare(item, value) === 0);
   }
 
+  letterOf(string, index) {
+    if (index < 0 || index >= string.length) {
+      return "";
+    }
+    return string[index];
+  }
+
+  itemOf(array, index) {
+    if (index < 0 || index >= array.length) {
+      return "";
+    }
+    return array[index];
+  }
+
   indexInArray(array, value) {
     return array.findIndex(item => this.compare(item, value) === 0);
   }
