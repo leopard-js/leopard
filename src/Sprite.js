@@ -194,6 +194,21 @@ class SpriteBase {
     return this.degToRad(this.scratchToDeg(scratchDir));
   }
 
+  // From scratch-vm's math-util.
+  scratchTan(angle) {
+    angle = angle % 360;
+    switch (angle) {
+      case -270:
+      case 90:
+        return Infinity;
+      case -90:
+      case 270:
+        return -Infinity;
+      default:
+        return parseFloat(Math.tan((Math.PI * angle) / 180).toFixed(10));
+    }
+  }
+
   // Wrap rotation from -180 to 180.
   normalizeDeg(deg) {
     // This is a pretty big math expression, but it's necessary because in JavaScript,
