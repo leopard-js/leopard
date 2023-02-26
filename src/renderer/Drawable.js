@@ -31,6 +31,7 @@ class SpriteTransformDiff {
     this._lastRotationStyle = this._sprite.rotationStyle;
     this._lastSize = this._sprite.size;
     this._lastCostume = this._sprite.costume;
+    this._lastCostumeLoaded = this._sprite.costume.img.complete;
     this._unset = false;
   }
 
@@ -42,6 +43,7 @@ class SpriteTransformDiff {
       this._lastRotationStyle !== this._sprite.rotationStyle ||
       this._lastSize !== this._sprite.size ||
       this._lastCostume !== this._sprite.costume ||
+      this._lastCostumeLoaded !== this._sprite.costume.img.complete ||
       this._unset
     );
   }
@@ -302,23 +304,21 @@ export default class Drawable {
       Matrix.scale(m, m, spriteScale, spriteScale);
     }
 
-    if (spr.costume) {
-      const scalingFactor = 1 / spr.costume.resolution;
-      // Rotation centers are in non-Scratch space (positive y-values = down),
-      // but these transforms are in Scratch space (negative y-values = down).
-      Matrix.translate(
-        m,
-        m,
-        -spr.costume.center.x * scalingFactor,
-        (spr.costume.center.y - spr.costume.height) * scalingFactor
-      );
-      Matrix.scale(
-        m,
-        m,
-        spr.costume.width * scalingFactor,
-        spr.costume.height * scalingFactor
-      );
-    }
+    const scalingFactor = 1 / spr.costume.resolution;
+    // Rotation centers are in non-Scratch space (positive y-values = down),
+    // but these transforms are in Scratch space (negative y-values = down).
+    Matrix.translate(
+      m,
+      m,
+      -spr.costume.center.x * scalingFactor,
+      (spr.costume.center.y - spr.costume.height) * scalingFactor
+    );
+    Matrix.scale(
+      m,
+      m,
+      spr.costume.width * scalingFactor,
+      spr.costume.height * scalingFactor
+    );
 
     // Store the values we used to compute the matrix so we only recalculate
     // the matrix when we really need to.

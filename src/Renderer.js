@@ -1,6 +1,5 @@
 import Matrix from "./renderer/Matrix.js";
 import Drawable from "./renderer/Drawable.js";
-import Skin from "./renderer/Skin.js";
 import BitmapSkin from "./renderer/BitmapSkin.js";
 import PenSkin from "./renderer/PenSkin.js";
 import SpeechBubbleSkin from "./renderer/SpeechBubbleSkin.js";
@@ -88,11 +87,6 @@ export default class Renderer {
 
   // Retrieve a given object (e.g. costume or speech bubble)'s skin. If it doesn't exist, make one.
   _getSkin(obj) {
-    if (obj === null || obj === undefined) {
-      // Null skin, no texture.
-      return new Skin(this);
-    }
-
     if (this._skins.has(obj)) {
       return this._skins.get(obj);
     }
