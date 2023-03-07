@@ -9,6 +9,8 @@ export default class Watcher {
     visible = true,
     color = Color.rgb(255, 140, 26),
     step = 1,
+    min = 0,
+    max = 100,
     x = -240,
     y = 180,
     width,
@@ -25,6 +27,8 @@ export default class Watcher {
     this.visible = visible;
     this.color = color;
     this.step = step;
+    this.min = min;
+    this.max = max;
 
     this.x = x;
     this.y = y;
