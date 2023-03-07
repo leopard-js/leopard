@@ -194,6 +194,21 @@ class SpriteBase {
     return this.degToRad(this.scratchToDeg(scratchDir));
   }
 
+  // From scratch-vm's math-util.
+  scratchTan(angle) {
+    angle = angle % 360;
+    switch (angle) {
+      case -270:
+      case 90:
+        return Infinity;
+      case -90:
+      case 270:
+        return -Infinity;
+      default:
+        return parseFloat(Math.tan((Math.PI * angle) / 180).toFixed(10));
+    }
+  }
+
   // Wrap rotation from -180 to 180.
   normalizeDeg(deg) {
     // This is a pretty big math expression, but it's necessary because in JavaScript,
@@ -329,6 +344,21 @@ class SpriteBase {
     return this._project.loudness;
   }
 
+  toNumber(value) {
+    if (typeof value === 'number') {
+      if (isNaN(value)) {
+        return 0;
+      }
+      return value;
+    }
+
+    const n = Number(value);
+    if (Number.isNaN(n)) {
+      return 0;
+    }
+    return n;
+  }
+
   toBoolean(value) {
     if (typeof value === 'boolean') {
       return value;
@@ -342,6 +372,36 @@ class SpriteBase {
     }
 
     return Boolean(value);
+  }
+
+  toString(value) {
+    return String(value);
+  }
+
+  stringIncludes(string, substring) {
+    return string.toLowerCase().includes(substring.toLowerCase());
+  }
+
+  arrayIncludes(array, value) {
+    return array.some(item => this.compare(item, value) === 0);
+  }
+
+  letterOf(string, index) {
+    if (index < 0 || index >= string.length) {
+      return "";
+    }
+    return string[index];
+  }
+
+  itemOf(array, index) {
+    if (index < 0 || index >= array.length) {
+      return "";
+    }
+    return array[index];
+  }
+
+  indexInArray(array, value) {
+    return array.findIndex(item => this.compare(item, value) === 0);
   }
 
   compare(v1, v2) {
