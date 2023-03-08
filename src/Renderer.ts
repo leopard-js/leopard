@@ -71,7 +71,7 @@ export default class Renderer {
     const w = project.stage.width;
     const h = project.stage.height;
     this.project = project;
-    this.stage = this.createStage(w, h);
+    this.stage = Renderer.createStage(w, h);
     const gl = this.stage.getContext("webgl", { antialias: false });
     if (gl === null) throw new Error("Could not initialize WebGL context");
     this.gl = gl;
@@ -395,7 +395,7 @@ export default class Renderer {
     this._renderLayers();
   }
 
-  public createStage(w: number, h: number): HTMLCanvasElement {
+  private static createStage(w: number, h: number): HTMLCanvasElement {
     const stage = document.createElement("canvas");
     stage.width = w;
     stage.height = h;
