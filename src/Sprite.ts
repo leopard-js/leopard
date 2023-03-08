@@ -83,9 +83,11 @@ export class _EffectMap implements Effects {
   }
 }
 
+export type SpeechBubbleStyle = "say" | "think";
+
 export type SpeechBubble = {
   text: string;
-  style: "say" | "think";
+  style: SpeechBubbleStyle;
   timeout: number | null;
 };
 
