@@ -242,7 +242,7 @@ export default class Project {
       .sort((a, b) => a._layerOrder - b._layerOrder);
   }
 
-  public get spritesAndStage(): [...Sprite[], Stage] {
+  public get spritesAndStage(): (Sprite | Stage)[] {
     return [...this.spritesAndClones, this.stage];
   }
 
