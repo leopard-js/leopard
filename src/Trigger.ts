@@ -18,7 +18,7 @@ type TriggerOption =
 type TriggerOptions = Partial<Record<string, TriggerOption>>;
 
 export default class Trigger {
-  public trigger: symbol;
+  public trigger;
   private options: TriggerOptions;
   private _script: GeneratorFunction;
   private _runningScript: Generator | undefined;
@@ -26,17 +26,23 @@ export default class Trigger {
   private stop: () => void;
 
   public constructor(
-    trigger: Trigger["trigger"],
-    options: Trigger["options"] | Trigger["_script"],
-    script?: Trigger["_script"]
+    trigger: symbol,
+    options: TriggerOptions,
+    script?: GeneratorFunction
+  );
+  public constructor(trigger: symbol, script: GeneratorFunction);
+  public constructor(
+    trigger: symbol,
+    optionsOrScript: TriggerOptions | GeneratorFunction,
+    script?: GeneratorFunction
   ) {
     this.trigger = trigger;
 
     if (typeof script === "undefined") {
       this.options = {};
-      this._script = options as Trigger["_script"];
+      this._script = optionsOrScript as GeneratorFunction;
     } else {
-      this.options = options as Trigger["options"];
+      this.options = optionsOrScript as TriggerOptions;
       this._script = script;
     }
 

@@ -3,17 +3,17 @@ import type { Stage } from "./Sprite";
 type Mouse = { x: number; y: number; down: boolean };
 
 export default class Input {
-  private _stage: Stage;
-  private _canvas: HTMLCanvasElement;
-  private _onKeyDown: (key: string) => unknown;
+  private _stage;
+  private _canvas;
+  private _onKeyDown;
 
   public mouse: Mouse;
   public keys: string[];
 
   public constructor(
-    stage: Input["_stage"],
-    canvas: Input["_canvas"],
-    onKeyDown: Input["_onKeyDown"]
+    stage: Stage,
+    canvas: HTMLCanvasElement,
+    onKeyDown: (key: string) => unknown
   ) {
     this._stage = stage;
     this._canvas = canvas;
