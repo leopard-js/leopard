@@ -125,7 +125,7 @@ export default class Renderer {
   }
 
   // Retrieve a given object (e.g. costume or speech bubble)'s skin. If it doesn't exist, make one.
-  public _getSkin(obj: object): Skin {
+  public _getSkin(obj: Costume | SpeechBubble): Skin {
     const existingSkin = this._skins.get(obj);
     if (existingSkin) return existingSkin;
 
@@ -139,7 +139,7 @@ export default class Renderer {
       }
     } else {
       // If it's not a costume, assume it's a speech bubble.
-      skin = new SpeechBubbleSkin(this, obj as SpeechBubble);
+      skin = new SpeechBubbleSkin(this, obj);
     }
     this._skins.set(obj, skin);
     return skin;
