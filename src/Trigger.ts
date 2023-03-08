@@ -80,10 +80,8 @@ export default class Trigger {
   public start(target: Sprite | Stage): Promise<void> {
     this.stop();
 
-    const boundScript = this._script.bind(target);
-
     this.done = false;
-    this._runningScript = boundScript();
+    this._runningScript = this._script.call(target);
 
     return new Promise<void>((resolve) => {
       this.stop = (): void => {
