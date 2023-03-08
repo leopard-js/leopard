@@ -22,6 +22,8 @@ type WatcherOptions = {
   y?: number;
   width?: number;
   height?: number;
+  min?: number;
+  max?: number;
 };
 
 export default class Watcher {
@@ -81,9 +83,6 @@ export default class Watcher {
     this.y = y;
     this.width = width;
     this.height = height;
-    this.min = 0;
-    this.max = 100;
-    this.step = 1;
   }
 
   private initializeDOM(): void {
