@@ -12,17 +12,17 @@ const bubbleStyle = {
 
 // TODO: multiline speech bubbles
 export default class SpeechBubbleSkin extends Skin {
-  _canvas: HTMLCanvasElement;
-  _ctx: CanvasRenderingContext2D;
-  _texture: WebGLTexture;
-  _bubble: SpeechBubble;
-  _flipped: boolean;
-  _rendered: boolean;
-  _renderedScale: number;
-  offsetX: number;
-  offsetY: number;
+  private _canvas: HTMLCanvasElement;
+  private _ctx: CanvasRenderingContext2D;
+  private _texture: WebGLTexture;
+  private _bubble: SpeechBubble;
+  private _flipped: boolean;
+  private _rendered: boolean;
+  private _renderedScale: number;
+  public offsetX: number;
+  public offsetY: number;
 
-  constructor(renderer: Renderer, bubble: SpeechBubble) {
+  public constructor(renderer: Renderer, bubble: SpeechBubble) {
     super(renderer);
 
     this._canvas = document.createElement("canvas");
@@ -42,18 +42,18 @@ export default class SpeechBubbleSkin extends Skin {
   }
 
   // To ensure proper text measurement and drawing, it's necessary to restyle the canvas after resizing it.
-  _restyleCanvas(): void {
+  private _restyleCanvas(): void {
     const ctx = this._ctx;
     ctx.font = "16px sans-serif";
     ctx.textBaseline = "hanging";
   }
 
-  set flipped(flipped: boolean) {
+  public set flipped(flipped: boolean) {
     this._flipped = flipped;
     this._rendered = false;
   }
 
-  _renderBubble(bubble: SpeechBubble, scale: number): void {
+  private _renderBubble(bubble: SpeechBubble, scale: number): void {
     const canvas = this._canvas;
     const ctx = this._ctx;
 
@@ -144,7 +144,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._renderedScale = scale;
   }
 
-  getTexture(scale: number): WebGLTexture {
+  public getTexture(scale: number): WebGLTexture {
     if (!this._rendered || this._renderedScale !== scale) {
       this._renderBubble(this._bubble, scale);
       const gl = this.gl;
@@ -162,7 +162,7 @@ export default class SpeechBubbleSkin extends Skin {
     return this._texture;
   }
 
-  destroy(): void {
+  public destroy(): void {
     this.gl.deleteTexture(this._texture);
   }
 }

@@ -11,20 +11,20 @@ type TriggerWithTarget = {
 };
 
 export default class Project {
-  stage: Stage;
-  sprites: Partial<Record<string, Sprite>>;
-  renderer: Renderer;
-  input: Input;
+  public stage: Stage;
+  public sprites: Partial<Record<string, Sprite>>;
+  public renderer: Renderer;
+  public input: Input;
 
-  loudnessHandler: LoudnessHandler;
-  _cachedLoudness: number | null;
+  private loudnessHandler: LoudnessHandler;
+  private _cachedLoudness: number | null;
 
-  runningTriggers: TriggerWithTarget[];
-  _prevStepTriggerPredicates: WeakMap<TriggerWithTarget, boolean>;
-  answer: string | null;
-  timerStart!: Date;
+  public runningTriggers: TriggerWithTarget[];
+  private _prevStepTriggerPredicates: WeakMap<TriggerWithTarget, boolean>;
+  public answer: string | null;
+  private timerStart!: Date;
 
-  constructor(stage: Stage, sprites = {}, { frameRate = 30 } = {}) {
+  public constructor(stage: Stage, sprites = {}, { frameRate = 30 } = {}) {
     this.stage = stage;
     this.sprites = sprites;
 
@@ -62,7 +62,7 @@ export default class Project {
     this._renderLoop();
   }
 
-  attach(renderTarget: string | HTMLElement): void {
+  public attach(renderTarget: string | HTMLElement): void {
     this.renderer.setRenderTarget(renderTarget);
     this.renderer.stage.addEventListener("click", () => {
       // Chrome requires a user gesture on the page before we can start the
@@ -92,7 +92,7 @@ export default class Project {
     });
   }
 
-  greenFlag(): void {
+  public greenFlag(): void {
     // Chrome requires a user gesture on the page before we can start the
     // audio context.
     // When greenFlag is triggered, it's likely that the cause of it was some
@@ -105,7 +105,7 @@ export default class Project {
   }
 
   // Find triggers which match the given condition
-  _matchingTriggers(
+  private _matchingTriggers(
     triggerMatches: (tr: Trigger, target: Sprite | Stage) => boolean
   ): TriggerWithTarget[] {
     const matchingTriggers = [];
@@ -121,7 +121,7 @@ export default class Project {
     return matchingTriggers;
   }
 
-  _stepEdgeActivatedTriggers(): void {
+  private _stepEdgeActivatedTriggers(): void {
     const edgeActivated = this._matchingTriggers((tr) => tr.isEdgeActivated);
     const triggersToStart = [];
     for (const triggerWithTarget of edgeActivated) {
@@ -152,7 +152,7 @@ export default class Project {
     void this._startTriggers(triggersToStart);
   }
 
-  step(): void {
+  private step(): void {
     this._cachedLoudness = null;
     this._stepEdgeActivatedTriggers();
 
@@ -168,7 +168,7 @@ export default class Project {
     );
   }
 
-  render(): void {
+  private render(): void {
     // Render to canvas
     this.renderer.update();
 
@@ -182,12 +182,12 @@ export default class Project {
     }
   }
 
-  _renderLoop(): void {
+  private _renderLoop(): void {
     requestAnimationFrame(this._renderLoop.bind(this));
     this.render();
   }
 
-  fireTrigger(trigger: symbol, options?: TriggerOptions): Promise<void> {
+  public fireTrigger(trigger: symbol, options?: TriggerOptions): Promise<void> {
     // Special trigger behaviors
     if (trigger === Trigger.GREEN_FLAG) {
       this.restartTimer();
@@ -212,7 +212,8 @@ export default class Project {
     return this._startTriggers(matchingTriggers);
   }
 
-  _startTriggers(triggers: TriggerWithTarget[]): Promise<void> {
+  // TODO: add a way to start clone triggers from fireTrigger then make this private
+  public _startTriggers(triggers: TriggerWithTarget[]): Promise<void> {
     // Only add these triggers to this.runningTriggers if they're not already there.
     // TODO: if the triggers are already running, they'll be restarted but their execution order is unchanged.
     // Does that match Scratch's behavior?
@@ -234,17 +235,17 @@ export default class Project {
     ).then();
   }
 
-  get spritesAndClones(): Sprite[] {
+  public get spritesAndClones(): Sprite[] {
     return Object.values(this.sprites)
       .flatMap((sprite) => sprite!.andClones())
       .sort((a, b) => a._layerOrder - b._layerOrder);
   }
 
-  get spritesAndStage(): [...Sprite[], Stage] {
+  public get spritesAndStage(): [...Sprite[], Stage] {
     return [...this.spritesAndClones, this.stage];
   }
 
-  changeSpriteLayer(
+  public changeSpriteLayer(
     sprite: Sprite,
     layerDelta: number,
     relativeToSprite = sprite
@@ -270,26 +271,26 @@ export default class Project {
     });
   }
 
-  stopAllSounds(): void {
+  public stopAllSounds(): void {
     for (const target of this.spritesAndStage) {
       target.stopAllOfMySounds();
     }
   }
 
-  get timer(): number {
+  public get timer(): number {
     const ms = new Date().getTime() - this.timerStart.getTime();
     return ms / 1000;
   }
 
-  restartTimer(): void {
+  public restartTimer(): void {
     this.timerStart = new Date();
   }
 
-  async askAndWait(question: string): Promise<void> {
+  public async askAndWait(question: string): Promise<void> {
     this.answer = await this.renderer.displayAskBox(question);
   }
 
-  get loudness(): number {
+  public get loudness(): number {
     if (this._cachedLoudness === null) {
       this._cachedLoudness = this.loudnessHandler.getLoudness();
     }

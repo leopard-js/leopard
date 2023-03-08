@@ -1,12 +1,12 @@
 import type Renderer from "../Renderer";
 
 export default abstract class Skin {
-  renderer: Renderer;
-  gl: WebGLRenderingContext;
-  width: number;
-  height: number;
+  protected renderer: Renderer;
+  protected gl: WebGLRenderingContext;
+  public width: number;
+  public height: number;
 
-  constructor(renderer: Renderer) {
+  public constructor(renderer: Renderer) {
     this.renderer = renderer;
     this.gl = renderer.gl;
     this.width = 0;
@@ -15,16 +15,16 @@ export default abstract class Skin {
 
   // Get the skin's texture for a given (screen-space) scale.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  abstract getTexture(scale: number): WebGLTexture | null;
+  public abstract getTexture(scale: number): WebGLTexture | null;
 
   // Get the skin image's ImageData at a given (screen-space) scale.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getImageData(scale: number): ImageData | null {
+  public getImageData(scale: number): ImageData | null {
     throw new Error("getImageData not implemented for this skin type");
   }
 
   // Helper function to create a texture from an image and handle all the boilerplate.
-  _makeTexture(
+  protected _makeTexture(
     image: HTMLImageElement | HTMLCanvasElement | null,
     filtering:
       | WebGLRenderingContext["NEAREST"]
@@ -55,7 +55,7 @@ export default abstract class Skin {
   }
 
   // Helper function to set this skin's size based on an image that may or may not be loaded.
-  _setSizeFromImage(image: HTMLImageElement): void {
+  protected _setSizeFromImage(image: HTMLImageElement): void {
     if (image.complete) {
       this.width = image.naturalWidth;
       this.height = image.naturalHeight;
@@ -68,5 +68,5 @@ export default abstract class Skin {
   }
 
   // Clean up any textures or other objets created by this skin.
-  abstract destroy(): void;
+  public abstract destroy(): void;
 }

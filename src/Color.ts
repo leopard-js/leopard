@@ -91,28 +91,28 @@ function hsvToRGB(
 }
 
 export default class Color {
-  _h = 0;
-  _s = 0;
-  _v = 0;
-  _a = 1;
+  private _h = 0;
+  private _s = 0;
+  private _v = 0;
+  private _a = 1;
 
-  constructor(h = 0, s = 0, v = 0, a = 1) {
+  public constructor(h = 0, s = 0, v = 0, a = 1) {
     this.h = h;
     this.s = s;
     this.v = v;
     this.a = a;
   }
 
-  static rgb(r: number, g: number, b: number, a = 1): Color {
+  public static rgb(r: number, g: number, b: number, a = 1): Color {
     const { h, s, v } = rgbToHSV(r, g, b);
     return new Color(h, s, v, a);
   }
 
-  static hsv(h: number, s: number, v: number, a = 1): Color {
+  public static hsv(h: number, s: number, v: number, a = 1): Color {
     return new Color(h, s, v, a);
   }
 
-  static num(n: number | string): Color {
+  public static num(n: number | string): Color {
     n = Number(n);
 
     // Match Scratch rgba system
@@ -125,62 +125,62 @@ export default class Color {
   }
 
   // Red
-  get r(): number {
+  public get r(): number {
     return hsvToRGB(this.h, this.s, this.v).r;
   }
-  set r(r) {
+  public set r(r) {
     this._setRGB(r, this.g, this.b);
   }
 
   // Green
-  get g(): number {
+  public get g(): number {
     return hsvToRGB(this.h, this.s, this.v).g;
   }
-  set g(g) {
+  public set g(g) {
     this._setRGB(this.r, g, this.b);
   }
 
   // Blue
-  get b(): number {
+  public get b(): number {
     return hsvToRGB(this.h, this.s, this.v).b;
   }
-  set b(b) {
+  public set b(b) {
     this._setRGB(this.r, this.g, b);
   }
 
   // Alpha
-  get a(): number {
+  public get a(): number {
     return this._a;
   }
-  set a(a) {
+  public set a(a) {
     this._a = clamp(a, 0, 1);
   }
 
   // Hue
-  get h(): number {
+  public get h(): number {
     return this._h;
   }
-  set h(h) {
+  public set h(h) {
     this._h = ((h % 100) + 100) % 100;
   }
 
   // Shade
-  get s(): number {
+  public get s(): number {
     return this._s;
   }
-  set s(s) {
+  public set s(s) {
     this._s = clamp(s, 0, 100);
   }
 
   // Value
-  get v(): number {
+  public get v(): number {
     return this._v;
   }
-  set v(v) {
+  public set v(v) {
     this._v = clamp(v, 0, 100);
   }
 
-  _setRGB(r: number, g: number, b: number): void {
+  private _setRGB(r: number, g: number, b: number): void {
     r = clamp(r, 0, 255);
     g = clamp(g, 0, 255);
     b = clamp(b, 0, 255);
@@ -192,7 +192,7 @@ export default class Color {
     this.v = v;
   }
 
-  toHexString(forceIncludeAlpha = false): string {
+  public toHexString(forceIncludeAlpha = false): string {
     const toHexDigits = (n: number): string => {
       n = clamp(Math.round(n), 0, 255);
 
@@ -212,7 +212,7 @@ export default class Color {
     return hex;
   }
 
-  toRGBString(forceIncludeAlpha = false): string {
+  public toRGBString(forceIncludeAlpha = false): string {
     const rgb = [this.r, this.g, this.b].map(Math.round);
 
     if (forceIncludeAlpha || this.a !== 1) {
@@ -221,17 +221,17 @@ export default class Color {
     return `rgb(${rgb.join(", ")})`;
   }
 
-  toRGBA(): [number, number, number, number] {
+  public toRGBA(): [number, number, number, number] {
     const rgb = hsvToRGB(this._h, this._s, this._v);
     return [rgb.r, rgb.g, rgb.b, this._a * 255];
   }
 
-  toRGBANormalized(): [number, number, number, number] {
+  public toRGBANormalized(): [number, number, number, number] {
     const rgb = hsvToRGB(this._h, this._s, this._v);
     return [rgb.r / 255, rgb.g / 255, rgb.b / 255, this._a];
   }
 
-  toString(): string {
+  public toString(): string {
     return this.toRGBString();
   }
 }

@@ -3,13 +3,13 @@ import type { Stage } from "./Sprite";
 type Mouse = { x: number; y: number; down: boolean };
 
 export default class Input {
-  _stage: Stage;
-  _canvas: HTMLCanvasElement;
-  _onKeyDown: (key: string) => unknown;
+  private _stage: Stage;
+  private _canvas: HTMLCanvasElement;
+  private _onKeyDown: (key: string) => unknown;
 
-  mouse: Mouse;
-  keys: string[];
-  constructor(
+  public mouse: Mouse;
+  public keys: string[];
+  public constructor(
     stage: Input["_stage"],
     canvas: Input["_canvas"],
     onKeyDown: Input["_onKeyDown"]
@@ -34,7 +34,7 @@ export default class Input {
     this._onKeyDown = onKeyDown;
   }
 
-  _mouseMove(e: MouseEvent): void {
+  private _mouseMove(e: MouseEvent): void {
     const rect = this._canvas.getBoundingClientRect();
     const scaleX = this._stage.width / rect.width;
     const scaleY = this._stage.height / rect.height;
@@ -50,26 +50,26 @@ export default class Input {
     };
   }
 
-  _mouseDown(): void {
+  private _mouseDown(): void {
     this.mouse = {
       ...this.mouse,
       down: true,
     };
   }
 
-  _mouseUp(): void {
+  private _mouseUp(): void {
     this.mouse = {
       ...this.mouse,
       down: false,
     };
   }
 
-  _keyup(e: KeyboardEvent): void {
+  private _keyup(e: KeyboardEvent): void {
     const key = this._getKeyName(e);
     this.keys = this.keys.filter((k) => k !== key);
   }
 
-  _keydown(e: KeyboardEvent): void {
+  private _keydown(e: KeyboardEvent): void {
     e.preventDefault();
 
     const key = this._getKeyName(e);
@@ -80,7 +80,7 @@ export default class Input {
     this._onKeyDown(key);
   }
 
-  _getKeyName(e: KeyboardEvent): string {
+  private _getKeyName(e: KeyboardEvent): string {
     if (e.key === "ArrowUp") return "up arrow";
     if (e.key === "ArrowDown") return "down arrow";
     if (e.key === "ArrowLeft") return "left arrow";
@@ -91,12 +91,12 @@ export default class Input {
     return e.key.toLowerCase();
   }
 
-  keyPressed(name: string): boolean {
+  public keyPressed(name: string): boolean {
     if (name === "any") return this.keys.length > 0;
     return this.keys.indexOf(name) > -1;
   }
 
-  focus(): void {
+  public focus(): void {
     this._canvas.focus();
   }
 }

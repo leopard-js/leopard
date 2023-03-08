@@ -15,22 +15,21 @@ const enum ConnectionState {
 
 // https://github.com/LLK/scratch-audio/blob/develop/src/Loudness.js
 export default class LoudnessHandler {
-  connectionState: ConnectionState;
-  audioStream: MediaStream | undefined;
-  analyser: AnalyserNode | undefined;
-  micDataArray: Float32Array | undefined;
-  _lastValue: number | undefined;
+  private connectionState: ConnectionState;
+  private audioStream: MediaStream | undefined;
+  private analyser: AnalyserNode | undefined;
+  private micDataArray: Float32Array | undefined;
+  private _lastValue: number | undefined;
 
-  constructor() {
-    // TODO: use a TypeScript enum
+  public constructor() {
     this.connectionState = ConnectionState.NOT_CONNECTED;
   }
 
-  get audioContext(): AudioContext {
+  private get audioContext(): AudioContext {
     return Sound.audioContext;
   }
 
-  async connect(): Promise<void> {
+  private async connect(): Promise<void> {
     // If we're in the middle of connecting, or failed to connect,
     // don't attempt to connect again
     if (this.connectionState !== ConnectionState.NOT_CONNECTED) return;
@@ -57,7 +56,7 @@ export default class LoudnessHandler {
     }
   }
 
-  get loudness(): number {
+  private get loudness(): number {
     if (
       this.connectionState !== ConnectionState.CONNECTED ||
       !this.audioStream?.active ||
@@ -88,7 +87,7 @@ export default class LoudnessHandler {
     return rms;
   }
 
-  getLoudness(): number {
+  public getLoudness(): number {
     void this.connect();
     return this.loudness;
   }

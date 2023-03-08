@@ -24,24 +24,24 @@ const determinant = (
 // TODO: store renderer-specific data on the sprite and have *it* set a
 // "transform changed" flag.
 class SpriteTransformDiff {
-  _sprite: Sprite | Stage;
-  _unset: boolean;
+  private _sprite: Sprite | Stage;
+  private _unset: boolean;
 
-  _lastX!: Sprite["x"] | undefined;
-  _lastY!: Sprite["y"] | undefined;
-  _lastRotation!: Sprite["direction"] | undefined;
-  _lastRotationStyle!: Sprite["rotationStyle"] | undefined;
-  _lastSize!: Sprite["size"] | undefined;
-  _lastCostume!: Sprite["costume"];
-  _lastCostumeLoaded!: boolean;
+  private _lastX!: Sprite["x"] | undefined;
+  private _lastY!: Sprite["y"] | undefined;
+  private _lastRotation!: Sprite["direction"] | undefined;
+  private _lastRotationStyle!: Sprite["rotationStyle"] | undefined;
+  private _lastSize!: Sprite["size"] | undefined;
+  private _lastCostume!: Sprite["costume"];
+  private _lastCostumeLoaded!: boolean;
 
-  constructor(sprite: Sprite | Stage) {
+  public constructor(sprite: Sprite | Stage) {
     this._sprite = sprite;
     this._unset = true;
     this.update();
   }
 
-  update(): void {
+  public update(): void {
     if (this._sprite instanceof Sprite) {
       this._lastX = this._sprite.x;
       this._lastY = this._sprite.y;
@@ -54,7 +54,7 @@ class SpriteTransformDiff {
     this._unset = false;
   }
 
-  get changed(): boolean {
+  public get changed(): boolean {
     return (
       (this._sprite instanceof Sprite &&
         (this._lastX !== this._sprite.x ||
@@ -71,23 +71,24 @@ class SpriteTransformDiff {
 
 // Renderer-specific data for an instance (the original or a clone) of a Sprite
 export default class Drawable {
-  _renderer: Renderer;
-  _sprite: Sprite | Stage;
-  _matrix: MatrixType;
-  _matrixDiff: SpriteTransformDiff;
+  private _renderer: Renderer;
+  // TODO: make this private
+  public _sprite: Sprite | Stage;
+  private _matrix: MatrixType;
+  private _matrixDiff: SpriteTransformDiff;
 
-  _convexHullImageData: ImageData | null;
-  _convexHullMosaic: number;
-  _convexHullPixelate: number;
-  _convexHullWhirl: number;
-  _convexHullFisheye: number;
-  _convexHullPoints: [number, number][] | null;
+  private _convexHullImageData: ImageData | null;
+  private _convexHullMosaic: number;
+  private _convexHullPixelate: number;
+  private _convexHullWhirl: number;
+  private _convexHullFisheye: number;
+  private _convexHullPoints: [number, number][] | null;
 
-  _aabb: Rectangle;
-  _tightBoundingBox: Rectangle;
-  _convexHullMatrixDiff: SpriteTransformDiff;
+  private _aabb: Rectangle;
+  private _tightBoundingBox: Rectangle;
+  private _convexHullMatrixDiff: SpriteTransformDiff;
 
-  constructor(renderer: Renderer, sprite: Sprite | Stage) {
+  public constructor(renderer: Renderer, sprite: Sprite | Stage) {
     this._renderer = renderer;
     this._sprite = sprite;
 
@@ -115,18 +116,18 @@ export default class Drawable {
     this._convexHullMatrixDiff = new SpriteTransformDiff(sprite);
   }
 
-  getCurrentSkin(): Skin {
+  public getCurrentSkin(): Skin {
     return this._renderer._getSkin(this._sprite.costume);
   }
 
   // Get the rough axis-aligned bounding box for this sprite. Not as tight as
   // getTightBoundingBox, especially when rotated.
-  getAABB(): Rectangle {
+  public getAABB(): Rectangle {
     return Rectangle.fromMatrix(this.getMatrix(), this._aabb);
   }
 
   // Get the Scratch-space tight bounding box for this sprite.
-  getTightBoundingBox(): Rectangle {
+  public getTightBoundingBox(): Rectangle {
     if (!this._convexHullMatrixDiff.changed) return this._tightBoundingBox;
 
     const matrix = this.getMatrix();
@@ -190,7 +191,7 @@ export default class Drawable {
     return this._tightBoundingBox;
   }
 
-  _calculateConvexHull(): [number, number][] | null {
+  private _calculateConvexHull(): [number, number][] | null {
     const sprite = this._sprite;
     const skin = this.getCurrentSkin();
     const imageData = skin.getImageData(
@@ -327,7 +328,7 @@ export default class Drawable {
     return this._convexHullPoints;
   }
 
-  _calculateSpriteMatrix(): void {
+  private _calculateSpriteMatrix(): void {
     const m = this._matrix;
     Matrix.identity(m);
     const spr = this._sprite;
@@ -369,7 +370,7 @@ export default class Drawable {
     this._matrixDiff.update();
   }
 
-  getMatrix(): MatrixType {
+  public getMatrix(): MatrixType {
     // If all the values we used to calculate the matrix haven't changed since
     // we last calculated the matrix, we can just return the matrix as-is.
     if (this._matrixDiff.changed) {
