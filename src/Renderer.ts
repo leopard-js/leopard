@@ -226,32 +226,30 @@ export default class Renderer {
   }
 
   public _setShader(shader: Shader): boolean {
-    if (shader !== this._currentShader) {
-      const gl = this.gl;
-      gl.useProgram(shader.program);
+    if (shader === this._currentShader) return false;
 
-      // These attributes and uniforms don't ever change, but must be set whenever a new shader program is used.
+    const gl = this.gl;
+    gl.useProgram(shader.program);
 
-      const attribLocation = shader.attribs.a_position;
-      gl.enableVertexAttribArray(attribLocation);
-      // Bind the 'a_position' vertex attribute to the current contents of `gl.ARRAY_BUFFER`, which in this case
-      // is a quadrilateral (as buffered earlier).
-      gl.vertexAttribPointer(
-        attribLocation,
-        2, // every 2 array elements make one vertex.
-        gl.FLOAT, // data type
-        false, // normalized
-        0, // stride (space between attributes)
-        0 // offset (index of the first attribute to start from)
-      );
+    // These attributes and uniforms don't ever change, but must be set whenever a new shader program is used.
 
-      this._currentShader = shader;
-      this._updateStageSize();
+    const attribLocation = shader.attribs.a_position;
+    gl.enableVertexAttribArray(attribLocation);
+    // Bind the 'a_position' vertex attribute to the current contents of `gl.ARRAY_BUFFER`, which in this case
+    // is a quadrilateral (as buffered earlier).
+    gl.vertexAttribPointer(
+      attribLocation,
+      2, // every 2 array elements make one vertex.
+      gl.FLOAT, // data type
+      false, // normalized
+      0, // stride (space between attributes)
+      0 // offset (index of the first attribute to start from)
+    );
 
-      return true;
-    }
+    this._currentShader = shader;
+    this._updateStageSize();
 
-    return false;
+    return true;
   }
 
   public _setFramebuffer(framebufferInfo: FramebufferInfo | null): void {
