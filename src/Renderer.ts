@@ -1,18 +1,18 @@
-import Matrix, { MatrixType } from "./renderer/Matrix.js";
-import Drawable from "./renderer/Drawable.js";
-import BitmapSkin from "./renderer/BitmapSkin.js";
-import PenSkin from "./renderer/PenSkin.js";
-import SpeechBubbleSkin from "./renderer/SpeechBubbleSkin.js";
-import VectorSkin from "./renderer/VectorSkin.js";
-import Rectangle from "./renderer/Rectangle.js";
-import ShaderManager, { Shader, DrawMode } from "./renderer/ShaderManager.js";
-import { effectNames, effectBitmasks } from "./renderer/effectInfo.js";
-import type Skin from "./renderer/Skin.js";
+import Matrix, { MatrixType } from "./renderer/Matrix";
+import Drawable from "./renderer/Drawable";
+import BitmapSkin from "./renderer/BitmapSkin";
+import PenSkin from "./renderer/PenSkin";
+import SpeechBubbleSkin from "./renderer/SpeechBubbleSkin";
+import VectorSkin from "./renderer/VectorSkin";
+import Rectangle from "./renderer/Rectangle";
+import ShaderManager, { Shader, DrawMode } from "./renderer/ShaderManager";
+import { effectNames, effectBitmasks } from "./renderer/effectInfo";
+import type Skin from "./renderer/Skin";
 
-import Costume from "./Costume.js";
-import type Color from "./Color.js";
-import type Project from "./Project.js";
-import { Sprite, Stage, _EffectMap, SpeechBubble } from "./Sprite.js";
+import Costume from "./Costume";
+import type Color from "./Color";
+import type Project from "./Project";
+import { Sprite, Stage, _EffectMap, SpeechBubble } from "./Sprite";
 
 // Rectangle used for checking collision bounds.
 // Rather than create a new one each time, we can just reuse this one.

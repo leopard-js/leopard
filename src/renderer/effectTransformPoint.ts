@@ -1,5 +1,5 @@
-import { effectBitmasks } from "./effectInfo.js";
-import type Drawable from "./Drawable.js";
+import { effectBitmasks } from "./effectInfo";
+import type Drawable from "./Drawable";
 
 const CENTER = 0.5;
 const EPSILON = 1e-3;

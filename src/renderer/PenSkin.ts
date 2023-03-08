@@ -1,8 +1,8 @@
-import Skin from "./Skin.js";
-import ShaderManager from "./ShaderManager.js";
-import type Color from "../Color.js";
-import type Renderer from "../Renderer.js";
-import type { FramebufferInfo } from "../Renderer.js";
+import Skin from "./Skin";
+import ShaderManager from "./ShaderManager";
+import type Color from "../Color";
+import type Renderer from "../Renderer";
+import type { FramebufferInfo } from "../Renderer";
 
 export default class PenSkin extends Skin {
   _framebufferInfo: FramebufferInfo;

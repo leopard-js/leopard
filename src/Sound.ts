@@ -1,5 +1,5 @@
-import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio.js";
-import type { Yielding } from "./lib/yielding.js";
+import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio";
+import type { Yielding } from "./lib/yielding";
 
 export default class Sound {
   name: string;

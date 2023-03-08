@@ -1,9 +1,9 @@
-import Trigger, { TriggerOptions } from "./Trigger.js";
-import Renderer from "./Renderer.js";
-import Input from "./Input.js";
-import LoudnessHandler from "./Loudness.js";
-import Sound from "./Sound.js";
-import type { Stage, Sprite } from "./Sprite.js";
+import Trigger, { TriggerOptions } from "./Trigger";
+import Renderer from "./Renderer";
+import Input from "./Input";
+import LoudnessHandler from "./Loudness";
+import Sound from "./Sound";
+import type { Stage, Sprite } from "./Sprite";
 
 type TriggerWithTarget = {
   target: Sprite | Stage;
