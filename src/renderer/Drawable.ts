@@ -27,11 +27,11 @@ class SpriteTransformDiff {
   private _sprite: Sprite | Stage;
   private _unset: boolean;
 
-  private _lastX!: Sprite["x"] | undefined;
-  private _lastY!: Sprite["y"] | undefined;
-  private _lastRotation!: Sprite["direction"] | undefined;
-  private _lastRotationStyle!: Sprite["rotationStyle"] | undefined;
-  private _lastSize!: Sprite["size"] | undefined;
+  private _lastX: Sprite["x"] | undefined;
+  private _lastY: Sprite["y"] | undefined;
+  private _lastRotation: Sprite["direction"] | undefined;
+  private _lastRotationStyle: Sprite["rotationStyle"] | undefined;
+  private _lastSize: Sprite["size"] | undefined;
   private _lastCostume!: Sprite["costume"];
   private _lastCostumeLoaded!: boolean;
 
