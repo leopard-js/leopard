@@ -249,7 +249,7 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   // From scratch-vm's math-util.
-  scratchTan(angle) {
+  public scratchTan(angle: number): number {
     angle = angle % 360;
     switch (angle) {
       case -270:
@@ -276,9 +276,9 @@ abstract class SpriteBase<Vars extends object = object> {
   // wrapClamp(0, 1, 5) == 5
   // wrapClamp(-11, -10, 6) == 6
   // Borrowed from scratch-vm (src/util/math-util.js)
-  wrapClamp(n, min, max) {
-    const range = (max - min) + 1;
-    return n - (Math.floor((n - min) / range) * range);
+  public wrapClamp(n: number, min: number, max: number): number {
+    const range = max - min + 1;
+    return n - Math.floor((n - min) / range) * range;
   }
 
   // Given a generator function, return a version of it that runs in "warp mode" (no yields).
@@ -399,8 +399,8 @@ abstract class SpriteBase<Vars extends object = object> {
     return this._project.loudness;
   }
 
-  toNumber(value) {
-    if (typeof value === 'number') {
+  public toNumber(value: unknown): number {
+    if (typeof value === "number") {
       if (isNaN(value)) {
         return 0;
       }
@@ -414,13 +414,13 @@ abstract class SpriteBase<Vars extends object = object> {
     return n;
   }
 
-  toBoolean(value) {
-    if (typeof value === 'boolean') {
+  public toBoolean(value: unknown): boolean {
+    if (typeof value === "boolean") {
       return value;
     }
 
-    if (typeof value === 'string') {
-      if (value === '' || value === '0' || value.toLowerCase() === 'false') {
+    if (typeof value === "string") {
+      if (value === "" || value === "0" || value.toLowerCase() === "false") {
         return false;
       }
       return true;
@@ -429,37 +429,37 @@ abstract class SpriteBase<Vars extends object = object> {
     return Boolean(value);
   }
 
-  toString(value) {
+  public toString(value: unknown): string {
     return String(value);
   }
 
-  stringIncludes(string, substring) {
+  public stringIncludes(string: string, substring: string): boolean {
     return string.toLowerCase().includes(substring.toLowerCase());
   }
 
-  arrayIncludes(array, value) {
-    return array.some(item => this.compare(item, value) === 0);
+  public arrayIncludes<T>(array: T[], value: T): boolean {
+    return array.some((item) => this.compare(item, value) === 0);
   }
 
-  letterOf(string, index) {
+  public letterOf(string: string, index: number): string {
     if (index < 0 || index >= string.length) {
       return "";
     }
     return string[index];
   }
 
-  itemOf(array, index) {
+  public itemOf<T>(array: T[], index: number): T | "" {
     if (index < 0 || index >= array.length) {
       return "";
     }
     return array[index];
   }
 
-  indexInArray(array, value) {
-    return array.findIndex(item => this.compare(item, value) === 0);
+  public indexInArray<T>(array: T[], value: T): number {
+    return array.findIndex((item) => this.compare(item, value) === 0);
   }
 
-  compare(v1, v2) {
+  public compare(v1: unknown, v2: unknown): number {
     if (v1 === v2) {
       return 0;
     }
@@ -473,9 +473,15 @@ abstract class SpriteBase<Vars extends object = object> {
       return 0;
     }
 
-    if (n1 === 0 && (v1 === null || typeof v1 === 'string' && v1.trim().length === 0)) {
+    if (
+      n1 === 0 &&
+      (v1 === null || (typeof v1 === "string" && v1.trim().length === 0))
+    ) {
       n1 = NaN;
-    } else if (n2 === 0 && (v2 === null || typeof v2 === 'string' && v2.trim().length === 0)) {
+    } else if (
+      n2 === 0 &&
+      (v2 === null || (typeof v2 === "string" && v2.trim().length === 0))
+    ) {
       n2 = NaN;
     }
 
