@@ -1,8 +1,16 @@
-const clamp = (n: number, min: number, max: number) =>
+const clamp = (n: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, n));
 
 // https://www.rapidtables.com/convert/color/rgb-to-hsv.html
-function rgbToHSV(r: number, g: number, b: number) {
+function rgbToHSV(
+  r: number,
+  g: number,
+  b: number
+): {
+  h: number;
+  s: number;
+  v: number;
+} {
   r /= 255;
   g /= 255;
   b /= 255;
@@ -37,7 +45,11 @@ function rgbToHSV(r: number, g: number, b: number) {
 }
 
 // https://www.rapidtables.com/convert/color/hsv-to-rgb.html
-function hsvToRGB(h: number, s: number, v: number) {
+function hsvToRGB(
+  h: number,
+  s: number,
+  v: number
+): { r: number; g: number; b: number } {
   h = (h / 100) * 360;
   s /= 100;
   v /= 100;
@@ -91,16 +103,16 @@ export default class Color {
     this.a = a;
   }
 
-  static rgb(r: number, g: number, b: number, a = 1) {
+  static rgb(r: number, g: number, b: number, a = 1): Color {
     const { h, s, v } = rgbToHSV(r, g, b);
     return new Color(h, s, v, a);
   }
 
-  static hsv(h: number, s: number, v: number, a = 1) {
+  static hsv(h: number, s: number, v: number, a = 1): Color {
     return new Color(h, s, v, a);
   }
 
-  static num(n: number | string) {
+  static num(n: number | string): Color {
     n = Number(n);
 
     // Match Scratch rgba system
@@ -113,7 +125,7 @@ export default class Color {
   }
 
   // Red
-  get r() {
+  get r(): number {
     return hsvToRGB(this.h, this.s, this.v).r;
   }
   set r(r) {
@@ -121,7 +133,7 @@ export default class Color {
   }
 
   // Green
-  get g() {
+  get g(): number {
     return hsvToRGB(this.h, this.s, this.v).g;
   }
   set g(g) {
@@ -129,7 +141,7 @@ export default class Color {
   }
 
   // Blue
-  get b() {
+  get b(): number {
     return hsvToRGB(this.h, this.s, this.v).b;
   }
   set b(b) {
@@ -137,7 +149,7 @@ export default class Color {
   }
 
   // Alpha
-  get a() {
+  get a(): number {
     return this._a;
   }
   set a(a) {
@@ -145,7 +157,7 @@ export default class Color {
   }
 
   // Hue
-  get h() {
+  get h(): number {
     return this._h;
   }
   set h(h) {
@@ -153,7 +165,7 @@ export default class Color {
   }
 
   // Shade
-  get s() {
+  get s(): number {
     return this._s;
   }
   set s(s) {
@@ -161,14 +173,14 @@ export default class Color {
   }
 
   // Value
-  get v() {
+  get v(): number {
     return this._v;
   }
   set v(v) {
     this._v = clamp(v, 0, 100);
   }
 
-  _setRGB(r: number, g: number, b: number) {
+  _setRGB(r: number, g: number, b: number): void {
     r = clamp(r, 0, 255);
     g = clamp(g, 0, 255);
     b = clamp(b, 0, 255);
@@ -180,8 +192,8 @@ export default class Color {
     this.v = v;
   }
 
-  toHexString(forceIncludeAlpha = false) {
-    const toHexDigits = (n: number) => {
+  toHexString(forceIncludeAlpha = false): string {
+    const toHexDigits = (n: number): string => {
       n = clamp(Math.round(n), 0, 255);
 
       let str = n.toString(16);
@@ -200,7 +212,7 @@ export default class Color {
     return hex;
   }
 
-  toRGBString(forceIncludeAlpha = false) {
+  toRGBString(forceIncludeAlpha = false): string {
     const rgb = [this.r, this.g, this.b].map(Math.round);
 
     if (forceIncludeAlpha || this.a !== 1) {
@@ -219,7 +231,7 @@ export default class Color {
     return [rgb.r / 255, rgb.g / 255, rgb.b / 255, this._a];
   }
 
-  toString() {
+  toString(): string {
     return this.toRGBString();
   }
 }

@@ -30,7 +30,9 @@
           "browser": true
         },
         "rules": {
-          "@typescript-eslint/no-non-null-assertion": "off"
+          "@typescript-eslint/no-non-null-assertion": "off",
+          "@typescript-eslint/prefer-return-this-type": "error",
+          "@typescript-eslint/explicit-function-return-type": ["error", {"allowExpressions": true}]
         }
       }
   ]

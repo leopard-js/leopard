@@ -1,4 +1,5 @@
 import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio.js";
+import type { Yielding } from "./lib/yielding.js";
 
 export default class Sound {
   name: string;
@@ -25,11 +26,11 @@ export default class Sound {
     void this.downloadMyAudioBuffer();
   }
 
-  get duration() {
+  get duration(): number {
     return this.audioBuffer ? this.audioBuffer.duration : 0;
   }
 
-  *start() {
+  *start(): Yielding<boolean> {
     let started = false;
     let isLatestCallToStart = true;
 
@@ -63,7 +64,7 @@ export default class Sound {
       // finish playing. Of course, the latest call returns true, and so the
       // containing playUntilDone() (if present) knows to wait.
       const oldDoneDownloading = this._doneDownloading;
-      this._doneDownloading = (fromMoreRecentCall) => {
+      this._doneDownloading = (fromMoreRecentCall): void => {
         if (fromMoreRecentCall) {
           isLatestCallToStart = false;
         } else {
@@ -82,7 +83,7 @@ export default class Sound {
     return isLatestCallToStart;
   }
 
-  *playUntilDone() {
+  *playUntilDone(): Yielding<void> {
     let playing = true;
 
     const isLatestCallToStart = yield* this.start();
@@ -109,7 +110,7 @@ export default class Sound {
     // is meant to be interrupted if another start() is ran while it's playing.
     // Of course, we don't want *this* playUntilDone() to be treated as though it
     // were interrupted when we call start(), so setting _markDone comes after.
-    this._markDone = () => {
+    this._markDone = (): void => {
       playing = false;
       delete this._markDone;
     };
@@ -117,7 +118,7 @@ export default class Sound {
     while (playing) yield;
   }
 
-  stop() {
+  stop(): void {
     if (this._markDone) {
       this._markDone();
     }
@@ -128,7 +129,7 @@ export default class Sound {
     }
   }
 
-  downloadMyAudioBuffer() {
+  downloadMyAudioBuffer(): Promise<AudioBuffer | null> {
     return fetch(this.url)
       .then((body) => body.arrayBuffer())
       .then((arrayBuffer) => {
@@ -161,7 +162,7 @@ export default class Sound {
       });
   }
 
-  playMyAudioBuffer() {
+  playMyAudioBuffer(): void {
     if (!this.audioBuffer) {
       return;
     }
@@ -181,7 +182,7 @@ export default class Sound {
     this.source.start(Sound.audioContext.currentTime);
   }
 
-  connect(target: AudioNode) {
+  connect(target: AudioNode): void {
     if (target !== this.target) {
       this.target = target;
       if (this.source) {
@@ -191,14 +192,14 @@ export default class Sound {
     }
   }
 
-  setPlaybackRate(value: number) {
+  setPlaybackRate(value: number): void {
     this.playbackRate = value;
     if (this.source) {
       this.source.playbackRate.value = value;
     }
   }
 
-  isConnectedTo(target: AudioNode) {
+  isConnectedTo(target: AudioNode): boolean {
     return this.target === target;
   }
 
@@ -215,7 +216,7 @@ export default class Sound {
     return this._audioContext;
   }
 
-  static decodeADPCMAudio(audioBuffer: ArrayBuffer) {
+  static decodeADPCMAudio(audioBuffer: ArrayBuffer): Promise<AudioBuffer> {
     return decodeADPCMAudio(audioBuffer, this.audioContext);
   }
 }
@@ -367,7 +368,7 @@ export class EffectChain {
     this.getNonPatchSoundList = getNonPatchSoundList;
   }
 
-  resetToInitial() {
+  resetToInitial(): void {
     // Note: some effects won't be reset by this function, except for when they
     // are set for the first time (i.e. when the EffectChain is instantiated).
     // Look for the "reset: false" flag in the effect descriptor list.
@@ -386,7 +387,7 @@ export class EffectChain {
     }
   }
 
-  updateAudioEffect(name: EffectName) {
+  updateAudioEffect(name: EffectName): void {
     const descriptor = EffectChain.getEffectDescriptor(name);
 
     if (!descriptor) {
@@ -526,7 +527,7 @@ export class EffectChain {
     }
   }
 
-  connect(target: AudioNode) {
+  connect(target: AudioNode): void {
     this.target = target;
 
     // All the code here is basically the same as what's written in
@@ -553,7 +554,7 @@ export class EffectChain {
     last.output.connect(target);
   }
 
-  setEffectValue(name: EffectName, value: number | string | boolean) {
+  setEffectValue(name: EffectName, value: number | string | boolean): void {
     value = Number(value);
     if (
       name in this.effectValues &&
@@ -566,7 +567,7 @@ export class EffectChain {
     }
   }
 
-  changeEffectValue(name: EffectName, value: number | string | boolean) {
+  changeEffectValue(name: EffectName, value: number | string | boolean): void {
     value = Number(value);
     if (name in this.effectValues && !isNaN(value) && value !== 0) {
       this.effectValues[name] += value;
@@ -575,7 +576,7 @@ export class EffectChain {
     }
   }
 
-  clampEffectValue(name: EffectName) {
+  clampEffectValue(name: EffectName): void {
     // Not all effects are clamped (pitch, for example); it's also possible to
     // specify only a minimum or maximum bound, instead of both.
     const descriptor = EffectChain.getEffectDescriptor(name);
@@ -595,7 +596,7 @@ export class EffectChain {
     return this.effectValues[name] || 0;
   }
 
-  clone(newConfig: EffectChainConfig) {
+  clone(newConfig: EffectChainConfig): EffectChain {
     const newEffectChain = new EffectChain(
       Object.assign({}, this.config, newConfig)
     );
@@ -615,7 +616,7 @@ export class EffectChain {
     return newEffectChain;
   }
 
-  applyToSound(sound: Sound) {
+  applyToSound(sound: Sound): void {
     sound.connect(this.inputNode);
 
     for (const [name, value] of Object.entries(this.effectValues) as [
@@ -629,7 +630,7 @@ export class EffectChain {
     }
   }
 
-  isTargetOf(sound: Sound) {
+  isTargetOf(sound: Sound): boolean {
     return sound.isConnectedTo(this.inputNode);
   }
 
@@ -654,15 +655,17 @@ export class EffectChain {
     )!;
   }
 
-  static getFirstEffectDescriptor() {
+  static getFirstEffectDescriptor(): typeof effectDescriptors[number] {
     return this.effectDescriptors[0];
   }
 
-  static getLastEffectDescriptor() {
+  static getLastEffectDescriptor(): typeof effectDescriptors[number] {
     return this.effectDescriptors[this.effectDescriptors.length - 1];
   }
 
-  static getNextEffectDescriptor(name: EffectName) {
+  static getNextEffectDescriptor(
+    name: EffectName
+  ): typeof effectDescriptors[number] | undefined {
     // .find() provides three values to its passed function: the value of the
     // current item, that item's index, and the array on which .find() is
     // operating. In this case, we're only concerned with the index.
@@ -677,7 +680,9 @@ export class EffectChain {
       .find((_, i) => this.effectDescriptors[i].name === name);
   }
 
-  static getPreviousEffectDescriptor(name: EffectName) {
+  static getPreviousEffectDescriptor(
+    name: EffectName
+  ): typeof effectDescriptors[number] | undefined {
     // This function's a little simpler, since it doesn't involve shifting the
     // list. We still use slice(), but this time simply to cut off the last
     // item; that item will never come before any other, after all. We search
@@ -749,7 +754,7 @@ export class AudioEffectMap {
     }
   }
 
-  clear() {
+  clear(): void {
     this.effectChain.resetToInitial();
   }
 }

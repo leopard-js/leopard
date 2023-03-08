@@ -5,7 +5,7 @@ import LoudnessHandler from "./Loudness.js";
 import Sound from "./Sound.js";
 import type { Stage, Sprite } from "./Sprite.js";
 
-type RunningTrigger = {
+type TriggerWithTarget = {
   target: Sprite | Stage;
   trigger: Trigger;
 };
@@ -19,8 +19,8 @@ export default class Project {
   loudnessHandler: LoudnessHandler;
   _cachedLoudness: number | null;
 
-  runningTriggers: RunningTrigger[];
-  _prevStepTriggerPredicates: WeakMap<RunningTrigger, boolean>;
+  runningTriggers: TriggerWithTarget[];
+  _prevStepTriggerPredicates: WeakMap<TriggerWithTarget, boolean>;
   answer: string | null;
   timerStart!: Date;
 
@@ -62,7 +62,7 @@ export default class Project {
     this._renderLoop();
   }
 
-  attach(renderTarget: string | HTMLElement) {
+  attach(renderTarget: string | HTMLElement): void {
     this.renderer.setRenderTarget(renderTarget);
     this.renderer.stage.addEventListener("click", () => {
       // Chrome requires a user gesture on the page before we can start the
@@ -92,7 +92,7 @@ export default class Project {
     });
   }
 
-  greenFlag() {
+  greenFlag(): void {
     // Chrome requires a user gesture on the page before we can start the
     // audio context.
     // When greenFlag is triggered, it's likely that the cause of it was some
@@ -107,7 +107,7 @@ export default class Project {
   // Find triggers which match the given condition
   _matchingTriggers(
     triggerMatches: (tr: Trigger, target: Sprite | Stage) => boolean
-  ) {
+  ): TriggerWithTarget[] {
     const matchingTriggers = [];
     const targets = this.spritesAndStage;
     for (const target of targets) {
@@ -121,7 +121,7 @@ export default class Project {
     return matchingTriggers;
   }
 
-  _stepEdgeActivatedTriggers() {
+  _stepEdgeActivatedTriggers(): void {
     const edgeActivated = this._matchingTriggers((tr) => tr.isEdgeActivated);
     const triggersToStart = [];
     for (const triggerWithTarget of edgeActivated) {
@@ -152,7 +152,7 @@ export default class Project {
     void this._startTriggers(triggersToStart);
   }
 
-  step() {
+  step(): void {
     this._cachedLoudness = null;
     this._stepEdgeActivatedTriggers();
 
@@ -168,7 +168,7 @@ export default class Project {
     );
   }
 
-  render() {
+  render(): void {
     // Render to canvas
     this.renderer.update();
 
@@ -182,12 +182,12 @@ export default class Project {
     }
   }
 
-  _renderLoop() {
+  _renderLoop(): void {
     requestAnimationFrame(this._renderLoop.bind(this));
     this.render();
   }
 
-  fireTrigger(trigger: symbol, options?: TriggerOptions) {
+  fireTrigger(trigger: symbol, options?: TriggerOptions): Promise<void> {
     // Special trigger behaviors
     if (trigger === Trigger.GREEN_FLAG) {
       this.restartTimer();
@@ -212,7 +212,7 @@ export default class Project {
     return this._startTriggers(matchingTriggers);
   }
 
-  _startTriggers(triggers: RunningTrigger[]) {
+  _startTriggers(triggers: TriggerWithTarget[]): Promise<void> {
     // Only add these triggers to this.runningTriggers if they're not already there.
     // TODO: if the triggers are already running, they'll be restarted but their execution order is unchanged.
     // Does that match Scratch's behavior?
@@ -231,16 +231,16 @@ export default class Project {
       triggers.map(({ trigger, target }) => {
         return trigger.start(target);
       })
-    );
+    ).then();
   }
 
-  get spritesAndClones() {
+  get spritesAndClones(): Sprite[] {
     return Object.values(this.sprites)
       .flatMap((sprite) => sprite!.andClones())
       .sort((a, b) => a._layerOrder - b._layerOrder);
   }
 
-  get spritesAndStage() {
+  get spritesAndStage(): [...Sprite[], Stage] {
     return [...this.spritesAndClones, this.stage];
   }
 
@@ -248,7 +248,7 @@ export default class Project {
     sprite: Sprite,
     layerDelta: number,
     relativeToSprite = sprite
-  ) {
+  ): void {
     const spritesArray = this.spritesAndClones;
 
     const originalIndex = spritesArray.indexOf(sprite);
@@ -270,26 +270,26 @@ export default class Project {
     });
   }
 
-  stopAllSounds() {
+  stopAllSounds(): void {
     for (const target of this.spritesAndStage) {
       target.stopAllOfMySounds();
     }
   }
 
-  get timer() {
+  get timer(): number {
     const ms = new Date().getTime() - this.timerStart.getTime();
     return ms / 1000;
   }
 
-  restartTimer() {
+  restartTimer(): void {
     this.timerStart = new Date();
   }
 
-  async askAndWait(question: string) {
+  async askAndWait(question: string): Promise<void> {
     this.answer = await this.renderer.displayAskBox(question);
   }
 
-  get loudness() {
+  get loudness(): number {
     if (this._cachedLoudness === null) {
       this._cachedLoudness = this.loudnessHandler.getLoudness();
     }

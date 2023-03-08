@@ -2,8 +2,10 @@ import Color from "./Color.js";
 import Trigger from "./Trigger.js";
 import Sound, { EffectChain, AudioEffectMap } from "./Sound.js";
 import Costume from "./Costume.js";
+import type { Mouse } from "./Input.js";
 import type Project from "./Project.js";
 import type Watcher from "./Watcher.js";
+import type { Yielding } from "./lib/yielding.js";
 
 import { effectNames } from "./renderer/effectInfo.js";
 
@@ -61,7 +63,7 @@ export class _EffectMap implements Effects {
     }
   }
 
-  _clone() {
+  _clone(): _EffectMap {
     const m = new _EffectMap();
     for (const effectName of Object.keys(
       this._effectValues
@@ -71,7 +73,7 @@ export class _EffectMap implements Effects {
     return m;
   }
 
-  clear() {
+  clear(): void {
     for (const effectName of Object.keys(
       this._effectValues
     ) as (keyof typeof this._effectValues)[]) {
@@ -133,23 +135,23 @@ abstract class SpriteBase<Vars extends object = object> {
     this._vars = vars ?? {};
   }
 
-  getSoundsPlayedByMe() {
+  getSoundsPlayedByMe(): Sound[] {
     return this.sounds.filter((sound) => this.effectChain.isTargetOf(sound));
   }
 
-  get stage() {
+  get stage(): Stage | undefined {
     return this._project?.stage;
   }
 
-  get sprites() {
+  get sprites(): Partial<Record<string, Sprite>> | undefined {
     return this._project?.sprites;
   }
 
-  get vars() {
+  get vars(): Vars {
     return this._vars;
   }
 
-  get costumeNumber() {
+  get costumeNumber(): number {
     return this._costumeNumber;
   }
 
@@ -221,27 +223,27 @@ abstract class SpriteBase<Vars extends object = object> {
     return this.costumes[this.costumeNumber - 1];
   }
 
-  degToRad(deg: number) {
+  degToRad(deg: number): number {
     return (deg * Math.PI) / 180;
   }
 
-  radToDeg(rad: number) {
+  radToDeg(rad: number): number {
     return (rad * 180) / Math.PI;
   }
 
-  degToScratch(deg: number) {
+  degToScratch(deg: number): number {
     return -deg + 90;
   }
 
-  scratchToDeg(scratchDir: number) {
+  scratchToDeg(scratchDir: number): number {
     return -scratchDir + 90;
   }
 
-  radToScratch(rad: number) {
+  radToScratch(rad: number): number {
     return this.degToScratch(this.radToDeg(rad));
   }
 
-  scratchToRad(scratchDir: number) {
+  scratchToRad(scratchDir: number): number {
     return this.degToRad(this.scratchToDeg(scratchDir));
   }
 
@@ -261,7 +263,7 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   // Wrap rotation from -180 to 180.
-  normalizeDeg(deg: number) {
+  normalizeDeg(deg: number): number {
     // This is a pretty big math expression, but it's necessary because in JavaScript,
     // the % operator means "remainder", not "modulo", and so negative numbers won't "wrap around".
     // See https://web.archive.org/web/20090717035140if_/javascript.about.com/od/problemsolving/a/modulobug.htm
@@ -288,7 +290,7 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   // TODO: this should also take strings so rand("0.0", "1.0") returns a random float like Scratch
-  random(a: number, b: number) {
+  random(a: number, b: number): number {
     const min = Math.min(a, b);
     const max = Math.max(a, b);
     if (min % 1 === 0 && max % 1 === 0) {
@@ -297,7 +299,7 @@ abstract class SpriteBase<Vars extends object = object> {
     return Math.random() * (max - min) + min;
   }
 
-  *wait(secs: number) {
+  *wait(secs: number): Yielding<void> {
     const endTime = new Date();
     endTime.setMilliseconds(endTime.getMilliseconds() + secs * 1000);
     while (new Date() < endTime) {
@@ -305,23 +307,23 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  get mouse() {
+  get mouse(): Mouse | undefined {
     return this._project?.input.mouse;
   }
 
-  keyPressed(name: string) {
-    return this._project?.input.keyPressed(name);
+  keyPressed(name: string): boolean {
+    return !!this._project?.input.keyPressed(name);
   }
 
-  get timer() {
+  get timer(): number | undefined {
     return this._project?.timer;
   }
 
-  restartTimer() {
+  restartTimer(): void {
     this._project?.restartTimer();
   }
 
-  *startSound(soundName: string) {
+  *startSound(soundName: string): Yielding<void> {
     const sound = this.getSound(soundName);
     if (sound) {
       this.effectChain.applyToSound(sound);
@@ -329,7 +331,7 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  *playSoundUntilDone(soundName: string) {
+  *playSoundUntilDone(soundName: string): Yielding<void> {
     const sound = this.getSound(soundName);
     if (sound) {
       sound.connect(this.effectChain.inputNode);
@@ -338,7 +340,7 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  getSound(soundName: string) {
+  getSound(soundName: string): Sound | undefined {
     if (typeof soundName === "number") {
       return this.sounds[(soundName - 1) % this.sounds.length];
     } else {
@@ -346,21 +348,24 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  stopAllSounds() {
+  stopAllSounds(): void {
     this._project?.stopAllSounds();
   }
 
-  stopAllOfMySounds() {
+  stopAllOfMySounds(): void {
     for (const sound of this.sounds) {
       sound.stop();
     }
   }
 
-  broadcast(name: string) {
-    return this._project?.fireTrigger(Trigger.BROADCAST, { name });
+  broadcast(name: string): Promise<void> {
+    // TODO: definitely assign _project then remove this
+    return this._project
+      ? this._project.fireTrigger(Trigger.BROADCAST, { name })
+      : Promise.resolve();
   }
 
-  *broadcastAndWait(name: string) {
+  *broadcastAndWait(name: string): Yielding<void> {
     let running = true;
     void this.broadcast(name)?.then(() => {
       running = false;
@@ -371,11 +376,11 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  clearPen() {
+  clearPen(): void {
     this._project?.renderer.clearPen();
   }
 
-  *askAndWait(question: string) {
+  *askAndWait(question: string): Yielding<void> {
     if (this._speechBubble && this instanceof Sprite) {
       this.say("");
     }
@@ -388,12 +393,12 @@ abstract class SpriteBase<Vars extends object = object> {
     while (!done) yield;
   }
 
-  get answer() {
-    return this._project?.answer;
+  get answer(): string | null {
+    return this._project?.answer ?? null;
   }
 
-  get loudness() {
-    return this._project?.loudness;
+  get loudness(): number {
+    return this._project?.loudness ?? -1;
   }
 
   toNumber(value) {
@@ -562,7 +567,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     };
   }
 
-  createClone() {
+  createClone(): void {
     const clone = Object.assign(
       Object.create(Object.getPrototypeOf(this) as object) as Sprite,
       this
@@ -612,7 +617,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     );
   }
 
-  deleteThisClone() {
+  deleteThisClone(): void {
     if (this.parent === null) return;
 
     this.parent.clones = this.parent.clones.filter((clone) => clone !== this);
@@ -629,7 +634,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     return [this, ...this.clones.flatMap((clone) => clone.andClones())];
   }
 
-  get direction() {
+  get direction(): number {
     return this._direction;
   }
 
@@ -637,7 +642,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     this._direction = this.normalizeDeg(dir);
   }
 
-  goto(x: number, y: number) {
+  goto(x: number, y: number): void {
     if (x === this.x && y === this.y) return;
 
     if (this.penDown && this._project) {
@@ -653,7 +658,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     this._y = y;
   }
 
-  get x() {
+  get x(): number {
     return this._x;
   }
 
@@ -661,7 +666,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     this.goto(x, this._y);
   }
 
-  get y() {
+  get y(): number {
     return this._y;
   }
 
@@ -669,7 +674,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     this.goto(this._x, y);
   }
 
-  move(dist: number) {
+  move(dist: number): void {
     const moveDir = this.scratchToRad(this.direction);
 
     this.goto(
@@ -678,8 +683,9 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     );
   }
 
-  *glide(seconds: number, x: number, y: number) {
-    const interpolate = (a: number, b: number, t: number) => a + (b - a) * t;
+  *glide(seconds: number, x: number, y: number): Yielding<void> {
+    const interpolate = (a: number, b: number, t: number): number =>
+      a + (b - a) * t;
 
     const startTime = new Date();
     const startX = this._x;
@@ -693,7 +699,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     } while (t < 1);
   }
 
-  moveAhead(value = Infinity) {
+  moveAhead(value = Infinity): void {
     if (typeof value === "number") {
       this._project?.changeSpriteLayer(this, value);
     } else {
@@ -701,7 +707,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  moveBehind(value = Infinity) {
+  moveBehind(value = Infinity): void {
     if (typeof value === "number") {
       this._project?.changeSpriteLayer(this, -value);
     } else {
@@ -709,7 +715,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  get penDown() {
+  get penDown(): boolean {
     return this._penDown;
   }
 
@@ -725,7 +731,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     this._penDown = penDown;
   }
 
-  get penColor() {
+  get penColor(): Color {
     return this._penColor;
   }
 
@@ -739,7 +745,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  stamp() {
+  stamp(): void {
     this._project?.renderer.stamp(this);
   }
 
@@ -813,17 +819,17 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  say(text: string) {
+  say(text: string): void {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "say", timeout: null };
   }
 
-  think(text: string) {
+  think(text: string): void {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "think", timeout: null };
   }
 
-  *sayAndWait(text: string, seconds: number) {
+  *sayAndWait(text: string, seconds: number): Yielding<void> {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
 
     const speechBubble: SpeechBubble = { text, style: "say", timeout: null };
@@ -839,7 +845,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     while (!done) yield;
   }
 
-  *thinkAndWait(text: string, seconds: number) {
+  *thinkAndWait(text: string, seconds: number): Yielding<void> {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
 
     const speechBubble: SpeechBubble = { text, style: "think", timeout: null };
@@ -892,9 +898,12 @@ export class Stage<Vars extends object = object> extends SpriteBase<Vars> {
     this.__counter = 0;
   }
 
-  fireBackdropChanged() {
-    return this._project?.fireTrigger(Trigger.BACKDROP_CHANGED, {
-      backdrop: this.costume.name,
-    });
+  fireBackdropChanged(): Promise<void> {
+    // TODO: definitely assign _project then remove this
+    return this._project
+      ? this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
+          backdrop: this.costume.name,
+        })
+      : Promise.resolve();
   }
 }

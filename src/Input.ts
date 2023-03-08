@@ -1,11 +1,13 @@
 import type { Stage } from "./Sprite.js";
 
+type Mouse = { x: number; y: number; down: boolean };
+
 export default class Input {
   _stage: Stage;
   _canvas: HTMLCanvasElement;
   _onKeyDown: (key: string) => unknown;
 
-  mouse: { x: number; y: number; down: boolean };
+  mouse: Mouse;
   keys: string[];
   constructor(
     stage: Input["_stage"],
@@ -32,7 +34,7 @@ export default class Input {
     this._onKeyDown = onKeyDown;
   }
 
-  _mouseMove(e: MouseEvent) {
+  _mouseMove(e: MouseEvent): void {
     const rect = this._canvas.getBoundingClientRect();
     const scaleX = this._stage.width / rect.width;
     const scaleY = this._stage.height / rect.height;
@@ -48,26 +50,26 @@ export default class Input {
     };
   }
 
-  _mouseDown() {
+  _mouseDown(): void {
     this.mouse = {
       ...this.mouse,
       down: true,
     };
   }
 
-  _mouseUp() {
+  _mouseUp(): void {
     this.mouse = {
       ...this.mouse,
       down: false,
     };
   }
 
-  _keyup(e: KeyboardEvent) {
+  _keyup(e: KeyboardEvent): void {
     const key = this._getKeyName(e);
     this.keys = this.keys.filter((k) => k !== key);
   }
 
-  _keydown(e: KeyboardEvent) {
+  _keydown(e: KeyboardEvent): void {
     e.preventDefault();
 
     const key = this._getKeyName(e);
@@ -78,7 +80,7 @@ export default class Input {
     this._onKeyDown(key);
   }
 
-  _getKeyName(e: KeyboardEvent) {
+  _getKeyName(e: KeyboardEvent): string {
     if (e.key === "ArrowUp") return "up arrow";
     if (e.key === "ArrowDown") return "down arrow";
     if (e.key === "ArrowLeft") return "left arrow";
@@ -89,12 +91,14 @@ export default class Input {
     return e.key.toLowerCase();
   }
 
-  keyPressed(name: string) {
+  keyPressed(name: string): boolean {
     if (name === "any") return this.keys.length > 0;
     return this.keys.indexOf(name) > -1;
   }
 
-  focus() {
+  focus(): void {
     this._canvas.focus();
   }
 }
+
+export type { Mouse };
