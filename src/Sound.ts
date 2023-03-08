@@ -498,7 +498,9 @@ export class EffectChain {
       let nodes = this.effectNodes[descriptor.name]!;
       if (!nodes && value !== descriptor.initial) {
         nodes = descriptor.makeNodes();
-        this.effectNodes[descriptor.name] = nodes as never;
+        // The "as any" cast is needed because TypeScript can't infer that the
+        // descriptor's name determines the type of its nodes
+        this.effectNodes[descriptor.name] = nodes as any;
 
         // Connect the previous effect, or, if there is none, the EffectChain
         // input, to this effect. Also disconnect it from whatever it was
@@ -544,7 +546,9 @@ export class EffectChain {
           delete this.effectNodes[name];
         }
       } else {
-        descriptor.set(value, nodes as never);
+        // The "as any" cast is needed because TypeScript can't infer that the
+        // descriptor's name determines the type of its nodes
+        descriptor.set(value, nodes as any);
       }
     } else {
       // Non-"patch" effects operate directly on Sound objects, accessing
