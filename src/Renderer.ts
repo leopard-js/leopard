@@ -780,11 +780,11 @@ export default class Renderer {
   }
 
   public checkPointCollision(
-    spr: Sprite,
+    spr: Sprite | Stage,
     point: { x: number; y: number },
     fast?: boolean
   ): boolean {
-    if (!spr.visible) return false;
+    if ("visible" in spr && !spr.visible) return false;
 
     const box = this.getBoundingBox(spr);
     if (!box.containsPoint(point.x, point.y)) return false;
