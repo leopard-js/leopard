@@ -1,6 +1,6 @@
 import Skin from "./Skin";
 import type Renderer from "../Renderer";
-import type { SpeechBubble } from "../Sprite";
+import type { SpeechBubble, SpeechBubbleStyle } from "../Sprite";
 
 const bubbleStyle = {
   maxLineWidth: 170,
@@ -67,7 +67,7 @@ export default class SpeechBubbleSkin extends Skin {
       w: number,
       h: number,
       r: number,
-      style: "say" | "think"
+      style: SpeechBubbleStyle
     ): void => {
       if (r > w / 2) r = w / 2;
       if (r > h / 2) r = h / 2;
