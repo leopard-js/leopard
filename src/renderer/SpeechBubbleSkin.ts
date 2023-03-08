@@ -48,7 +48,11 @@ export default class SpeechBubbleSkin extends Skin {
     ctx.textBaseline = "hanging";
   }
 
-  public set flipped(flipped: boolean) {
+  public get flipped(): boolean {
+    return this._flipped;
+  }
+
+  public set flipped(flipped) {
     this._flipped = flipped;
     this._rendered = false;
   }
