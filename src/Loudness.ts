@@ -26,11 +26,11 @@ export default class LoudnessHandler {
     this.connectionState = ConnectionState.NOT_CONNECTED;
   }
 
-  get audioContext() {
+  get audioContext(): AudioContext {
     return Sound.audioContext;
   }
 
-  async connect() {
+  async connect(): Promise<void> {
     // If we're in the middle of connecting, or failed to connect,
     // don't attempt to connect again
     if (this.connectionState !== ConnectionState.NOT_CONNECTED) return;
@@ -57,7 +57,7 @@ export default class LoudnessHandler {
     }
   }
 
-  get loudness() {
+  get loudness(): number {
     if (
       this.connectionState !== ConnectionState.CONNECTED ||
       !this.audioStream?.active ||
@@ -88,7 +88,7 @@ export default class LoudnessHandler {
     return rms;
   }
 
-  getLoudness() {
+  getLoudness(): number {
     void this.connect();
     return this.loudness;
   }

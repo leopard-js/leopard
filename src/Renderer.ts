@@ -222,7 +222,7 @@ export default class Renderer {
     return framebufferInfo;
   }
 
-  _setShader(shader: Shader) {
+  _setShader(shader: Shader): boolean {
     if (shader !== this._currentShader) {
       const gl = this.gl;
       gl.useProgram(shader.program);
@@ -251,7 +251,7 @@ export default class Renderer {
     return false;
   }
 
-  _setFramebuffer(framebufferInfo: FramebufferInfo | null) {
+  _setFramebuffer(framebufferInfo: FramebufferInfo | null): void {
     if (framebufferInfo !== this._currentFramebuffer) {
       this._currentFramebuffer = framebufferInfo;
       if (framebufferInfo === null) {
@@ -269,7 +269,7 @@ export default class Renderer {
     }
   }
 
-  setRenderTarget(renderTarget: HTMLElement | string | null) {
+  setRenderTarget(renderTarget: HTMLElement | string | null): void {
     if (typeof renderTarget === "string") {
       renderTarget = document.querySelector(renderTarget) as HTMLElement;
     }
@@ -288,7 +288,7 @@ export default class Renderer {
     optionsIn: {
       filter?: (layer: Sprite | Stage | PenSkin) => boolean;
     } & Partial<RenderSpriteOptions> = {}
-  ) {
+  ): void {
     const options = {
       drawMode: ShaderManager.DrawModes.DEFAULT,
       renderSpeechBubbles: true,
@@ -299,7 +299,7 @@ export default class Renderer {
     // If we're given a filter function in the options, filter by that too.
     // If we're given both, then only include layers which match both.
     const shouldRestrictLayers = layers instanceof Set;
-    const shouldIncludeLayer = (layer: Sprite | Stage | PenSkin) =>
+    const shouldIncludeLayer = (layer: Sprite | Stage | PenSkin): boolean =>
       !(
         (shouldRestrictLayers && !layers.has(layer)) ||
         (typeof options.filter === "function" && !options.filter(layer))
@@ -338,7 +338,7 @@ export default class Renderer {
     }
   }
 
-  _updateStageSize() {
+  _updateStageSize(): void {
     if (this._currentShader) {
       // The shader is passed things in "Scratch-space" (-240, 240) and (-180, 180).
       // This tells it those dimensions so it can convert them to OpenGL "clip-space" (-1, 1).
@@ -360,7 +360,7 @@ export default class Renderer {
   }
 
   // Keep the canvas size in sync with the CSS size.
-  _resize() {
+  _resize(): void {
     const stageSize = this.stage.getBoundingClientRect();
     const ratio = window.devicePixelRatio;
     const adjustedWidth = Math.round(stageSize.width * ratio);
@@ -380,7 +380,7 @@ export default class Renderer {
     }
   }
 
-  update() {
+  update(): void {
     this._resize();
 
     // Draw to the screen, not to a framebuffer.
@@ -394,7 +394,7 @@ export default class Renderer {
     this._renderLayers();
   }
 
-  createStage(w: number, h: number) {
+  createStage(w: number, h: number): HTMLCanvasElement {
     const stage = document.createElement("canvas");
     stage.width = w;
     stage.height = h;
@@ -417,7 +417,7 @@ export default class Renderer {
   _calculateSpeechBubbleMatrix(
     spr: Sprite,
     speechBubbleSkin: SpeechBubbleSkin
-  ) {
+  ): MatrixType {
     const sprBounds = this.getBoundingBox(spr);
     let x;
     if (
@@ -449,7 +449,7 @@ export default class Renderer {
     effectMask?: number,
     colorMask?: [number, number, number, number],
     spriteColorId?: number
-  ) {
+  ): void {
     const gl = this.gl;
 
     const skinTexture = skin.getTexture(scale * this._screenSpaceScale);
@@ -500,7 +500,7 @@ export default class Renderer {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-  renderSprite(sprite: Sprite | Stage, options: RenderSpriteOptions) {
+  renderSprite(sprite: Sprite | Stage, options: RenderSpriteOptions): void {
     const spriteScale = "size" in sprite ? sprite.size / 100 : 1;
 
     this._renderSkin(
@@ -533,16 +533,16 @@ export default class Renderer {
     }
   }
 
-  getTightBoundingBox(sprite: Sprite | Stage) {
+  getTightBoundingBox(sprite: Sprite | Stage): Rectangle {
     return this._getDrawable(sprite).getTightBoundingBox();
   }
 
-  getBoundingBox(sprite: Sprite | Stage) {
+  getBoundingBox(sprite: Sprite | Stage): Rectangle {
     return Rectangle.fromMatrix(this._getDrawable(sprite).getMatrix());
   }
 
   // Mask drawing in to only areas where this sprite is opaque.
-  _stencilSprite(spr: Sprite | Stage, colorMask?: Color) {
+  _stencilSprite(spr: Sprite | Stage, colorMask?: Color): void {
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
@@ -597,7 +597,7 @@ export default class Renderer {
     targets: Set<Sprite | Stage> | (Sprite | Stage)[] | Sprite | Stage,
     fast?: boolean,
     sprColor?: Color
-  ) {
+  ): boolean {
     if ("visible" in spr && !spr.visible) return false;
     if (!(targets instanceof Set)) {
       if (targets instanceof Array) {
@@ -680,7 +680,7 @@ export default class Renderer {
     spr: Sprite | Stage,
     targetsColor: Color,
     sprColor?: Color
-  ) {
+  ): boolean {
     const sprBox = Rectangle.copy(
       this.getBoundingBox(spr),
       __collisionBox
@@ -738,7 +738,10 @@ export default class Renderer {
   }
 
   // Pick the topmost sprite at the given point (if one exists).
-  pick(sprites: (Sprite | Stage)[], point: { x: number; y: number }) {
+  pick(
+    sprites: (Sprite | Stage)[],
+    point: { x: number; y: number }
+  ): Sprite | Stage | null {
     this._setFramebuffer(this._collisionBuffer);
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
@@ -778,7 +781,7 @@ export default class Renderer {
     spr: Sprite,
     point: { x: number; y: number },
     fast?: boolean
-  ) {
+  ): boolean {
     if (!spr.visible) return false;
 
     const box = this.getBoundingBox(spr);
@@ -813,15 +816,15 @@ export default class Renderer {
     pt2: { x: number; y: number },
     color: Color,
     size: number
-  ) {
+  ): void {
     this._penSkin.penLine(pt1, pt2, color, size);
   }
 
-  clearPen() {
+  clearPen(): void {
     this._penSkin.clear();
   }
 
-  stamp(spr: Sprite | Stage) {
+  stamp(spr: Sprite | Stage): void {
     this._setFramebuffer(this._penSkin._framebufferInfo);
     this._renderLayers(new Set([spr]), { renderSpeechBubbles: false });
   }

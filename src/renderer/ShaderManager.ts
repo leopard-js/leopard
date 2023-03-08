@@ -64,7 +64,7 @@ class ShaderManager {
     type:
       | WebGLRenderingContext["FRAGMENT_SHADER"]
       | WebGLRenderingContext["VERTEX_SHADER"]
-  ) {
+  ): WebGLShader {
     const gl = this.gl;
     const shader = gl.createShader(type);
     if (!shader) throw new Error("Could not create shader.");
