@@ -2,19 +2,19 @@ import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio";
 import type { Yielding } from "./lib/yielding";
 
 export default class Sound {
-  name: string;
-  url: string;
+  public name: string;
+  public url: string;
 
-  audioBuffer: AudioBuffer | null;
-  source: AudioBufferSourceNode | null;
-  playbackRate: number;
-  target?: AudioNode;
+  private audioBuffer: AudioBuffer | null;
+  private source: AudioBufferSourceNode | null;
+  private playbackRate: number;
+  private target?: AudioNode;
 
-  _markDone?: () => void;
-  _doneDownloading?: (fromMoreRecentCall: boolean) => void;
+  private _markDone?: () => void;
+  private _doneDownloading?: (fromMoreRecentCall: boolean) => void;
 
-  static _audioContext: AudioContext | undefined;
-  constructor(name: string, url: string) {
+  private static _audioContext: AudioContext | undefined;
+  public constructor(name: string, url: string) {
     this.name = name;
     this.url = url;
 
@@ -26,11 +26,11 @@ export default class Sound {
     void this.downloadMyAudioBuffer();
   }
 
-  get duration(): number {
+  public get duration(): number {
     return this.audioBuffer ? this.audioBuffer.duration : 0;
   }
 
-  *start(): Yielding<boolean> {
+  public *start(): Yielding<boolean> {
     let started = false;
     let isLatestCallToStart = true;
 
@@ -83,7 +83,7 @@ export default class Sound {
     return isLatestCallToStart;
   }
 
-  *playUntilDone(): Yielding<void> {
+  public *playUntilDone(): Yielding<void> {
     let playing = true;
 
     const isLatestCallToStart = yield* this.start();
@@ -118,7 +118,7 @@ export default class Sound {
     while (playing) yield;
   }
 
-  stop(): void {
+  public stop(): void {
     if (this._markDone) {
       this._markDone();
     }
@@ -129,7 +129,7 @@ export default class Sound {
     }
   }
 
-  downloadMyAudioBuffer(): Promise<AudioBuffer | null> {
+  public downloadMyAudioBuffer(): Promise<AudioBuffer | null> {
     return fetch(this.url)
       .then((body) => body.arrayBuffer())
       .then((arrayBuffer) => {
@@ -162,7 +162,7 @@ export default class Sound {
       });
   }
 
-  playMyAudioBuffer(): void {
+  private playMyAudioBuffer(): void {
     if (!this.audioBuffer) {
       return;
     }
@@ -182,7 +182,7 @@ export default class Sound {
     this.source.start(Sound.audioContext.currentTime);
   }
 
-  connect(target: AudioNode): void {
+  public connect(target: AudioNode): void {
     if (target !== this.target) {
       this.target = target;
       if (this.source) {
@@ -192,20 +192,20 @@ export default class Sound {
     }
   }
 
-  setPlaybackRate(value: number): void {
+  public setPlaybackRate(value: number): void {
     this.playbackRate = value;
     if (this.source) {
       this.source.playbackRate.value = value;
     }
   }
 
-  isConnectedTo(target: AudioNode): boolean {
+  public isConnectedTo(target: AudioNode): boolean {
     return this.target === target;
   }
 
   // Note: "this" refers to the Sound class in static functions.
 
-  static get audioContext(): AudioContext {
+  public static get audioContext(): AudioContext {
     if (!this._audioContext) {
       const AudioContext =
         window.AudioContext ||
@@ -214,10 +214,6 @@ export default class Sound {
       this._audioContext = new AudioContext();
     }
     return this._audioContext;
-  }
-
-  static decodeADPCMAudio(audioBuffer: ArrayBuffer): Promise<AudioBuffer> {
-    return decodeADPCMAudio(audioBuffer, this.audioContext);
   }
 }
 
@@ -334,20 +330,20 @@ export class EffectChain {
   // it affects.
 
   // TODO: stop storing config; we just use getNonPatchSoundList directly
-  config: EffectChainConfig;
-  inputNode: AudioNode;
-  getNonPatchSoundList: () => Sound[];
-  effectValues!: Record<EffectName, number>;
-  effectNodes: {
+  private config: EffectChainConfig;
+  public inputNode: AudioNode;
+  private getNonPatchSoundList: () => Sound[];
+  private effectValues!: Record<EffectName, number>;
+  private effectNodes: {
     [T in typeof effectDescriptors[number] as T["name"]]?: ReturnType<
       // We need to infer this type here, I think
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       T extends PatchDescriptor<string, infer _V> ? T["makeNodes"] : never
     >;
   };
-  target?: AudioNode;
+  private target?: AudioNode;
 
-  constructor(config: EffectChainConfig) {
+  public constructor(config: EffectChainConfig) {
     const { getNonPatchSoundList } = config;
     this.config = config;
 
@@ -368,7 +364,7 @@ export class EffectChain {
     this.getNonPatchSoundList = getNonPatchSoundList;
   }
 
-  resetToInitial(): void {
+  public resetToInitial(): void {
     // Note: some effects won't be reset by this function, except for when they
     // are set for the first time (i.e. when the EffectChain is instantiated).
     // Look for the "reset: false" flag in the effect descriptor list.
@@ -387,7 +383,7 @@ export class EffectChain {
     }
   }
 
-  updateAudioEffect(name: EffectName): void {
+  private updateAudioEffect(name: EffectName): void {
     const descriptor = EffectChain.getEffectDescriptor(name);
 
     if (!descriptor) {
@@ -527,7 +523,7 @@ export class EffectChain {
     }
   }
 
-  connect(target: AudioNode): void {
+  public connect(target: AudioNode): void {
     this.target = target;
 
     // All the code here is basically the same as what's written in
@@ -554,7 +550,10 @@ export class EffectChain {
     last.output.connect(target);
   }
 
-  setEffectValue(name: EffectName, value: number | string | boolean): void {
+  public setEffectValue(
+    name: EffectName,
+    value: number | string | boolean
+  ): void {
     value = Number(value);
     if (
       name in this.effectValues &&
@@ -567,7 +566,10 @@ export class EffectChain {
     }
   }
 
-  changeEffectValue(name: EffectName, value: number | string | boolean): void {
+  private changeEffectValue(
+    name: EffectName,
+    value: number | string | boolean
+  ): void {
     value = Number(value);
     if (name in this.effectValues && !isNaN(value) && value !== 0) {
       this.effectValues[name] += value;
@@ -576,7 +578,7 @@ export class EffectChain {
     }
   }
 
-  clampEffectValue(name: EffectName): void {
+  private clampEffectValue(name: EffectName): void {
     // Not all effects are clamped (pitch, for example); it's also possible to
     // specify only a minimum or maximum bound, instead of both.
     const descriptor = EffectChain.getEffectDescriptor(name);
@@ -592,11 +594,11 @@ export class EffectChain {
     this.effectValues[name] = value;
   }
 
-  getEffectValue(name: EffectName): number {
+  public getEffectValue(name: EffectName): number {
     return this.effectValues[name] || 0;
   }
 
-  clone(newConfig: EffectChainConfig): EffectChain {
+  public clone(newConfig: EffectChainConfig): EffectChain {
     const newEffectChain = new EffectChain(
       Object.assign({}, this.config, newConfig)
     );
@@ -616,7 +618,7 @@ export class EffectChain {
     return newEffectChain;
   }
 
-  applyToSound(sound: Sound): void {
+  public applyToSound(sound: Sound): void {
     sound.connect(this.inputNode);
 
     for (const [name, value] of Object.entries(this.effectValues) as [
@@ -630,11 +632,11 @@ export class EffectChain {
     }
   }
 
-  isTargetOf(sound: Sound): boolean {
+  public isTargetOf(sound: Sound): boolean {
     return sound.isConnectedTo(this.inputNode);
   }
 
-  static getInitialEffectValues(): Record<EffectName, number> {
+  private static getInitialEffectValues(): Record<EffectName, number> {
     // This would be an excellent place to use Object.fromEntries, but that
     // function has been implemented in only the latest of a few modern
     // browsers. :P
@@ -645,7 +647,7 @@ export class EffectChain {
     return initials as Record<EffectName, number>;
   }
 
-  static getEffectDescriptor(
+  private static getEffectDescriptor(
     name: EffectName
   ): typeof EffectChain["effectDescriptors"][number] {
     // We know this is non-null because this.effectDescriptors has every effect descriptor in it.
@@ -655,15 +657,15 @@ export class EffectChain {
     )!;
   }
 
-  static getFirstEffectDescriptor(): typeof effectDescriptors[number] {
+  private static getFirstEffectDescriptor(): typeof effectDescriptors[number] {
     return this.effectDescriptors[0];
   }
 
-  static getLastEffectDescriptor(): typeof effectDescriptors[number] {
+  private static getLastEffectDescriptor(): typeof effectDescriptors[number] {
     return this.effectDescriptors[this.effectDescriptors.length - 1];
   }
 
-  static getNextEffectDescriptor(
+  private static getNextEffectDescriptor(
     name: EffectName
   ): typeof effectDescriptors[number] | undefined {
     // .find() provides three values to its passed function: the value of the
@@ -680,7 +682,7 @@ export class EffectChain {
       .find((_, i) => this.effectDescriptors[i].name === name);
   }
 
-  static getPreviousEffectDescriptor(
+  private static getPreviousEffectDescriptor(
     name: EffectName
   ): typeof effectDescriptors[number] | undefined {
     // This function's a little simpler, since it doesn't involve shifting the
@@ -697,10 +699,10 @@ export class EffectChain {
 
   // These are constant values which can be affected to tweak the way effects
   // are applied. They match the values used in Scratch 3.0.
-  static decayDuration = 0.025;
-  static decayWait = 0.05;
+  public static decayDuration = 0.025;
+  public static decayWait = 0.05;
 
-  static effectDescriptors = effectDescriptors;
+  public static effectDescriptors = effectDescriptors;
 }
 
 type EffectDescriptorBase<Name> = {
@@ -740,9 +742,9 @@ export class AudioEffectMap {
   // for graphic effects). It takes an EffectChain and automatically generates
   // properties according to the names of the effect descriptors, acting with
   // the EffectChain's API when accessed.
-  effectChain: EffectChain;
+  private effectChain: EffectChain;
 
-  constructor(effectChain: EffectChain) {
+  public constructor(effectChain: EffectChain) {
     this.effectChain = effectChain;
 
     for (const { name } of EffectChain.effectDescriptors) {
@@ -754,7 +756,7 @@ export class AudioEffectMap {
     }
   }
 
-  clear(): void {
+  public clear(): void {
     this.effectChain.resetToInitial();
   }
 }

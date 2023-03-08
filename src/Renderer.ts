@@ -49,22 +49,25 @@ export type FramebufferInfo = {
 };
 
 export default class Renderer {
-  project: Project;
-  stage: HTMLCanvasElement;
-  gl: WebGLRenderingContext;
-  renderTarget: HTMLElement | null = null;
+  public project: Project;
+  public stage: HTMLCanvasElement;
+  public gl: WebGLRenderingContext;
+  public renderTarget: HTMLElement | null = null;
 
-  _shaderManager: ShaderManager;
-  _drawables: WeakMap<Sprite | Stage, Drawable>;
-  _skins: WeakMap<object, Skin>;
+  public _shaderManager: ShaderManager;
+  private _drawables: WeakMap<Sprite | Stage, Drawable>;
+  private _skins: WeakMap<object, Skin>;
 
-  _currentShader: Shader | null;
-  _currentFramebuffer: WebGLFramebuffer | null;
-  _screenSpaceScale: number;
-  _penSkin: PenSkin;
-  _collisionBuffer: FramebufferInfo;
+  private _currentShader: Shader | null;
+  private _currentFramebuffer: WebGLFramebuffer | null;
+  private _screenSpaceScale: number;
+  private _penSkin: PenSkin;
+  private _collisionBuffer: FramebufferInfo;
 
-  constructor(project: Project, renderTarget: HTMLElement | string | null) {
+  public constructor(
+    project: Project,
+    renderTarget: HTMLElement | string | null
+  ) {
     const w = project.stage.width;
     const h = project.stage.height;
     this.project = project;
@@ -122,7 +125,7 @@ export default class Renderer {
   }
 
   // Retrieve a given object (e.g. costume or speech bubble)'s skin. If it doesn't exist, make one.
-  _getSkin(obj: object): Skin {
+  public _getSkin(obj: object): Skin {
     const existingSkin = this._skins.get(obj);
     if (existingSkin) return existingSkin;
 
@@ -143,7 +146,7 @@ export default class Renderer {
   }
 
   // Retrieve the renderer-specific data object for a given sprite or clone. If it doesn't exist, make one.
-  _getDrawable(sprite: Sprite | Stage): Drawable {
+  public _getDrawable(sprite: Sprite | Stage): Drawable {
     const existingDrawable = this._drawables.get(sprite);
     if (existingDrawable) return existingDrawable;
 
@@ -156,7 +159,7 @@ export default class Renderer {
   // * The framebuffer itself.
   // * The texture backing the framebuffer.
   // * The resolution (width and height) of the framebuffer.
-  _createFramebufferInfo(
+  public _createFramebufferInfo(
     width: number,
     height: number,
     filtering:
@@ -222,7 +225,7 @@ export default class Renderer {
     return framebufferInfo;
   }
 
-  _setShader(shader: Shader): boolean {
+  public _setShader(shader: Shader): boolean {
     if (shader !== this._currentShader) {
       const gl = this.gl;
       gl.useProgram(shader.program);
@@ -251,7 +254,7 @@ export default class Renderer {
     return false;
   }
 
-  _setFramebuffer(framebufferInfo: FramebufferInfo | null): void {
+  public _setFramebuffer(framebufferInfo: FramebufferInfo | null): void {
     if (framebufferInfo !== this._currentFramebuffer) {
       this._currentFramebuffer = framebufferInfo;
       if (framebufferInfo === null) {
@@ -269,7 +272,7 @@ export default class Renderer {
     }
   }
 
-  setRenderTarget(renderTarget: HTMLElement | string | null): void {
+  public setRenderTarget(renderTarget: HTMLElement | string | null): void {
     if (typeof renderTarget === "string") {
       renderTarget = document.querySelector(renderTarget) as HTMLElement;
     }
@@ -283,7 +286,7 @@ export default class Renderer {
   }
 
   // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
-  _renderLayers(
+  private _renderLayers(
     layers?: Set<Sprite | Stage | PenSkin>,
     optionsIn: {
       filter?: (layer: Sprite | Stage | PenSkin) => boolean;
@@ -338,7 +341,7 @@ export default class Renderer {
     }
   }
 
-  _updateStageSize(): void {
+  private _updateStageSize(): void {
     if (this._currentShader) {
       // The shader is passed things in "Scratch-space" (-240, 240) and (-180, 180).
       // This tells it those dimensions so it can convert them to OpenGL "clip-space" (-1, 1).
@@ -360,7 +363,7 @@ export default class Renderer {
   }
 
   // Keep the canvas size in sync with the CSS size.
-  _resize(): void {
+  private _resize(): void {
     const stageSize = this.stage.getBoundingClientRect();
     const ratio = window.devicePixelRatio;
     const adjustedWidth = Math.round(stageSize.width * ratio);
@@ -380,7 +383,7 @@ export default class Renderer {
     }
   }
 
-  update(): void {
+  public update(): void {
     this._resize();
 
     // Draw to the screen, not to a framebuffer.
@@ -394,7 +397,7 @@ export default class Renderer {
     this._renderLayers();
   }
 
-  createStage(w: number, h: number): HTMLCanvasElement {
+  public createStage(w: number, h: number): HTMLCanvasElement {
     const stage = document.createElement("canvas");
     stage.width = w;
     stage.height = h;
@@ -414,7 +417,7 @@ export default class Renderer {
   }
 
   // Calculate the transform matrix for a speech bubble attached to a sprite.
-  _calculateSpeechBubbleMatrix(
+  private _calculateSpeechBubbleMatrix(
     spr: Sprite,
     speechBubbleSkin: SpeechBubbleSkin
   ): MatrixType {
@@ -440,7 +443,7 @@ export default class Renderer {
     return m;
   }
 
-  _renderSkin(
+  private _renderSkin(
     skin: Skin,
     drawMode: DrawMode,
     matrix: MatrixType,
@@ -464,13 +467,13 @@ export default class Renderer {
 
     if (effectBitmask !== 0 && effects) {
       for (const effect of effectNames) {
-        const effectVal = effects._effectValues[effect];
+        const effectVal = effects[effect];
         if (effectVal !== 0)
           gl.uniform1f(shader.uniforms[`u_${effect}`], effectVal);
       }
 
       // Pixelate effect needs the skin size
-      if (effects._effectValues.pixelate !== 0)
+      if (effects.pixelate !== 0)
         gl.uniform2f(
           shader.uniforms.u_skinSize,
           skin.width ?? 0,
@@ -500,7 +503,10 @@ export default class Renderer {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-  renderSprite(sprite: Sprite | Stage, options: RenderSpriteOptions): void {
+  private renderSprite(
+    sprite: Sprite | Stage,
+    options: RenderSpriteOptions
+  ): void {
     const spriteScale = "size" in sprite ? sprite.size / 100 : 1;
 
     this._renderSkin(
@@ -533,16 +539,16 @@ export default class Renderer {
     }
   }
 
-  getTightBoundingBox(sprite: Sprite | Stage): Rectangle {
+  public getTightBoundingBox(sprite: Sprite | Stage): Rectangle {
     return this._getDrawable(sprite).getTightBoundingBox();
   }
 
-  getBoundingBox(sprite: Sprite | Stage): Rectangle {
+  public getBoundingBox(sprite: Sprite | Stage): Rectangle {
     return Rectangle.fromMatrix(this._getDrawable(sprite).getMatrix());
   }
 
   // Mask drawing in to only areas where this sprite is opaque.
-  _stencilSprite(spr: Sprite | Stage, colorMask?: Color): void {
+  private _stencilSprite(spr: Sprite | Stage, colorMask?: Color): void {
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
@@ -592,7 +598,7 @@ export default class Renderer {
     gl.colorMask(true, true, true, true);
   }
 
-  checkSpriteCollision(
+  public checkSpriteCollision(
     spr: Sprite | Stage,
     targets: Set<Sprite | Stage> | (Sprite | Stage)[] | Sprite | Stage,
     fast?: boolean,
@@ -676,7 +682,7 @@ export default class Renderer {
     return false;
   }
 
-  checkColorCollision(
+  public checkColorCollision(
     spr: Sprite | Stage,
     targetsColor: Color,
     sprColor?: Color
@@ -738,7 +744,7 @@ export default class Renderer {
   }
 
   // Pick the topmost sprite at the given point (if one exists).
-  pick(
+  public pick(
     sprites: (Sprite | Stage)[],
     point: { x: number; y: number }
   ): Sprite | Stage | null {
@@ -777,7 +783,7 @@ export default class Renderer {
     return sprites[index];
   }
 
-  checkPointCollision(
+  public checkPointCollision(
     spr: Sprite,
     point: { x: number; y: number },
     fast?: boolean
@@ -811,7 +817,7 @@ export default class Renderer {
     return hoveredPixel[3] !== 0;
   }
 
-  penLine(
+  public penLine(
     pt1: { x: number; y: number },
     pt2: { x: number; y: number },
     color: Color,
@@ -820,16 +826,16 @@ export default class Renderer {
     this._penSkin.penLine(pt1, pt2, color, size);
   }
 
-  clearPen(): void {
+  public clearPen(): void {
     this._penSkin.clear();
   }
 
-  stamp(spr: Sprite | Stage): void {
+  public stamp(spr: Sprite | Stage): void {
     this._setFramebuffer(this._penSkin._framebufferInfo);
     this._renderLayers(new Set([spr]), { renderSpeechBubbles: false });
   }
 
-  displayAskBox(question: string): Promise<string> {
+  public displayAskBox(question: string): Promise<string> {
     if (!this.renderTarget) return Promise.resolve("");
     const askBox = document.createElement("form");
     askBox.classList.add("leopard__askBox");

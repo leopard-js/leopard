@@ -18,14 +18,14 @@ type TriggerOption =
 type TriggerOptions = Partial<Record<string, TriggerOption>>;
 
 export default class Trigger {
-  trigger: symbol;
-  options: TriggerOptions;
-  _script: GeneratorFunction;
-  _runningScript: Generator | undefined;
-  done: boolean;
-  stop: () => void;
+  public trigger: symbol;
+  private options: TriggerOptions;
+  private _script: GeneratorFunction;
+  private _runningScript: Generator | undefined;
+  public done: boolean;
+  private stop: () => void;
 
-  constructor(
+  public constructor(
     trigger: Trigger["trigger"],
     options: Trigger["options"] | Trigger["_script"],
     script?: Trigger["_script"]
@@ -45,7 +45,7 @@ export default class Trigger {
     this.stop = () => {};
   }
 
-  get isEdgeActivated(): boolean {
+  public get isEdgeActivated(): boolean {
     return (
       this.trigger === TIMER_GREATER_THAN ||
       this.trigger === LOUDNESS_GREATER_THAN
@@ -54,7 +54,7 @@ export default class Trigger {
 
   // Evaluate the given trigger option, whether it's a value or a function that
   // returns a value given a target
-  option(
+  public option(
     option: string,
     target: Sprite | Stage
   ): number | string | boolean | undefined {
@@ -67,7 +67,7 @@ export default class Trigger {
     return triggerOption;
   }
 
-  matches(
+  public matches(
     trigger: Trigger["trigger"],
     options: Trigger["options"] | undefined,
     target: Sprite | Stage
@@ -80,7 +80,7 @@ export default class Trigger {
     return true;
   }
 
-  start(target: Sprite | Stage): Promise<void> {
+  public start(target: Sprite | Stage): Promise<void> {
     this.stop();
 
     const boundScript = this._script.bind(target);
@@ -96,20 +96,24 @@ export default class Trigger {
     });
   }
 
-  step(): void {
+  public step(): void {
     if (!this._runningScript) return;
     this.done = !!this._runningScript.next().done;
     if (this.done) this.stop();
   }
 
-  static GREEN_FLAG = GREEN_FLAG;
-  static KEY_PRESSED = KEY_PRESSED;
-  static BROADCAST = BROADCAST;
-  static CLICKED = CLICKED;
-  static CLONE_START = CLONE_START;
-  static LOUDNESS_GREATER_THAN = LOUDNESS_GREATER_THAN;
-  static TIMER_GREATER_THAN = TIMER_GREATER_THAN;
-  static BACKDROP_CHANGED = BACKDROP_CHANGED;
+  public clone(): Trigger {
+    return new Trigger(this.trigger, this.options, this._script);
+  }
+
+  public static GREEN_FLAG = GREEN_FLAG;
+  public static KEY_PRESSED = KEY_PRESSED;
+  public static BROADCAST = BROADCAST;
+  public static CLICKED = CLICKED;
+  public static CLONE_START = CLONE_START;
+  public static LOUDNESS_GREATER_THAN = LOUDNESS_GREATER_THAN;
+  public static TIMER_GREATER_THAN = TIMER_GREATER_THAN;
+  public static BACKDROP_CHANGED = BACKDROP_CHANGED;
 }
 
 export type { TriggerOption, TriggerOptions };

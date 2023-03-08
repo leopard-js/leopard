@@ -17,18 +17,18 @@ type Effects = {
 // By setting an effect, the bitmask is updated as well.
 // This allows the bitmask to be used to uniquely identify a set of enabled effects.
 export class _EffectMap implements Effects {
-  _bitmask: number;
-  _effectValues: Record<typeof effectNames[number], number>;
+  public _bitmask: number;
+  private _effectValues: Record<typeof effectNames[number], number>;
   // TODO: TypeScript can't automatically infer these
-  color!: number;
-  fisheye!: number;
-  whirl!: number;
-  pixelate!: number;
-  mosaic!: number;
-  brightness!: number;
-  ghost!: number;
+  public color!: number;
+  public fisheye!: number;
+  public whirl!: number;
+  public pixelate!: number;
+  public mosaic!: number;
+  public brightness!: number;
+  public ghost!: number;
 
-  constructor() {
+  public constructor() {
     this._bitmask = 0;
     this._effectValues = {
       color: 0,
@@ -63,7 +63,7 @@ export class _EffectMap implements Effects {
     }
   }
 
-  _clone(): _EffectMap {
+  public _clone(): _EffectMap {
     const m = new _EffectMap();
     for (const effectName of Object.keys(
       this._effectValues
@@ -73,7 +73,7 @@ export class _EffectMap implements Effects {
     return m;
   }
 
-  clear(): void {
+  public clear(): void {
     for (const effectName of Object.keys(
       this._effectValues
     ) as (keyof typeof this._effectValues)[]) {
@@ -95,24 +95,26 @@ type InitialConditions = {
 };
 
 abstract class SpriteBase<Vars extends object = object> {
-  _project!: Project;
+  // TODO: make private
+  public _project!: Project;
 
-  _costumeNumber: number;
-  _layerOrder: number;
-  triggers: Trigger[];
-  watchers: Partial<Record<string, Watcher>>;
-  costumes: Costume[];
-  sounds: Sound[];
+  protected _costumeNumber: number;
+  // TODO: make private
+  public _layerOrder: number;
+  public triggers: Trigger[];
+  public watchers: Partial<Record<string, Watcher>>;
+  protected costumes: Costume[];
+  protected sounds: Sound[];
 
-  effectChain: EffectChain;
-  effects: _EffectMap;
-  audioEffects: AudioEffectMap;
+  protected effectChain: EffectChain;
+  public effects: _EffectMap;
+  public audioEffects: AudioEffectMap;
 
-  _speechBubble?: SpeechBubble;
+  public _speechBubble?: SpeechBubble;
 
-  _vars: Vars;
+  protected _vars: Vars;
 
-  constructor(initialConditions: InitialConditions, vars: Vars) {
+  public constructor(initialConditions: InitialConditions, vars: Vars) {
     // TODO: pass project in here, ideally
     const { costumeNumber, layerOrder = 0 } = initialConditions;
     this._costumeNumber = costumeNumber;
@@ -134,31 +136,31 @@ abstract class SpriteBase<Vars extends object = object> {
     this._vars = vars ?? {};
   }
 
-  getSoundsPlayedByMe(): Sound[] {
+  protected getSoundsPlayedByMe(): Sound[] {
     return this.sounds.filter((sound) => this.effectChain.isTargetOf(sound));
   }
 
-  get stage(): Stage {
+  public get stage(): Stage {
     return this._project.stage;
   }
 
-  get sprites(): Partial<Record<string, Sprite>> {
+  public get sprites(): Partial<Record<string, Sprite>> {
     return this._project.sprites;
   }
 
-  get vars(): Vars {
+  public get vars(): Vars {
     return this._vars;
   }
 
-  get costumeNumber(): number {
+  public get costumeNumber(): number {
     return this._costumeNumber;
   }
 
-  set costumeNumber(number) {
+  public set costumeNumber(number) {
     this._costumeNumber = this.wrapClamp(number, 1, this.costumes.length);
   }
 
-  set costume(costume: number | string | Costume) {
+  public set costume(costume: number | string | Costume) {
     if (costume instanceof Costume) {
       const costumeIndex = this.costumes.indexOf(costume);
       if (costumeIndex > -1) {
@@ -218,31 +220,31 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  get costume(): Costume {
+  public get costume(): Costume {
     return this.costumes[this.costumeNumber - 1];
   }
 
-  degToRad(deg: number): number {
+  public degToRad(deg: number): number {
     return (deg * Math.PI) / 180;
   }
 
-  radToDeg(rad: number): number {
+  public radToDeg(rad: number): number {
     return (rad * 180) / Math.PI;
   }
 
-  degToScratch(deg: number): number {
+  public degToScratch(deg: number): number {
     return -deg + 90;
   }
 
-  scratchToDeg(scratchDir: number): number {
+  public scratchToDeg(scratchDir: number): number {
     return -scratchDir + 90;
   }
 
-  radToScratch(rad: number): number {
+  public radToScratch(rad: number): number {
     return this.degToScratch(this.radToDeg(rad));
   }
 
-  scratchToRad(scratchDir: number): number {
+  public scratchToRad(scratchDir: number): number {
     return this.degToRad(this.scratchToDeg(scratchDir));
   }
 
@@ -262,7 +264,7 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   // Wrap rotation from -180 to 180.
-  normalizeDeg(deg: number): number {
+  public normalizeDeg(deg: number): number {
     // This is a pretty big math expression, but it's necessary because in JavaScript,
     // the % operator means "remainder", not "modulo", and so negative numbers won't "wrap around".
     // See https://web.archive.org/web/20090717035140if_/javascript.about.com/od/problemsolving/a/modulobug.htm
@@ -280,7 +282,7 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   // Given a generator function, return a version of it that runs in "warp mode" (no yields).
-  warp(procedure: GeneratorFunction): (...args: unknown[]) => void {
+  public warp(procedure: GeneratorFunction): (...args: unknown[]) => void {
     const bound = procedure.bind(this);
     return (...args) => {
       const inst = bound(...args);
@@ -289,7 +291,7 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   // TODO: this should also take strings so rand("0.0", "1.0") returns a random float like Scratch
-  random(a: number, b: number): number {
+  public random(a: number, b: number): number {
     const min = Math.min(a, b);
     const max = Math.max(a, b);
     if (min % 1 === 0 && max % 1 === 0) {
@@ -298,7 +300,7 @@ abstract class SpriteBase<Vars extends object = object> {
     return Math.random() * (max - min) + min;
   }
 
-  *wait(secs: number): Yielding<void> {
+  public *wait(secs: number): Yielding<void> {
     const endTime = new Date();
     endTime.setMilliseconds(endTime.getMilliseconds() + secs * 1000);
     while (new Date() < endTime) {
@@ -306,23 +308,23 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  get mouse(): Mouse {
+  public get mouse(): Mouse {
     return this._project.input.mouse;
   }
 
-  keyPressed(name: string): boolean {
+  public keyPressed(name: string): boolean {
     return this._project.input.keyPressed(name);
   }
 
-  get timer(): number {
+  public get timer(): number {
     return this._project.timer;
   }
 
-  restartTimer(): void {
+  public restartTimer(): void {
     this._project.restartTimer();
   }
 
-  *startSound(soundName: string): Yielding<void> {
+  public *startSound(soundName: string): Yielding<void> {
     const sound = this.getSound(soundName);
     if (sound) {
       this.effectChain.applyToSound(sound);
@@ -330,7 +332,7 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  *playSoundUntilDone(soundName: string): Yielding<void> {
+  public *playSoundUntilDone(soundName: string): Yielding<void> {
     const sound = this.getSound(soundName);
     if (sound) {
       sound.connect(this.effectChain.inputNode);
@@ -339,7 +341,7 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  getSound(soundName: string): Sound | undefined {
+  public getSound(soundName: string): Sound | undefined {
     if (typeof soundName === "number") {
       return this.sounds[(soundName - 1) % this.sounds.length];
     } else {
@@ -347,21 +349,21 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  stopAllSounds(): void {
+  public stopAllSounds(): void {
     this._project.stopAllSounds();
   }
 
-  stopAllOfMySounds(): void {
+  public stopAllOfMySounds(): void {
     for (const sound of this.sounds) {
       sound.stop();
     }
   }
 
-  broadcast(name: string): Promise<void> {
+  public broadcast(name: string): Promise<void> {
     return this._project.fireTrigger(Trigger.BROADCAST, { name });
   }
 
-  *broadcastAndWait(name: string): Yielding<void> {
+  public *broadcastAndWait(name: string): Yielding<void> {
     let running = true;
     void this.broadcast(name).then(() => {
       running = false;
@@ -372,11 +374,11 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  clearPen(): void {
+  public clearPen(): void {
     this._project.renderer.clearPen();
   }
 
-  *askAndWait(question: string): Yielding<void> {
+  public *askAndWait(question: string): Yielding<void> {
     if (this._speechBubble && this instanceof Sprite) {
       this.say("");
     }
@@ -389,11 +391,11 @@ abstract class SpriteBase<Vars extends object = object> {
     while (!done) yield;
   }
 
-  get answer(): string | null {
+  public get answer(): string | null {
     return this._project.answer;
   }
 
-  get loudness(): number {
+  public get loudness(): number {
     return this._project.loudness;
   }
 
@@ -511,21 +513,21 @@ type SpriteInitialConditions = {
 };
 
 export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
-  _x: number;
-  _y: number;
-  _direction: number;
-  rotationStyle: RotationStyle;
-  size: number;
-  visible: boolean;
+  private _x: number;
+  private _y: number;
+  private _direction: number;
+  public rotationStyle: RotationStyle;
+  public size: number;
+  public visible: boolean;
 
-  parent: Sprite | null;
-  clones: Sprite<Vars>[];
+  private parent: Sprite | null;
+  public clones: Sprite<Vars>[];
 
-  _penDown: boolean;
-  penSize: number;
-  _penColor: Color;
+  private _penDown: boolean;
+  public penSize: number;
+  private _penColor: Color;
 
-  constructor(initialConditions: SpriteInitialConditions, vars: Vars) {
+  public constructor(initialConditions: SpriteInitialConditions, vars: Vars) {
     super(initialConditions, vars);
 
     const {
@@ -563,17 +565,14 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     };
   }
 
-  createClone(): void {
+  public createClone(): void {
     const clone = Object.assign(
       Object.create(Object.getPrototypeOf(this) as object) as Sprite,
       this
     );
 
     clone._project = this._project;
-    clone.triggers = this.triggers.map(
-      (trigger) =>
-        new Trigger(trigger.trigger, trigger.options, trigger._script)
-    );
+    clone.triggers = this.triggers.map((trigger) => trigger.clone());
     clone.costumes = this.costumes;
     clone.sounds = this.sounds;
     clone._vars = Object.assign({}, this._vars);
@@ -613,7 +612,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     );
   }
 
-  deleteThisClone(): void {
+  public deleteThisClone(): void {
     if (this.parent === null) return;
 
     this.parent.clones = this.parent.clones.filter((clone) => clone !== this);
@@ -624,19 +623,19 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
   }
 
   // TODO: is this necessary now that the clone hierarchy seems to be flattened?
-  andClones(): Sprite[] {
+  public andClones(): Sprite[] {
     return [this, ...this.clones.flatMap((clone) => clone.andClones())];
   }
 
-  get direction(): number {
+  public get direction(): number {
     return this._direction;
   }
 
-  set direction(dir) {
+  public set direction(dir) {
     this._direction = this.normalizeDeg(dir);
   }
 
-  goto(x: number, y: number): void {
+  public goto(x: number, y: number): void {
     if (x === this.x && y === this.y) return;
 
     if (this.penDown) {
@@ -652,23 +651,23 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     this._y = y;
   }
 
-  get x(): number {
+  public get x(): number {
     return this._x;
   }
 
-  set x(x) {
+  public set x(x) {
     this.goto(x, this._y);
   }
 
-  get y(): number {
+  public get y(): number {
     return this._y;
   }
 
-  set y(y) {
+  public set y(y) {
     this.goto(this._x, y);
   }
 
-  move(dist: number): void {
+  public move(dist: number): void {
     const moveDir = this.scratchToRad(this.direction);
 
     this.goto(
@@ -677,7 +676,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     );
   }
 
-  *glide(seconds: number, x: number, y: number): Yielding<void> {
+  public *glide(seconds: number, x: number, y: number): Yielding<void> {
     const interpolate = (a: number, b: number, t: number): number =>
       a + (b - a) * t;
 
@@ -693,7 +692,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     } while (t < 1);
   }
 
-  moveAhead(value = Infinity): void {
+  public moveAhead(value = Infinity): void {
     if (typeof value === "number") {
       this._project.changeSpriteLayer(this, value);
     } else {
@@ -701,7 +700,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  moveBehind(value = Infinity): void {
+  public moveBehind(value = Infinity): void {
     if (typeof value === "number") {
       this._project.changeSpriteLayer(this, -value);
     } else {
@@ -709,11 +708,11 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  get penDown(): boolean {
+  public get penDown(): boolean {
     return this._penDown;
   }
 
-  set penDown(penDown) {
+  public set penDown(penDown) {
     if (penDown) {
       this._project.renderer.penLine(
         { x: this.x, y: this.y },
@@ -725,11 +724,11 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     this._penDown = penDown;
   }
 
-  get penColor(): Color {
+  public get penColor(): Color {
     return this._penColor;
   }
 
-  set penColor(color: unknown) {
+  public set penColor(color: unknown) {
     if (color instanceof Color) {
       this._penColor = color;
     } else {
@@ -739,11 +738,14 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  stamp(): void {
+  public stamp(): void {
     this._project.renderer.stamp(this);
   }
 
-  touching(target: "mouse" | "edge" | Sprite | Stage, fast = false): boolean {
+  public touching(
+    target: "mouse" | "edge" | Sprite | Stage,
+    fast = false
+  ): boolean {
     if (typeof target === "string") {
       switch (target) {
         case "mouse":
@@ -780,7 +782,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     return this._project.renderer.checkSpriteCollision(this, target, fast);
   }
 
-  colorTouching(color: Color, target: Sprite | Stage): boolean {
+  public colorTouching(color: Color, target: Sprite | Stage): boolean {
     if (typeof target === "string") {
       console.error(
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -811,17 +813,17 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  say(text: string): void {
+  public say(text: string): void {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "say", timeout: null };
   }
 
-  think(text: string): void {
+  public think(text: string): void {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "think", timeout: null };
   }
 
-  *sayAndWait(text: string, seconds: number): Yielding<void> {
+  public *sayAndWait(text: string, seconds: number): Yielding<void> {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
 
     const speechBubble: SpeechBubble = { text, style: "say", timeout: null };
@@ -837,7 +839,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     while (!done) yield;
   }
 
-  *thinkAndWait(text: string, seconds: number): Yielding<void> {
+  public *thinkAndWait(text: string, seconds: number): Yielding<void> {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
 
     const speechBubble: SpeechBubble = { text, style: "think", timeout: null };
@@ -853,7 +855,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     while (!done) yield;
   }
 
-  static RotationStyle = Object.freeze({
+  public static RotationStyle = Object.freeze({
     ALL_AROUND: Symbol("ALL_AROUND"),
     LEFT_RIGHT: Symbol("LEFT_RIGHT"),
     DONT_ROTATE: Symbol("DONT_ROTATE"),
@@ -866,11 +868,11 @@ type StageInitialConditions = {
 } & InitialConditions;
 
 export class Stage<Vars extends object = object> extends SpriteBase<Vars> {
-  readonly width!: number;
-  readonly height!: number;
-  __counter: number;
+  public readonly width!: number;
+  public readonly height!: number;
+  public __counter: number;
 
-  constructor(initialConditions: StageInitialConditions, vars: Vars) {
+  public constructor(initialConditions: StageInitialConditions, vars: Vars) {
     super(initialConditions, vars);
 
     // Use defineProperties to make these non-writable.
@@ -890,7 +892,7 @@ export class Stage<Vars extends object = object> extends SpriteBase<Vars> {
     this.__counter = 0;
   }
 
-  fireBackdropChanged(): Promise<void> {
+  public fireBackdropChanged(): Promise<void> {
     return this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
       backdrop: this.costume.name,
     });
