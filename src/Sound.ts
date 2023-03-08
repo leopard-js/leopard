@@ -367,8 +367,6 @@ export class EffectChain {
   // a portable way to store the effect chain, independent of the audio sources
   // it affects.
 
-  // TODO: stop storing config; we just use getNonPatchSoundList directly
-  private config: EffectChainConfig;
   public inputNode: AudioNode;
   private getNonPatchSoundList: () => Sound[];
   private effectValues!: Record<EffectName, number>;
@@ -383,7 +381,6 @@ export class EffectChain {
 
   public constructor(config: EffectChainConfig) {
     const { getNonPatchSoundList } = config;
-    this.config = config;
 
     this.inputNode = Sound.audioContext.createGain();
 
@@ -637,9 +634,7 @@ export class EffectChain {
   }
 
   public clone(newConfig: EffectChainConfig): EffectChain {
-    const newEffectChain = new EffectChain(
-      Object.assign({}, this.config, newConfig)
-    );
+    const newEffectChain = new EffectChain({getNonPatchSoundList: this.getNonPatchSoundList});
 
     for (const [name, value] of Object.entries(this.effectValues) as [
       EffectName,
