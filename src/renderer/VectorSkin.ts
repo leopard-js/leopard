@@ -5,15 +5,15 @@ import type Renderer from "../Renderer";
 const MIPMAP_OFFSET = 4;
 
 export default class VectorSkin extends Skin {
-  _image: HTMLImageElement;
-  _canvas: HTMLCanvasElement;
-  _ctx: CanvasRenderingContext2D;
-  _imageDataMipLevel: number;
-  _imageData: ImageData | null;
-  _maxTextureSize: number;
-  _mipmaps: Map<number, WebGLTexture | null>;
+  private _image: HTMLImageElement;
+  private _canvas: HTMLCanvasElement;
+  private _ctx: CanvasRenderingContext2D;
+  private _imageDataMipLevel: number;
+  private _imageData: ImageData | null;
+  private _maxTextureSize: number;
+  private _mipmaps: Map<number, WebGLTexture | null>;
 
-  constructor(renderer: Renderer, image: HTMLImageElement) {
+  public constructor(renderer: Renderer, image: HTMLImageElement) {
     super(renderer);
 
     this._image = image;
@@ -34,11 +34,11 @@ export default class VectorSkin extends Skin {
     this._mipmaps = new Map();
   }
 
-  static mipLevelForScale(scale: number): number {
+  private static mipLevelForScale(scale: number): number {
     return Math.max(Math.ceil(Math.log2(scale)) + MIPMAP_OFFSET, 0);
   }
 
-  getImageData(scale: number): ImageData | null {
+  public getImageData(scale: number): ImageData | null {
     if (!this._image.complete) return null;
 
     // Round off the scale of the image data drawn to a given power-of-two mip level.
@@ -56,7 +56,7 @@ export default class VectorSkin extends Skin {
     return this._imageData;
   }
 
-  _drawSvgToCanvas(mipLevel: number): CanvasRenderingContext2D | null {
+  private _drawSvgToCanvas(mipLevel: number): CanvasRenderingContext2D | null {
     const scale = 2 ** (mipLevel - MIPMAP_OFFSET);
 
     const image = this._image;
@@ -84,7 +84,7 @@ export default class VectorSkin extends Skin {
 
   // TODO: handle proper subpixel positioning when SVG viewbox has non-integer coordinates
   // This will require rethinking costume + project loading probably
-  _createMipmap(mipLevel: number): void {
+  private _createMipmap(mipLevel: number): void {
     // Instead of uploading the image to WebGL as a texture, render the image to a canvas and upload the canvas.
     const ctx = this._drawSvgToCanvas(mipLevel);
     this._mipmaps.set(
@@ -95,7 +95,7 @@ export default class VectorSkin extends Skin {
     );
   }
 
-  getTexture(scale: number): WebGLTexture | null {
+  public getTexture(scale: number): WebGLTexture | null {
     if (!this._image.complete) return null;
 
     // Because WebGL doesn't support vector graphics, substitute a bunch of bitmaps.
@@ -111,7 +111,7 @@ export default class VectorSkin extends Skin {
     return this._mipmaps.get(mipLevel) ?? null;
   }
 
-  destroy(): void {
+  public destroy(): void {
     for (const mip of this._mipmaps.values()) {
       this.gl.deleteTexture(mip);
     }

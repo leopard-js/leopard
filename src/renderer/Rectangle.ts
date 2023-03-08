@@ -1,12 +1,12 @@
 import type { MatrixType } from "./Matrix";
 
 export default class Rectangle {
-  left: number;
-  right: number;
-  bottom: number;
-  top: number;
+  public left: number;
+  public right: number;
+  public bottom: number;
+  public top: number;
 
-  constructor() {
+  public constructor() {
     this.left = -Infinity;
     this.right = Infinity;
     this.bottom = -Infinity;
@@ -15,7 +15,7 @@ export default class Rectangle {
     return this;
   }
 
-  static fromBounds(
+  public static fromBounds(
     left: number,
     right: number,
     bottom: number,
@@ -31,7 +31,10 @@ export default class Rectangle {
   }
 
   // Initialize a bounding box around a sprite given the sprite's transform matrix.
-  static fromMatrix(matrix: MatrixType, result = new Rectangle()): Rectangle {
+  public static fromMatrix(
+    matrix: MatrixType,
+    result = new Rectangle()
+  ): Rectangle {
     // Adapted somewhat from https://github.com/LLK/scratch-render/blob/develop/docs/Rectangle-AABB-Matrix.md
     const xa = matrix[0] / 2;
     const xb = matrix[3] / 2;
@@ -52,7 +55,7 @@ export default class Rectangle {
   }
 
   // Initialize from another rectangle.
-  static copy(src: Rectangle, dst: Rectangle): Rectangle {
+  public static copy(src: Rectangle, dst: Rectangle): Rectangle {
     dst.left = src.left;
     dst.right = src.right;
     dst.bottom = src.bottom;
@@ -62,7 +65,7 @@ export default class Rectangle {
 
   // Push this rectangle out to integer bounds.
   // This takes a conservative approach and will always expand the rectangle outwards.
-  snapToInt(): this {
+  public snapToInt(): this {
     this.left = Math.floor(this.left);
     this.right = Math.ceil(this.right);
     this.bottom = Math.floor(this.bottom);
@@ -72,7 +75,7 @@ export default class Rectangle {
   }
 
   // Check whether any part of this rectangle touches another rectangle.
-  intersects(rect: Rectangle): boolean {
+  public intersects(rect: Rectangle): boolean {
     return (
       this.left <= rect.right &&
       rect.left <= this.right &&
@@ -82,14 +85,14 @@ export default class Rectangle {
   }
 
   // Check whether a given point is inside this rectangle.
-  containsPoint(x: number, y: number): boolean {
+  public containsPoint(x: number, y: number): boolean {
     return (
       x >= this.left && x <= this.right && y >= this.bottom && y <= this.top
     );
   }
 
   // Clamp this rectangle within bounds.
-  clamp(left: number, right: number, bottom: number, top: number): this {
+  public clamp(left: number, right: number, bottom: number, top: number): this {
     this.left = Math.min(Math.max(this.left, left), right);
     this.right = Math.max(Math.min(this.right, right), left);
     this.bottom = Math.min(Math.max(this.bottom, bottom), top);
@@ -99,7 +102,7 @@ export default class Rectangle {
   }
 
   // Compute the union of two rectangles.
-  static union(
+  public static union(
     rect1: Rectangle,
     rect2: Rectangle,
     result = new Rectangle()
@@ -113,7 +116,7 @@ export default class Rectangle {
   }
 
   // Compute the intersection of two rectangles.
-  static intersection(
+  public static intersection(
     rect1: Rectangle,
     rect2: Rectangle,
     result = new Rectangle()
@@ -126,11 +129,11 @@ export default class Rectangle {
     return result;
   }
 
-  get width(): number {
+  public get width(): number {
     return this.right - this.left;
   }
 
-  get height(): number {
+  public get height(): number {
     return this.top - this.bottom;
   }
 }

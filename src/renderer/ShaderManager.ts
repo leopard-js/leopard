@@ -4,13 +4,13 @@ import type Renderer from "../Renderer";
 
 // Everything contained in a shader. It contains both the program, and the locations of the shader inputs.
 class Shader {
-  gl: WebGLRenderingContext;
-  program: WebGLProgram;
+  private gl: WebGLRenderingContext;
+  public program: WebGLProgram;
   // TODO: strongly type these
-  uniforms: Record<string, WebGLUniformLocation>;
-  attribs: Record<string, number>;
+  public uniforms: Record<string, WebGLUniformLocation>;
+  public attribs: Record<string, number>;
 
-  constructor(gl: WebGLRenderingContext, program: WebGLProgram) {
+  public constructor(gl: WebGLRenderingContext, program: WebGLProgram) {
     this.gl = gl;
     this.program = program;
     this.uniforms = {};
@@ -42,12 +42,12 @@ class Shader {
 type DrawMode = keyof typeof ShaderManager["DrawModes"];
 
 class ShaderManager {
-  renderer: Renderer;
-  gl: WebGLRenderingContext;
+  private renderer: Renderer;
+  private gl: WebGLRenderingContext;
 
-  _shaderCache: Record<DrawMode, Map<number, Shader>>;
+  private _shaderCache: Record<DrawMode, Map<number, Shader>>;
 
-  constructor(renderer: Renderer) {
+  public constructor(renderer: Renderer) {
     this.renderer = renderer;
     this.gl = renderer.gl;
 
@@ -59,7 +59,7 @@ class ShaderManager {
   }
 
   // Creates and compiles a vertex or fragment shader from the given source code.
-  _createShader(
+  private _createShader(
     source: string,
     type:
       | WebGLRenderingContext["FRAGMENT_SHADER"]
@@ -79,7 +79,7 @@ class ShaderManager {
     return shader;
   }
 
-  getShader(drawMode: DrawMode, effectBitmask = 0): Shader {
+  public getShader(drawMode: DrawMode, effectBitmask = 0): Shader {
     const gl = this.gl;
     // Each combination of enabled effects is compiled to a different shader, with only the needed effect code.
     // Check if we've already compiled the shader with this set of enabled effects.
@@ -136,7 +136,7 @@ class ShaderManager {
     return shader;
   }
 
-  static DrawModes = {
+  public static DrawModes = {
     // Used for drawing sprites normally
     DEFAULT: "DEFAULT",
     // Used for "touching" tests. Discards transparent pixels.

@@ -5,14 +5,14 @@
 // 3x3 transform matrix operations, unrolled 4 da speedz.
 export default class Matrix {
   // Create a new 3x3 transform matrix, initialized to the identity matrix.
-  static create(): MatrixType {
+  public static create(): MatrixType {
     const matrix = new Float32Array(9);
     Matrix.identity(matrix);
     return matrix;
   }
 
   // Reset a matrix to the identity matrix
-  static identity(dst: MatrixType): MatrixType {
+  public static identity(dst: MatrixType): MatrixType {
     dst[0] = 1;
     dst[1] = 0;
     dst[2] = 0;
@@ -26,7 +26,7 @@ export default class Matrix {
   }
 
   // Translate a matrix by the given X and Y values
-  static translate(
+  public static translate(
     dst: MatrixType,
     src: MatrixType,
     x: number,
@@ -57,7 +57,11 @@ export default class Matrix {
   }
 
   // Rotate a matrix, in radians
-  static rotate(dst: MatrixType, src: MatrixType, rad: number): MatrixType {
+  public static rotate(
+    dst: MatrixType,
+    src: MatrixType,
+    rad: number
+  ): MatrixType {
     const a00 = src[0],
       a01 = src[1],
       a02 = src[2],
@@ -85,7 +89,7 @@ export default class Matrix {
   }
 
   // Scale a matrix by the given X and Y values
-  static scale(
+  public static scale(
     dst: MatrixType,
     src: MatrixType,
     x: number,
@@ -106,7 +110,7 @@ export default class Matrix {
   }
 
   // Transform a 2D point by the given matrix
-  static transformPoint(
+  public static transformPoint(
     m: MatrixType,
     dst: [number, number],
     src: [number, number]
