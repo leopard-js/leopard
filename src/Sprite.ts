@@ -133,7 +133,7 @@ abstract class SpriteBase<Vars extends object = object> {
     this.effects = new _EffectMap();
     this.audioEffects = new AudioEffectMap(this.effectChain);
 
-    this._vars = vars ?? {};
+    this._vars = vars;
   }
 
   protected getSoundsPlayedByMe(): Sound[] {
