@@ -632,7 +632,6 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     );
   }
 
-  // TODO: is this necessary now that the clone hierarchy seems to be flattened?
   public andClones(): Sprite[] {
     return [this, ...this.clones.flatMap((clone) => clone.andClones())];
   }
