@@ -1,14 +1,5 @@
 import type { Sprite, Stage } from "./Sprite";
 
-const GREEN_FLAG = Symbol("GREEN_FLAG");
-const KEY_PRESSED = Symbol("KEY_PRESSED");
-const BROADCAST = Symbol("BROADCAST");
-const CLICKED = Symbol("CLICKED");
-const CLONE_START = Symbol("CLONE_START");
-const LOUDNESS_GREATER_THAN = Symbol("LOUDNESS_GREATER_THAN");
-const TIMER_GREATER_THAN = Symbol("TIMER_GREATER_THAN");
-const BACKDROP_CHANGED = Symbol("BACKDROP_CHANGED");
-
 type TriggerOption =
   | number
   | string
@@ -53,8 +44,8 @@ export default class Trigger {
 
   public get isEdgeActivated(): boolean {
     return (
-      this.trigger === TIMER_GREATER_THAN ||
-      this.trigger === LOUDNESS_GREATER_THAN
+      this.trigger === Trigger.TIMER_GREATER_THAN ||
+      this.trigger === Trigger.LOUDNESS_GREATER_THAN
     );
   }
 
@@ -112,14 +103,16 @@ export default class Trigger {
     return new Trigger(this.trigger, this.options, this._script);
   }
 
-  public static GREEN_FLAG = GREEN_FLAG;
-  public static KEY_PRESSED = KEY_PRESSED;
-  public static BROADCAST = BROADCAST;
-  public static CLICKED = CLICKED;
-  public static CLONE_START = CLONE_START;
-  public static LOUDNESS_GREATER_THAN = LOUDNESS_GREATER_THAN;
-  public static TIMER_GREATER_THAN = TIMER_GREATER_THAN;
-  public static BACKDROP_CHANGED = BACKDROP_CHANGED;
+  public static readonly GREEN_FLAG = Symbol("GREEN_FLAG");
+  public static readonly KEY_PRESSED = Symbol("KEY_PRESSED");
+  public static readonly BROADCAST = Symbol("BROADCAST");
+  public static readonly CLICKED = Symbol("CLICKED");
+  public static readonly CLONE_START = Symbol("CLONE_START");
+  public static readonly LOUDNESS_GREATER_THAN = Symbol(
+    "LOUDNESS_GREATER_THAN"
+  );
+  public static readonly TIMER_GREATER_THAN = Symbol("TIMER_GREATER_THAN");
+  public static readonly BACKDROP_CHANGED = Symbol("BACKDROP_CHANGED");
 }
 
 export type { TriggerOption, TriggerOptions };
