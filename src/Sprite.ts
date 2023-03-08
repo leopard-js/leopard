@@ -95,7 +95,7 @@ type InitialConditions = {
 };
 
 abstract class SpriteBase<Vars extends object = object> {
-  _project: Project | null;
+  _project!: Project;
 
   _costumeNumber: number;
   _layerOrder: number;
@@ -113,8 +113,7 @@ abstract class SpriteBase<Vars extends object = object> {
   _vars: Vars;
 
   constructor(initialConditions: InitialConditions, vars: Vars) {
-    this._project = null;
-
+    // TODO: pass project in here, ideally
     const { costumeNumber, layerOrder = 0 } = initialConditions;
     this._costumeNumber = costumeNumber;
     this._layerOrder = layerOrder;
@@ -139,12 +138,12 @@ abstract class SpriteBase<Vars extends object = object> {
     return this.sounds.filter((sound) => this.effectChain.isTargetOf(sound));
   }
 
-  get stage(): Stage | undefined {
-    return this._project?.stage;
+  get stage(): Stage {
+    return this._project.stage;
   }
 
-  get sprites(): Partial<Record<string, Sprite>> | undefined {
-    return this._project?.sprites;
+  get sprites(): Partial<Record<string, Sprite>> {
+    return this._project.sprites;
   }
 
   get vars(): Vars {
@@ -307,20 +306,20 @@ abstract class SpriteBase<Vars extends object = object> {
     }
   }
 
-  get mouse(): Mouse | undefined {
-    return this._project?.input.mouse;
+  get mouse(): Mouse {
+    return this._project.input.mouse;
   }
 
   keyPressed(name: string): boolean {
-    return !!this._project?.input.keyPressed(name);
+    return this._project.input.keyPressed(name);
   }
 
-  get timer(): number | undefined {
-    return this._project?.timer;
+  get timer(): number {
+    return this._project.timer;
   }
 
   restartTimer(): void {
-    this._project?.restartTimer();
+    this._project.restartTimer();
   }
 
   *startSound(soundName: string): Yielding<void> {
@@ -349,7 +348,7 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   stopAllSounds(): void {
-    this._project?.stopAllSounds();
+    this._project.stopAllSounds();
   }
 
   stopAllOfMySounds(): void {
@@ -359,15 +358,12 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   broadcast(name: string): Promise<void> {
-    // TODO: definitely assign _project then remove this
-    return this._project
-      ? this._project.fireTrigger(Trigger.BROADCAST, { name })
-      : Promise.resolve();
+    return this._project.fireTrigger(Trigger.BROADCAST, { name });
   }
 
   *broadcastAndWait(name: string): Yielding<void> {
     let running = true;
-    void this.broadcast(name)?.then(() => {
+    void this.broadcast(name).then(() => {
       running = false;
     });
 
@@ -377,7 +373,7 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   clearPen(): void {
-    this._project?.renderer.clearPen();
+    this._project.renderer.clearPen();
   }
 
   *askAndWait(question: string): Yielding<void> {
@@ -386,7 +382,7 @@ abstract class SpriteBase<Vars extends object = object> {
     }
 
     let done = false;
-    void this._project?.askAndWait(question).then(() => {
+    void this._project.askAndWait(question).then(() => {
       done = true;
     });
 
@@ -394,11 +390,11 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   get answer(): string | null {
-    return this._project?.answer ?? null;
+    return this._project.answer;
   }
 
   get loudness(): number {
-    return this._project?.loudness ?? -1;
+    return this._project.loudness;
   }
 
   toNumber(value) {
@@ -612,7 +608,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     const triggers = clone.triggers.filter((tr) =>
       tr.matches(Trigger.CLONE_START, {}, clone)
     );
-    void this._project?._startTriggers(
+    void this._project._startTriggers(
       triggers.map((trigger) => ({ trigger, target: clone }))
     );
   }
@@ -622,11 +618,9 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
 
     this.parent.clones = this.parent.clones.filter((clone) => clone !== this);
 
-    if (this._project) {
-      this._project.runningTriggers = this._project.runningTriggers.filter(
-        ({ target }) => target !== this
-      );
-    }
+    this._project.runningTriggers = this._project.runningTriggers.filter(
+      ({ target }) => target !== this
+    );
   }
 
   // TODO: is this necessary now that the clone hierarchy seems to be flattened?
@@ -645,7 +639,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
   goto(x: number, y: number): void {
     if (x === this.x && y === this.y) return;
 
-    if (this.penDown && this._project) {
+    if (this.penDown) {
       this._project.renderer.penLine(
         { x: this._x, y: this._y },
         { x, y },
@@ -701,17 +695,17 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
 
   moveAhead(value = Infinity): void {
     if (typeof value === "number") {
-      this._project?.changeSpriteLayer(this, value);
+      this._project.changeSpriteLayer(this, value);
     } else {
-      this._project?.changeSpriteLayer(this, 1, value);
+      this._project.changeSpriteLayer(this, 1, value);
     }
   }
 
   moveBehind(value = Infinity): void {
     if (typeof value === "number") {
-      this._project?.changeSpriteLayer(this, -value);
+      this._project.changeSpriteLayer(this, -value);
     } else {
-      this._project?.changeSpriteLayer(this, -1, value);
+      this._project.changeSpriteLayer(this, -1, value);
     }
   }
 
@@ -720,7 +714,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
   }
 
   set penDown(penDown) {
-    if (penDown && this._project) {
+    if (penDown) {
       this._project.renderer.penLine(
         { x: this.x, y: this.y },
         { x: this.x, y: this.y },
@@ -746,12 +740,10 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
   }
 
   stamp(): void {
-    this._project?.renderer.stamp(this);
+    this._project.renderer.stamp(this);
   }
 
   touching(target: "mouse" | "edge" | Sprite | Stage, fast = false): boolean {
-    if (!this._project || !this.mouse || !this.stage) return false;
-
     if (typeof target === "string") {
       switch (target) {
         case "mouse":
@@ -807,10 +799,10 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
 
     if (target instanceof Color) {
       // "Color is touching color"
-      return !!this._project?.renderer.checkColorCollision(this, target, color);
+      return this._project.renderer.checkColorCollision(this, target, color);
     } else {
       // "Color is touching sprite" (not implemented in Scratch!)
-      return !!this._project?.renderer.checkSpriteCollision(
+      return this._project.renderer.checkSpriteCollision(
         this,
         target,
         false,
@@ -899,11 +891,8 @@ export class Stage<Vars extends object = object> extends SpriteBase<Vars> {
   }
 
   fireBackdropChanged(): Promise<void> {
-    // TODO: definitely assign _project then remove this
-    return this._project
-      ? this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
-          backdrop: this.costume.name,
-        })
-      : Promise.resolve();
+    return this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
+      backdrop: this.costume.name,
+    });
   }
 }

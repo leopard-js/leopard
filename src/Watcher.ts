@@ -111,7 +111,7 @@ export default class Watcher {
     this._dom = { node, label, value, slider };
   }
 
-  updateDOM(renderTarget: HTMLElement): void {
+  updateDOM(renderTarget: HTMLElement | null): void {
     if (renderTarget && !renderTarget.contains(this._dom.node)) {
       renderTarget.append(this._dom.node);
     }

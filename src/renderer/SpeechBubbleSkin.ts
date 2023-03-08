@@ -77,7 +77,7 @@ export default class SpeechBubbleSkin extends Skin {
         ctx.lineTo(Math.min(x + 3 * r, x + w - r), y + h);
         ctx.lineTo(x + r / 2, y + h + r);
         ctx.lineTo(x + r, y + h);
-      } else if (style === "think") {
+      } else {
         ctx.ellipse(x + r * 2.25, y + h, (r * 3) / 4, r / 2, 0, 0, Math.PI);
       }
       ctx.arcTo(x, y + h, x, y, r);
