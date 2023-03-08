@@ -242,6 +242,42 @@ export default class Sound {
 // add more audio effects in the future. (Scratch used to have more, but they
 // were removed - see commit ff6cd4a - because they depended on an external
 // library and were too processor-intensive to support on some devices.)
+
+type EffectDescriptorBase<Name> = {
+  name: Name;
+  initial: number;
+  minimum?: number;
+  maximum?: number;
+  resetOnStart?: boolean;
+  resetOnClone?: boolean;
+};
+
+type PatchlessDescriptor<Name> = {
+  isPatch: false;
+  set: (value: number, sound: Sound) => void;
+} & EffectDescriptorBase<Name>;
+
+type PatchDescriptor<Name, Nodes> = {
+  isPatch: true;
+  makeNodes: () => Nodes & { input: AudioNode; output: AudioNode };
+  set: (
+    value: number,
+    nodes: Nodes & { input: AudioNode; output: AudioNode }
+  ) => void;
+} & EffectDescriptorBase<Name>;
+
+type EffectDescriptor<
+  isPatch extends boolean,
+  Name extends string,
+  Nodes extends isPatch extends true ? object : never
+> = isPatch extends true
+  ? PatchDescriptor<Name, Nodes>
+  : PatchlessDescriptor<Name>;
+
+type Effects = {
+  [x in EffectName]: number;
+};
+
 const PanEffect: EffectDescriptor<
   true,
   "pan",
@@ -283,6 +319,7 @@ const PanEffect: EffectDescriptor<
     );
   },
 } as const;
+
 const PitchEffect: EffectDescriptor<false, "pitch", never> = {
   name: "pitch",
   initial: 0,
@@ -293,6 +330,7 @@ const PitchEffect: EffectDescriptor<false, "pitch", never> = {
     sound.setPlaybackRate(ratio);
   },
 } as const;
+
 const VolumeEffect: EffectDescriptor<true, "volume", { node: GainNode }> = {
   name: "volume",
   initial: 100,
@@ -704,41 +742,6 @@ export class EffectChain {
 
   public static effectDescriptors = effectDescriptors;
 }
-
-type EffectDescriptorBase<Name> = {
-  name: Name;
-  initial: number;
-  minimum?: number;
-  maximum?: number;
-  resetOnStart?: boolean;
-  resetOnClone?: boolean;
-};
-
-type PatchlessDescriptor<Name> = {
-  isPatch: false;
-  set: (value: number, sound: Sound) => void;
-} & EffectDescriptorBase<Name>;
-
-type PatchDescriptor<Name, Nodes> = {
-  isPatch: true;
-  makeNodes: () => Nodes & { input: AudioNode; output: AudioNode };
-  set: (
-    value: number,
-    nodes: Nodes & { input: AudioNode; output: AudioNode }
-  ) => void;
-} & EffectDescriptorBase<Name>;
-
-type EffectDescriptor<
-  isPatch extends boolean,
-  Name extends string,
-  Nodes extends isPatch extends true ? object : never
-> = isPatch extends true
-  ? PatchDescriptor<Name, Nodes>
-  : PatchlessDescriptor<Name>;
-
-type Effects = {
-  [x in EffectName]: number;
-};
 
 export class AudioEffectMap implements Effects {
   // This class provides a simple interface for setting and getting audio
