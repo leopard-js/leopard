@@ -20,9 +20,15 @@ export default class Project {
   private _cachedLoudness: number | null;
 
   public runningTriggers: TriggerWithTarget[];
-  private _prevStepTriggerPredicates: WeakMap<TriggerWithTarget, boolean>;
+
   public answer: string | null;
   private timerStart!: Date;
+
+  /**
+   * Used to keep track of what edge-activated trigger predicates evaluted to
+   * on the previous step.
+   */
+  private _prevStepTriggerPredicates: WeakMap<Trigger, boolean>;
 
   public constructor(stage: Stage, sprites = {}, { frameRate = 30 } = {}) {
     this.stage = stage;
@@ -45,8 +51,6 @@ export default class Project {
     this._cachedLoudness = null;
 
     this.runningTriggers = [];
-    // Used to keep track of what edge-activated trigger predicates evaluted to
-    // on the previous step.
     this._prevStepTriggerPredicates = new WeakMap();
 
     this.restartTimer();
@@ -81,7 +85,7 @@ export default class Project {
         clickedSprite = this.stage;
       }
 
-      const matchingTriggers = [];
+      const matchingTriggers: TriggerWithTarget[] = [];
       for (const trigger of clickedSprite.triggers) {
         if (trigger.matches(Trigger.CLICKED, {}, clickedSprite)) {
           matchingTriggers.push({ trigger, target: clickedSprite });
@@ -108,7 +112,7 @@ export default class Project {
   private _matchingTriggers(
     triggerMatches: (tr: Trigger, target: Sprite | Stage) => boolean
   ): TriggerWithTarget[] {
-    const matchingTriggers = [];
+    const matchingTriggers: TriggerWithTarget[] = [];
     const targets = this.spritesAndStage;
     for (const target of targets) {
       const matchingTargetTriggers = target.triggers.filter((tr) =>
@@ -123,7 +127,7 @@ export default class Project {
 
   private _stepEdgeActivatedTriggers(): void {
     const edgeActivated = this._matchingTriggers((tr) => tr.isEdgeActivated);
-    const triggersToStart = [];
+    const triggersToStart: TriggerWithTarget[] = [];
     for (const triggerWithTarget of edgeActivated) {
       const { trigger, target } = triggerWithTarget;
       let predicate;
@@ -139,9 +143,8 @@ export default class Project {
       }
 
       // Default to false
-      const prevPredicate =
-        !!this._prevStepTriggerPredicates.get(triggerWithTarget);
-      this._prevStepTriggerPredicates.set(triggerWithTarget, predicate);
+      const prevPredicate = !!this._prevStepTriggerPredicates.get(trigger);
+      this._prevStepTriggerPredicates.set(trigger, predicate);
 
       // The predicate evaluated to false last time and true this time
       // Activate the trigger
