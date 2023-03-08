@@ -518,6 +518,7 @@ export default class Renderer {
 
     if (
       options.renderSpeechBubbles &&
+      '_speechBubble' in sprite &&
       sprite._speechBubble &&
       sprite._speechBubble.text !== "" &&
       sprite instanceof Sprite
