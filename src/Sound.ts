@@ -736,13 +736,22 @@ type EffectDescriptor<
   ? PatchDescriptor<Name, Nodes>
   : PatchlessDescriptor<Name>;
 
-export class AudioEffectMap {
+type Effects = {
+  [x in EffectName]: number;
+};
+
+export class AudioEffectMap implements Effects {
   // This class provides a simple interface for setting and getting audio
   // effects stored on an EffectChain, similar to EffectMap (that class being
   // for graphic effects). It takes an EffectChain and automatically generates
   // properties according to the names of the effect descriptors, acting with
   // the EffectChain's API when accessed.
   private effectChain: EffectChain;
+
+  // TypeScript can't infer these
+  public pan!: number;
+  public pitch!: number;
+  public volume!: number;
 
   public constructor(effectChain: EffectChain) {
     this.effectChain = effectChain;
