@@ -32,14 +32,17 @@ const ADPCM_STEPS = [
 
 const ADPCM_INDEX = [-1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8];
 
-export default function decodeADPCMAudio(ab, audioContext) {
+export default function decodeADPCMAudio(
+  ab: ArrayBuffer,
+  audioContext: AudioContext
+) {
   const dv = new DataView(ab);
   // WAV magic number
   if (dv.getUint32(0) !== 0x52494646 || dv.getUint32(8) !== 0x57415645) {
     return Promise.reject(new Error("Unrecognized audio format"));
   }
 
-  const blocks = {};
+  const blocks: Partial<Record<string, number>> = {};
   const l = dv.byteLength - 8;
   let i = 12;
   while (i < l) {
@@ -54,6 +57,12 @@ export default function decodeADPCMAudio(ab, audioContext) {
     i += 8 + dv.getUint32(i + 4, true);
   }
 
+  const factBlock = blocks.fact;
+  const dataBlock = blocks.data;
+  if (typeof factBlock !== "number" || typeof dataBlock !== "number") {
+    return Promise.reject(new Error("Invalid WAV"));
+  }
+
   const format = dv.getUint16(20, true);
   const sampleRate = dv.getUint32(24, true);
 
@@ -61,17 +70,17 @@ export default function decodeADPCMAudio(ab, audioContext) {
     const samplesPerBlock = dv.getUint16(38, true);
     const blockSize = (samplesPerBlock - 1) / 2 + 4;
 
-    const frameCount = dv.getUint32(blocks.fact + 8, true);
+    const frameCount = dv.getUint32(factBlock + 8, true);
 
     const buffer = audioContext.createBuffer(1, frameCount, sampleRate);
     const channel = buffer.getChannelData(0);
 
-    let sample;
+    let sample = 0;
     let index = 0;
     let step, code, delta;
     let lastByte = -1;
 
-    const offset = blocks.data + 8;
+    const offset = dataBlock + 8;
     let i = offset;
     let j = 0;
     // eslint-disable-next-line
@@ -115,14 +124,14 @@ export default function decodeADPCMAudio(ab, audioContext) {
   return Promise.reject(new Error(`Unrecognized WAV format ${format}`));
 }
 
-export function isWavData(arrayBuffer) {
+export function isWavData(arrayBuffer: ArrayBuffer) {
   const dataView = new DataView(arrayBuffer);
   return (
     dataView.getUint32(0) === 0x52494646 && dataView.getUint32(8) === 0x57415645
   );
 }
 
-export function isADPCMData(arrayBuffer) {
+export function isADPCMData(arrayBuffer: ArrayBuffer) {
   const dataView = new DataView(arrayBuffer);
   const format = dataView.getUint16(20, true);
   return isWavData(arrayBuffer) && format === 17;

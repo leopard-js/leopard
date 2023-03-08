@@ -1,5 +1,11 @@
 export default class Costume {
-  constructor(name, url, center = { x: 0, y: 0 }) {
+  name: string;
+  url: string;
+  img: HTMLImageElement;
+  isBitmap: boolean;
+  resolution: 2 | 1;
+  center: { x: number; y: number };
+  constructor(name: string, url: string, center = { x: 0, y: 0 }) {
     this.name = name;
     this.url = url;
 

@@ -1,5 +1,17 @@
+import type { Stage } from "./Sprite.js";
+
 export default class Input {
-  constructor(stage, canvas, onKeyDown) {
+  _stage: Stage;
+  _canvas: HTMLCanvasElement;
+  _onKeyDown: (key: string) => unknown;
+
+  mouse: { x: number; y: number; down: boolean };
+  keys: string[];
+  constructor(
+    stage: Input["_stage"],
+    canvas: Input["_canvas"],
+    onKeyDown: Input["_onKeyDown"]
+  ) {
     this._stage = stage;
     this._canvas = canvas;
 
@@ -20,42 +32,42 @@ export default class Input {
     this._onKeyDown = onKeyDown;
   }
 
-  _mouseMove(e) {
+  _mouseMove(e: MouseEvent) {
     const rect = this._canvas.getBoundingClientRect();
     const scaleX = this._stage.width / rect.width;
     const scaleY = this._stage.height / rect.height;
     const realCoords = {
       x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
+      y: (e.clientY - rect.top) * scaleY,
     };
 
     this.mouse = {
       ...this.mouse,
       x: realCoords.x - this._stage.width / 2,
-      y: -realCoords.y + this._stage.height / 2
+      y: -realCoords.y + this._stage.height / 2,
     };
   }
 
   _mouseDown() {
     this.mouse = {
       ...this.mouse,
-      down: true
+      down: true,
     };
   }
 
   _mouseUp() {
     this.mouse = {
       ...this.mouse,
-      down: false
+      down: false,
     };
   }
 
-  _keyup(e) {
+  _keyup(e: KeyboardEvent) {
     const key = this._getKeyName(e);
-    this.keys = this.keys.filter(k => k !== key);
+    this.keys = this.keys.filter((k) => k !== key);
   }
 
-  _keydown(e) {
+  _keydown(e: KeyboardEvent) {
     e.preventDefault();
 
     const key = this._getKeyName(e);
@@ -66,7 +78,7 @@ export default class Input {
     this._onKeyDown(key);
   }
 
-  _getKeyName(e) {
+  _getKeyName(e: KeyboardEvent) {
     if (e.key === "ArrowUp") return "up arrow";
     if (e.key === "ArrowDown") return "down arrow";
     if (e.key === "ArrowLeft") return "left arrow";
@@ -77,7 +89,7 @@ export default class Input {
     return e.key.toLowerCase();
   }
 
-  keyPressed(name) {
+  keyPressed(name: string) {
     if (name === "any") return this.keys.length > 0;
     return this.keys.indexOf(name) > -1;
   }

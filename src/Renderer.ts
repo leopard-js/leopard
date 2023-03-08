@@ -1,14 +1,18 @@
-import Matrix from "./renderer/Matrix.js";
+import Matrix, { MatrixType } from "./renderer/Matrix.js";
 import Drawable from "./renderer/Drawable.js";
 import BitmapSkin from "./renderer/BitmapSkin.js";
 import PenSkin from "./renderer/PenSkin.js";
 import SpeechBubbleSkin from "./renderer/SpeechBubbleSkin.js";
 import VectorSkin from "./renderer/VectorSkin.js";
 import Rectangle from "./renderer/Rectangle.js";
-import ShaderManager from "./renderer/ShaderManager.js";
+import ShaderManager, { Shader, DrawMode } from "./renderer/ShaderManager.js";
 import { effectNames, effectBitmasks } from "./renderer/effectInfo.js";
+import type Skin from "./renderer/Skin.js";
 
 import Costume from "./Costume.js";
+import type Color from "./Color.js";
+import type Project from "./Project.js";
+import { Sprite, Stage, _EffectMap, SpeechBubble } from "./Sprite.js";
 
 // Rectangle used for checking collision bounds.
 // Rather than create a new one each time, we can just reuse this one.
@@ -18,23 +22,56 @@ const __collisionBox = new Rectangle();
 // stored in the blue channel, then green, then red.
 // RGB [0, 0, 0] is reserved for "no sprite here".
 // This allows for up to 2^24 - 2 different sprites to be rendered at once.
-const idToColor = id => [
+const idToColor = (id: number): [number, number, number] => [
   (((id + 1) >> 16) & 0xff) / 255,
   (((id + 1) >> 8) & 0xff) / 255,
-  ((id + 1) & 0xff) / 255
+  ((id + 1) & 0xff) / 255,
 ];
 
 // Convert a 24-bit color back into a sprite ID/index number.
 // -1 means "no sprite here".
-const colorToId = ([r, g, b]) => ((r << 16) | (g << 8) | b) - 1;
+const colorToId = ([r, g, b]: [number, number, number] | Uint8Array): number =>
+  ((r << 16) | (g << 8) | b) - 1;
+
+type RenderSpriteOptions = {
+  drawMode: DrawMode;
+  effectMask?: number;
+  colorMask?: [number, number, number, number];
+  renderSpeechBubbles?: boolean;
+  spriteColorId?: (target: Sprite | Stage) => number;
+};
+
+export type FramebufferInfo = {
+  texture: WebGLTexture;
+  width: number;
+  height: number;
+  framebuffer: WebGLFramebuffer;
+};
 
 export default class Renderer {
-  constructor(project, renderTarget) {
+  project: Project;
+  stage: HTMLCanvasElement;
+  gl: WebGLRenderingContext;
+  renderTarget: HTMLElement | null = null;
+
+  _shaderManager: ShaderManager;
+  _drawables: WeakMap<Sprite | Stage, Drawable>;
+  _skins: WeakMap<object, Skin>;
+
+  _currentShader: Shader | null;
+  _currentFramebuffer: WebGLFramebuffer | null;
+  _screenSpaceScale: number;
+  _penSkin: PenSkin;
+  _collisionBuffer: FramebufferInfo;
+
+  constructor(project: Project, renderTarget: HTMLElement | string | null) {
     const w = project.stage.width;
     const h = project.stage.height;
     this.project = project;
     this.stage = this.createStage(w, h);
-    this.gl = this.stage.getContext("webgl", { antialias: false });
+    const gl = this.stage.getContext("webgl", { antialias: false });
+    if (gl === null) throw new Error("Could not initialize WebGL context");
+    this.gl = gl;
 
     if (renderTarget) {
       this.setRenderTarget(renderTarget);
@@ -51,7 +88,6 @@ export default class Renderer {
     this._screenSpaceScale = 1;
 
     // Initialize a bunch of WebGL state
-    const gl = this.gl;
 
     // Use premultiplied alpha for proper color blending.
     gl.enable(gl.BLEND);
@@ -86,10 +122,9 @@ export default class Renderer {
   }
 
   // Retrieve a given object (e.g. costume or speech bubble)'s skin. If it doesn't exist, make one.
-  _getSkin(obj) {
-    if (this._skins.has(obj)) {
-      return this._skins.get(obj);
-    }
+  _getSkin(obj: object): Skin {
+    const existingSkin = this._skins.get(obj);
+    if (existingSkin) return existingSkin;
 
     let skin;
 
@@ -101,17 +136,17 @@ export default class Renderer {
       }
     } else {
       // If it's not a costume, assume it's a speech bubble.
-      skin = new SpeechBubbleSkin(this, obj);
+      skin = new SpeechBubbleSkin(this, obj as SpeechBubble);
     }
     this._skins.set(obj, skin);
     return skin;
   }
 
   // Retrieve the renderer-specific data object for a given sprite or clone. If it doesn't exist, make one.
-  _getDrawable(sprite) {
-    if (this._drawables.has(sprite)) {
-      return this._drawables.get(sprite);
-    }
+  _getDrawable(sprite: Sprite | Stage): Drawable {
+    const existingDrawable = this._drawables.get(sprite);
+    if (existingDrawable) return existingDrawable;
+
     const drawable = new Drawable(this, sprite);
     this._drawables.set(sprite, drawable);
     return drawable;
@@ -121,10 +156,18 @@ export default class Renderer {
   // * The framebuffer itself.
   // * The texture backing the framebuffer.
   // * The resolution (width and height) of the framebuffer.
-  _createFramebufferInfo(width, height, filtering, stencil = false) {
+  _createFramebufferInfo(
+    width: number,
+    height: number,
+    filtering:
+      | WebGLRenderingContext["NEAREST"]
+      | WebGLRenderingContext["LINEAR"],
+    stencil = false
+  ): FramebufferInfo {
     // Create an empty texture with this skin's dimensions.
     const gl = this.gl;
     const texture = gl.createTexture();
+    if (texture === null) throw new Error("Could not create texture");
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -142,13 +185,16 @@ export default class Renderer {
       null
     );
 
+    const framebuffer = gl.createFramebuffer();
+    if (!framebuffer) throw new Error("Could not create framebuffer");
+
     // Create a framebuffer backed by said texture. This means we can draw onto the framebuffer,
     // and the results appear in the texture.
     const framebufferInfo = {
       texture,
       width,
       height,
-      framebuffer: gl.createFramebuffer()
+      framebuffer,
     };
     this._setFramebuffer(framebufferInfo);
     gl.framebufferTexture2D(
@@ -176,7 +222,7 @@ export default class Renderer {
     return framebufferInfo;
   }
 
-  _setShader(shader) {
+  _setShader(shader: Shader) {
     if (shader !== this._currentShader) {
       const gl = this.gl;
       gl.useProgram(shader.program);
@@ -205,7 +251,7 @@ export default class Renderer {
     return false;
   }
 
-  _setFramebuffer(framebufferInfo) {
+  _setFramebuffer(framebufferInfo: FramebufferInfo | null) {
     if (framebufferInfo !== this._currentFramebuffer) {
       this._currentFramebuffer = framebufferInfo;
       if (framebufferInfo === null) {
@@ -223,37 +269,40 @@ export default class Renderer {
     }
   }
 
-  setRenderTarget(renderTarget) {
+  setRenderTarget(renderTarget: HTMLElement | string | null) {
     if (typeof renderTarget === "string") {
-      renderTarget = document.querySelector(renderTarget);
+      renderTarget = document.querySelector(renderTarget) as HTMLElement;
     }
     this.renderTarget = renderTarget;
-    this.renderTarget.classList.add("leopard__project");
-    this.renderTarget.style.width = `${this.project.stage.width}px`;
-    this.renderTarget.style.height = `${this.project.stage.height}px`;
+    if (!renderTarget) return;
+    renderTarget.classList.add("leopard__project");
+    renderTarget.style.width = `${this.project.stage.width}px`;
+    renderTarget.style.height = `${this.project.stage.height}px`;
 
-    this.renderTarget.append(this.stage);
+    renderTarget.append(this.stage);
   }
 
   // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
-  _renderLayers(layers, options = {}) {
-    options = Object.assign(
-      {
-        drawMode: ShaderManager.DrawModes.DEFAULT,
-        renderSpeechBubbles: true
-      },
-      options
-    );
+  _renderLayers(
+    layers?: Set<Sprite | Stage | PenSkin>,
+    optionsIn: {
+      filter?: (layer: Sprite | Stage | PenSkin) => boolean;
+    } & Partial<RenderSpriteOptions> = {}
+  ) {
+    const options = {
+      drawMode: ShaderManager.DrawModes.DEFAULT,
+      renderSpeechBubbles: true,
+      ...optionsIn,
+    };
 
     // If we're given a list of layers, filter by that.
     // If we're given a filter function in the options, filter by that too.
     // If we're given both, then only include layers which match both.
     const shouldRestrictLayers = layers instanceof Set;
-    const shouldFilterLayers = typeof options.filter === "function";
-    const shouldIncludeLayer = layer =>
+    const shouldIncludeLayer = (layer: Sprite | Stage | PenSkin) =>
       !(
         (shouldRestrictLayers && !layers.has(layer)) ||
-        (shouldFilterLayers && !options.filter(layer))
+        (typeof options.filter === "function" && !options.filter(layer))
       );
 
     // Stage
@@ -345,7 +394,7 @@ export default class Renderer {
     this._renderLayers();
   }
 
-  createStage(w, h) {
+  createStage(w: number, h: number) {
     const stage = document.createElement("canvas");
     stage.width = w;
     stage.height = h;
@@ -365,7 +414,10 @@ export default class Renderer {
   }
 
   // Calculate the transform matrix for a speech bubble attached to a sprite.
-  _calculateSpeechBubbleMatrix(spr, speechBubbleSkin) {
+  _calculateSpeechBubbleMatrix(
+    spr: Sprite,
+    speechBubbleSkin: SpeechBubbleSkin
+  ) {
     const sprBounds = this.getBoundingBox(spr);
     let x;
     if (
@@ -389,14 +441,14 @@ export default class Renderer {
   }
 
   _renderSkin(
-    skin,
-    drawMode,
-    matrix,
-    scale,
-    effects,
-    effectMask,
-    colorMask,
-    spriteColorId
+    skin: Skin,
+    drawMode: DrawMode,
+    matrix: MatrixType,
+    scale: number,
+    effects?: _EffectMap,
+    effectMask?: number,
+    colorMask?: [number, number, number, number],
+    spriteColorId?: number
   ) {
     const gl = this.gl;
 
@@ -410,7 +462,7 @@ export default class Renderer {
     this._setShader(shader);
     gl.uniformMatrix3fv(shader.uniforms.u_transform, false, matrix);
 
-    if (effectBitmask !== 0) {
+    if (effectBitmask !== 0 && effects) {
       for (const effect of effectNames) {
         const effectVal = effects._effectValues[effect];
         if (effectVal !== 0)
@@ -419,7 +471,11 @@ export default class Renderer {
 
       // Pixelate effect needs the skin size
       if (effects._effectValues.pixelate !== 0)
-        gl.uniform2f(shader.uniforms.u_skinSize, skin.width, skin.height);
+        gl.uniform2f(
+          shader.uniforms.u_skinSize,
+          skin.width ?? 0,
+          skin.height ?? 0
+        );
     }
 
     gl.bindTexture(gl.TEXTURE_2D, skinTexture);
@@ -428,26 +484,24 @@ export default class Renderer {
 
     // Enable color masking mode if set
     if (Array.isArray(colorMask))
-      this.gl.uniform4fv(this._currentShader.uniforms.u_colorMask, colorMask);
+      this.gl.uniform4fv(shader.uniforms.u_colorMask, colorMask);
 
     // Used for mapping drawn sprites back to their indices in a list.
     // By looking at the color of a given pixel, we can tell which sprite is
     // the topmost one drawn on that pixel.
-    if (drawMode === ShaderManager.DrawModes.SPRITE_ID && typeof spriteColorId === "number") {
-      this.gl.uniform3fv(
-        this._currentShader.uniforms.u_spriteId,
-        idToColor(spriteColorId)
-      );
+    if (
+      drawMode === ShaderManager.DrawModes.SPRITE_ID &&
+      typeof spriteColorId === "number"
+    ) {
+      this.gl.uniform3fv(shader.uniforms.u_spriteId, idToColor(spriteColorId));
     }
 
     // Actually draw the skin
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-  renderSprite(sprite, options) {
-    const spriteScale = Object.prototype.hasOwnProperty.call(sprite, "size")
-      ? sprite.size / 100
-      : 1;
+  renderSprite(sprite: Sprite | Stage, options: RenderSpriteOptions) {
+    const spriteScale = "size" in sprite ? sprite.size / 100 : 1;
 
     this._renderSkin(
       this._getSkin(sprite.costume),
@@ -463,9 +517,12 @@ export default class Renderer {
     if (
       options.renderSpeechBubbles &&
       sprite._speechBubble &&
-      sprite._speechBubble.text !== ""
+      sprite._speechBubble.text !== "" &&
+      sprite instanceof Sprite
     ) {
-      const speechBubbleSkin = this._getSkin(sprite._speechBubble);
+      const speechBubbleSkin = this._getSkin(
+        sprite._speechBubble
+      ) as SpeechBubbleSkin;
 
       this._renderSkin(
         speechBubbleSkin,
@@ -476,16 +533,16 @@ export default class Renderer {
     }
   }
 
-  getTightBoundingBox(sprite) {
+  getTightBoundingBox(sprite: Sprite | Stage) {
     return this._getDrawable(sprite).getTightBoundingBox();
   }
 
-  getBoundingBox(sprite) {
+  getBoundingBox(sprite: Sprite | Stage) {
     return Rectangle.fromMatrix(this._getDrawable(sprite).getMatrix());
   }
 
   // Mask drawing in to only areas where this sprite is opaque.
-  _stencilSprite(spr, colorMask) {
+  _stencilSprite(spr: Sprite | Stage, colorMask?: Color) {
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
@@ -507,11 +564,16 @@ export default class Renderer {
     // This, along with the above line, has the effect of not drawing anything to the color buffer, but
     // creating a "mask" in the stencil buffer that masks out all pixels where this sprite is transparent.
 
-    const opts = {
+    const opts: {
+      drawMode: DrawMode;
+      renderSpeechBubbles: boolean;
+      effectMask: number;
+      colorMask?: [number, number, number, number];
+    } & RenderSpriteOptions = {
       drawMode: ShaderManager.DrawModes.SILHOUETTE,
       renderSpeechBubbles: false,
       // Ignore ghost effect
-      effectMask: ~effectBitmasks.ghost
+      effectMask: ~effectBitmasks.ghost,
     };
 
     // If we mask in the color (for e.g. "color is touching color"),
@@ -530,8 +592,13 @@ export default class Renderer {
     gl.colorMask(true, true, true, true);
   }
 
-  checkSpriteCollision(spr, targets, fast, sprColor) {
-    if (!spr.visible) return false;
+  checkSpriteCollision(
+    spr: Sprite | Stage,
+    targets: Set<Sprite | Stage> | (Sprite | Stage)[] | Sprite | Stage,
+    fast?: boolean,
+    sprColor?: Color
+  ) {
+    if ("visible" in spr && !spr.visible) return false;
     if (!(targets instanceof Set)) {
       if (targets instanceof Array) {
         targets = new Set(targets);
@@ -581,7 +648,7 @@ export default class Renderer {
     this._renderLayers(targets, {
       drawMode: ShaderManager.DrawModes.SILHOUETTE,
       // Ignore ghost effect
-      effectMask: ~effectBitmasks.ghost
+      effectMask: ~effectBitmasks.ghost,
     });
 
     const gl = this.gl;
@@ -609,7 +676,11 @@ export default class Renderer {
     return false;
   }
 
-  checkColorCollision(spr, targetsColor, sprColor) {
+  checkColorCollision(
+    spr: Sprite | Stage,
+    targetsColor: Color,
+    sprColor?: Color
+  ) {
     const sprBox = Rectangle.copy(
       this.getBoundingBox(spr),
       __collisionBox
@@ -631,8 +702,8 @@ export default class Renderer {
     this._stencilSprite(spr, sprColor);
 
     // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
-    this._renderLayers(null, {
-      filter: layer => layer !== spr
+    this._renderLayers(undefined, {
+      filter: (layer) => layer !== spr,
     });
 
     // Make sure to disable the stencil test so as not to affect other rendering!
@@ -667,13 +738,13 @@ export default class Renderer {
   }
 
   // Pick the topmost sprite at the given point (if one exists).
-  pick(sprites, point) {
+  pick(sprites: (Sprite | Stage)[], point: { x: number; y: number }) {
     this._setFramebuffer(this._collisionBuffer);
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    const spriteIndices = new Map();
+    const spriteIndices = new Map<Sprite | Stage, number>();
     for (let i = 0; i < sprites.length; i++) {
       spriteIndices.set(sprites[i], i);
     }
@@ -682,7 +753,7 @@ export default class Renderer {
       effectMask: ~effectBitmasks.ghost,
       drawMode: ShaderManager.DrawModes.SPRITE_ID,
       // let's not use indexOf here--that would be O(n^2)
-      spriteColorId: (target) => spriteIndices.get(target)
+      spriteColorId: (target) => spriteIndices.get(target)!,
     });
 
     const hoveredPixel = new Uint8Array(4);
@@ -703,7 +774,11 @@ export default class Renderer {
     return sprites[index];
   }
 
-  checkPointCollision(spr, point, fast) {
+  checkPointCollision(
+    spr: Sprite,
+    point: { x: number; y: number },
+    fast?: boolean
+  ) {
     if (!spr.visible) return false;
 
     const box = this.getBoundingBox(spr);
@@ -733,7 +808,12 @@ export default class Renderer {
     return hoveredPixel[3] !== 0;
   }
 
-  penLine(pt1, pt2, color, size) {
+  penLine(
+    pt1: { x: number; y: number },
+    pt2: { x: number; y: number },
+    color: Color,
+    size: number
+  ) {
     this._penSkin.penLine(pt1, pt2, color, size);
   }
 
@@ -741,12 +821,13 @@ export default class Renderer {
     this._penSkin.clear();
   }
 
-  stamp(spr) {
+  stamp(spr: Sprite | Stage) {
     this._setFramebuffer(this._penSkin._framebufferInfo);
     this._renderLayers(new Set([spr]), { renderSpeechBubbles: false });
   }
 
-  displayAskBox(question) {
+  displayAskBox(question: string): Promise<string> {
+    if (!this.renderTarget) return Promise.resolve("");
     const askBox = document.createElement("form");
     askBox.classList.add("leopard__askBox");
 
@@ -768,8 +849,8 @@ export default class Renderer {
     this.renderTarget.append(askBox);
     askInput.focus();
 
-    return new Promise(resolve => {
-      askBox.addEventListener("submit", e => {
+    return new Promise((resolve) => {
+      askBox.addEventListener("submit", (e) => {
         e.preventDefault();
         askBox.remove();
         resolve(askInput.value);

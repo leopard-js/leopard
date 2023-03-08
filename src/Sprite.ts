@@ -1,26 +1,52 @@
 import Color from "./Color.js";
 import Trigger from "./Trigger.js";
 import Sound, { EffectChain, AudioEffectMap } from "./Sound.js";
+import Costume from "./Costume.js";
+import type Project from "./Project.js";
+import type Watcher from "./Watcher.js";
 
 import { effectNames } from "./renderer/effectInfo.js";
+
+type Effects = {
+  [x in typeof effectNames[number]]: number;
+};
+
 // This is a wrapper to allow the enabled effects in a sprite to be used as a Map key.
 // By setting an effect, the bitmask is updated as well.
 // This allows the bitmask to be used to uniquely identify a set of enabled effects.
-class _EffectMap {
+export class _EffectMap implements Effects {
+  _bitmask: number;
+  _effectValues: Record<typeof effectNames[number], number>;
+  // TODO: TypeScript can't automatically infer these
+  color!: number;
+  fisheye!: number;
+  whirl!: number;
+  pixelate!: number;
+  mosaic!: number;
+  brightness!: number;
+  ghost!: number;
+
   constructor() {
     this._bitmask = 0;
-    this._effectValues = {};
+    this._effectValues = {
+      color: 0,
+      fisheye: 0,
+      whirl: 0,
+      pixelate: 0,
+      mosaic: 0,
+      brightness: 0,
+      ghost: 0,
+    };
 
     for (let i = 0; i < effectNames.length; i++) {
       const effectName = effectNames[i];
-      this._effectValues[effectName] = 0;
 
       Object.defineProperty(this, effectName, {
         get: () => {
           return this._effectValues[effectName];
         },
 
-        set: val => {
+        set: (val: number) => {
           this._effectValues[effectName] = val;
 
           if (val === 0) {
@@ -30,29 +56,61 @@ class _EffectMap {
             // Otherwise, set its bit to 1.
             this._bitmask = this._bitmask | (1 << i);
           }
-        }
+        },
       });
     }
   }
 
   _clone() {
     const m = new _EffectMap();
-    for (const effectName of Object.keys(this._effectValues)) {
+    for (const effectName of Object.keys(
+      this._effectValues
+    ) as (keyof typeof this._effectValues)[]) {
       m[effectName] = this[effectName];
     }
     return m;
   }
 
   clear() {
-    for (const effectName of Object.keys(this._effectValues)) {
+    for (const effectName of Object.keys(
+      this._effectValues
+    ) as (keyof typeof this._effectValues)[]) {
       this._effectValues[effectName] = 0;
     }
     this._bitmask = 0;
   }
 }
 
-class SpriteBase {
-  constructor(initialConditions, vars = {}) {
+export type SpeechBubble = {
+  text: string;
+  style: "say" | "think";
+  timeout: number | null;
+};
+
+type InitialConditions = {
+  costumeNumber: number;
+  layerOrder?: number;
+};
+
+abstract class SpriteBase<Vars extends object = object> {
+  _project: Project | null;
+
+  _costumeNumber: number;
+  _layerOrder: number;
+  triggers: Trigger[];
+  watchers: Partial<Record<string, Watcher>>;
+  costumes: Costume[];
+  sounds: Sound[];
+
+  effectChain: EffectChain;
+  effects: _EffectMap;
+  audioEffects: AudioEffectMap;
+
+  _speechBubble?: SpeechBubble;
+
+  _vars: Vars;
+
+  constructor(initialConditions: InitialConditions, vars: Vars) {
     this._project = null;
 
     const { costumeNumber, layerOrder = 0 } = initialConditions;
@@ -65,26 +123,26 @@ class SpriteBase {
     this.sounds = [];
 
     this.effectChain = new EffectChain({
-      getNonPatchSoundList: this.getSoundsPlayedByMe.bind(this)
+      getNonPatchSoundList: this.getSoundsPlayedByMe.bind(this),
     });
     this.effectChain.connect(Sound.audioContext.destination);
 
     this.effects = new _EffectMap();
     this.audioEffects = new AudioEffectMap(this.effectChain);
 
-    this._vars = vars;
+    this._vars = vars ?? {};
   }
 
   getSoundsPlayedByMe() {
-    return this.sounds.filter(sound => this.effectChain.isTargetOf(sound));
+    return this.sounds.filter((sound) => this.effectChain.isTargetOf(sound));
   }
 
   get stage() {
-    return this._project.stage;
+    return this._project?.stage;
   }
 
   get sprites() {
-    return this._project.sprites;
+    return this._project?.sprites;
   }
 
   get vars() {
@@ -97,15 +155,21 @@ class SpriteBase {
 
   set costumeNumber(number) {
     this._costumeNumber = this.wrapClamp(number, 1, this.costumes.length);
-    if (this.fireBackdropChanged) this.fireBackdropChanged();
   }
 
-  set costume(costume) {
+  set costume(costume: number | string | Costume) {
+    if (costume instanceof Costume) {
+      const costumeIndex = this.costumes.indexOf(costume);
+      if (costumeIndex > -1) {
+        this.costumeNumber = costumeIndex + 1;
+      }
+    }
     if (typeof costume === "number") {
-      this.costumeNumber = costume;
+      if (!isNaN(costume)) this.costumeNumber = costume;
+      return;
     }
     if (typeof costume === "string") {
-      const index = this.costumes.findIndex(c => c.name === costume);
+      const index = this.costumes.findIndex((c) => c.name === costume);
       if (index > -1) {
         this.costumeNumber = index + 1;
       } else {
@@ -141,7 +205,10 @@ class SpriteBase {
           }
 
           default: {
-            if (!(isNaN(costume) || costume.trim().length === 0)) {
+            if (
+              Number.isFinite(Number(costume)) &&
+              costume.trim().length !== 0
+            ) {
               this.costumeNumber = Number(costume);
             }
           }
@@ -150,47 +217,31 @@ class SpriteBase {
     }
   }
 
-  get costume() {
+  get costume(): Costume {
     return this.costumes[this.costumeNumber - 1];
   }
 
-  moveAhead(value = Infinity) {
-    if (typeof value === "number") {
-      this._project.changeSpriteLayer(this, value);
-    } else {
-      this._project.changeSpriteLayer(this, 1, value);
-    }
-  }
-
-  moveBehind(value = Infinity) {
-    if (typeof value === "number") {
-      this._project.changeSpriteLayer(this, -value);
-    } else {
-      this._project.changeSpriteLayer(this, -1, value);
-    }
-  }
-
-  degToRad(deg) {
+  degToRad(deg: number) {
     return (deg * Math.PI) / 180;
   }
 
-  radToDeg(rad) {
+  radToDeg(rad: number) {
     return (rad * 180) / Math.PI;
   }
 
-  degToScratch(deg) {
+  degToScratch(deg: number) {
     return -deg + 90;
   }
 
-  scratchToDeg(scratchDir) {
+  scratchToDeg(scratchDir: number) {
     return -scratchDir + 90;
   }
 
-  radToScratch(rad) {
+  radToScratch(rad: number) {
     return this.degToScratch(this.radToDeg(rad));
   }
 
-  scratchToRad(scratchDir) {
+  scratchToRad(scratchDir: number) {
     return this.degToRad(this.scratchToDeg(scratchDir));
   }
 
@@ -210,7 +261,7 @@ class SpriteBase {
   }
 
   // Wrap rotation from -180 to 180.
-  normalizeDeg(deg) {
+  normalizeDeg(deg: number) {
     // This is a pretty big math expression, but it's necessary because in JavaScript,
     // the % operator means "remainder", not "modulo", and so negative numbers won't "wrap around".
     // See https://web.archive.org/web/20090717035140if_/javascript.about.com/od/problemsolving/a/modulobug.htm
@@ -228,7 +279,7 @@ class SpriteBase {
   }
 
   // Given a generator function, return a version of it that runs in "warp mode" (no yields).
-  warp(procedure) {
+  warp(procedure: GeneratorFunction): (...args: unknown[]) => void {
     const bound = procedure.bind(this);
     return (...args) => {
       const inst = bound(...args);
@@ -236,7 +287,8 @@ class SpriteBase {
     };
   }
 
-  random(a, b) {
+  // TODO: this should also take strings so rand("0.0", "1.0") returns a random float like Scratch
+  random(a: number, b: number) {
     const min = Math.min(a, b);
     const max = Math.max(a, b);
     if (min % 1 === 0 && max % 1 === 0) {
@@ -245,8 +297,8 @@ class SpriteBase {
     return Math.random() * (max - min) + min;
   }
 
-  *wait(secs) {
-    let endTime = new Date();
+  *wait(secs: number) {
+    const endTime = new Date();
     endTime.setMilliseconds(endTime.getMilliseconds() + secs * 1000);
     while (new Date() < endTime) {
       yield;
@@ -254,22 +306,22 @@ class SpriteBase {
   }
 
   get mouse() {
-    return this._project.input.mouse;
+    return this._project?.input.mouse;
   }
 
-  keyPressed(name) {
-    return this._project.input.keyPressed(name);
+  keyPressed(name: string) {
+    return this._project?.input.keyPressed(name);
   }
 
   get timer() {
-    return this._project.timer;
+    return this._project?.timer;
   }
 
   restartTimer() {
-    this._project.restartTimer();
+    this._project?.restartTimer();
   }
 
-  *startSound(soundName) {
+  *startSound(soundName: string) {
     const sound = this.getSound(soundName);
     if (sound) {
       this.effectChain.applyToSound(sound);
@@ -277,7 +329,7 @@ class SpriteBase {
     }
   }
 
-  *playSoundUntilDone(soundName) {
+  *playSoundUntilDone(soundName: string) {
     const sound = this.getSound(soundName);
     if (sound) {
       sound.connect(this.effectChain.inputNode);
@@ -286,16 +338,16 @@ class SpriteBase {
     }
   }
 
-  getSound(soundName) {
+  getSound(soundName: string) {
     if (typeof soundName === "number") {
       return this.sounds[(soundName - 1) % this.sounds.length];
     } else {
-      return this.sounds.find(s => s.name === soundName);
+      return this.sounds.find((s) => s.name === soundName);
     }
   }
 
   stopAllSounds() {
-    this._project.stopAllSounds();
+    this._project?.stopAllSounds();
   }
 
   stopAllOfMySounds() {
@@ -304,13 +356,13 @@ class SpriteBase {
     }
   }
 
-  broadcast(name) {
-    return this._project.fireTrigger(Trigger.BROADCAST, { name });
+  broadcast(name: string) {
+    return this._project?.fireTrigger(Trigger.BROADCAST, { name });
   }
 
-  *broadcastAndWait(name) {
+  *broadcastAndWait(name: string) {
     let running = true;
-    this.broadcast(name).then(() => {
+    void this.broadcast(name)?.then(() => {
       running = false;
     });
 
@@ -320,16 +372,16 @@ class SpriteBase {
   }
 
   clearPen() {
-    this._project.renderer.clearPen();
+    this._project?.renderer.clearPen();
   }
 
-  *askAndWait(question) {
-    if (this._speechBubble) {
+  *askAndWait(question: string) {
+    if (this._speechBubble && this instanceof Sprite) {
       this.say("");
     }
 
     let done = false;
-    this._project.askAndWait(question).then(() => {
+    void this._project?.askAndWait(question).then(() => {
       done = true;
     });
 
@@ -337,11 +389,11 @@ class SpriteBase {
   }
 
   get answer() {
-    return this._project.answer;
+    return this._project?.answer;
   }
 
   get loudness() {
-    return this._project.loudness;
+    return this._project?.loudness;
   }
 
   toNumber(value) {
@@ -441,9 +493,39 @@ class SpriteBase {
   }
 }
 
-export class Sprite extends SpriteBase {
-  constructor(initialConditions, ...args) {
-    super(initialConditions, ...args);
+type RotationStyle =
+  typeof Sprite["RotationStyle"][keyof typeof Sprite["RotationStyle"]];
+
+type SpriteInitialConditions = {
+  x: number;
+  y: number;
+  direction: number;
+  rotationStyle?: RotationStyle;
+  costumeNumber: number;
+  size: number;
+  visible: boolean;
+  penDown?: boolean;
+  penSize?: number;
+  penColor?: Color;
+};
+
+export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
+  _x: number;
+  _y: number;
+  _direction: number;
+  rotationStyle: RotationStyle;
+  size: number;
+  visible: boolean;
+
+  parent: Sprite | null;
+  clones: Sprite<Vars>[];
+
+  _penDown: boolean;
+  penSize: number;
+  _penColor: Color;
+
+  constructor(initialConditions: SpriteInitialConditions, vars: Vars) {
+    super(initialConditions, vars);
 
     const {
       x,
@@ -455,7 +537,7 @@ export class Sprite extends SpriteBase {
       visible,
       penDown,
       penSize,
-      penColor
+      penColor,
     } = initialConditions;
 
     this._x = x;
@@ -476,19 +558,20 @@ export class Sprite extends SpriteBase {
     this._speechBubble = {
       text: "",
       style: "say",
-      timeout: null
+      timeout: null,
     };
   }
 
   createClone() {
     const clone = Object.assign(
-      Object.create(Object.getPrototypeOf(this)),
+      Object.create(Object.getPrototypeOf(this) as object) as Sprite,
       this
     );
 
     clone._project = this._project;
     clone.triggers = this.triggers.map(
-      trigger => new Trigger(trigger.trigger, trigger.options, trigger._script)
+      (trigger) =>
+        new Trigger(trigger.trigger, trigger.options, trigger._script)
     );
     clone.costumes = this.costumes;
     clone.sounds = this.sounds;
@@ -497,19 +580,20 @@ export class Sprite extends SpriteBase {
     clone._speechBubble = {
       text: "",
       style: "say",
-      timeout: null
+      timeout: null,
     };
 
     clone.effects = this.effects._clone();
 
     // Clones inherit audio effects from the original sprite, for some reason.
     // Couldn't explain it, but that's the behavior in Scratch 3.0.
-    let original = this;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let original: Sprite = this;
     while (original.parent) {
       original = original.parent;
     }
     clone.effectChain = original.effectChain.clone({
-      getNonPatchSoundList: clone.getSoundsPlayedByMe.bind(clone)
+      getNonPatchSoundList: clone.getSoundsPlayedByMe.bind(clone),
     });
 
     // Make a new audioEffects interface which acts on the cloned effect chain.
@@ -520,26 +604,29 @@ export class Sprite extends SpriteBase {
     this.clones.push(clone);
 
     // Trigger CLONE_START:
-    const triggers = clone.triggers.filter(tr =>
+    const triggers = clone.triggers.filter((tr) =>
       tr.matches(Trigger.CLONE_START, {}, clone)
     );
-    this._project._startTriggers(
-      triggers.map(trigger => ({ trigger, target: clone }))
+    void this._project?._startTriggers(
+      triggers.map((trigger) => ({ trigger, target: clone }))
     );
   }
 
   deleteThisClone() {
     if (this.parent === null) return;
 
-    this.parent.clones = this.parent.clones.filter(clone => clone !== this);
+    this.parent.clones = this.parent.clones.filter((clone) => clone !== this);
 
-    this._project.runningTriggers = this._project.runningTriggers.filter(
-      ({ target }) => target !== this
-    );
+    if (this._project) {
+      this._project.runningTriggers = this._project.runningTriggers.filter(
+        ({ target }) => target !== this
+      );
+    }
   }
 
-  andClones() {
-    return [this, ...this.clones.flatMap(clone => clone.andClones())];
+  // TODO: is this necessary now that the clone hierarchy seems to be flattened?
+  andClones(): Sprite[] {
+    return [this, ...this.clones.flatMap((clone) => clone.andClones())];
   }
 
   get direction() {
@@ -550,10 +637,10 @@ export class Sprite extends SpriteBase {
     this._direction = this.normalizeDeg(dir);
   }
 
-  goto(x, y) {
+  goto(x: number, y: number) {
     if (x === this.x && y === this.y) return;
 
-    if (this.penDown) {
+    if (this.penDown && this._project) {
       this._project.renderer.penLine(
         { x: this._x, y: this._y },
         { x, y },
@@ -582,7 +669,7 @@ export class Sprite extends SpriteBase {
     this.goto(this._x, y);
   }
 
-  move(dist) {
+  move(dist: number) {
     const moveDir = this.scratchToRad(this.direction);
 
     this.goto(
@@ -591,8 +678,8 @@ export class Sprite extends SpriteBase {
     );
   }
 
-  *glide(seconds, x, y) {
-    const interpolate = (a, b, t) => a + (b - a) * t;
+  *glide(seconds: number, x: number, y: number) {
+    const interpolate = (a: number, b: number, t: number) => a + (b - a) * t;
 
     const startTime = new Date();
     const startX = this._x;
@@ -600,10 +687,26 @@ export class Sprite extends SpriteBase {
 
     let t;
     do {
-      t = (new Date() - startTime) / (seconds * 1000);
+      t = (new Date().getTime() - startTime.getTime()) / (seconds * 1000);
       this.goto(interpolate(startX, x, t), interpolate(startY, y, t));
       yield;
     } while (t < 1);
+  }
+
+  moveAhead(value = Infinity) {
+    if (typeof value === "number") {
+      this._project?.changeSpriteLayer(this, value);
+    } else {
+      this._project?.changeSpriteLayer(this, 1, value);
+    }
+  }
+
+  moveBehind(value = Infinity) {
+    if (typeof value === "number") {
+      this._project?.changeSpriteLayer(this, -value);
+    } else {
+      this._project?.changeSpriteLayer(this, -1, value);
+    }
   }
 
   get penDown() {
@@ -611,7 +714,7 @@ export class Sprite extends SpriteBase {
   }
 
   set penDown(penDown) {
-    if (penDown) {
+    if (penDown && this._project) {
       this._project.renderer.penLine(
         { x: this.x, y: this.y },
         { x: this.x, y: this.y },
@@ -626,21 +729,23 @@ export class Sprite extends SpriteBase {
     return this._penColor;
   }
 
-  set penColor(color) {
+  set penColor(color: unknown) {
     if (color instanceof Color) {
       this._penColor = color;
     } else {
       console.error(
-        `${color} is not a valid penColor. Try using the Color class!`
+        `${String(color)} is not a valid penColor. Try using the Color class!`
       );
     }
   }
 
   stamp() {
-    this._project.renderer.stamp(this);
+    this._project?.renderer.stamp(this);
   }
 
-  touching(target, fast = false) {
+  touching(target: "mouse" | "edge" | Sprite | Stage, fast = false): boolean {
+    if (!this._project || !this.mouse || !this.stage) return false;
+
     if (typeof target === "string") {
       switch (target) {
         case "mouse":
@@ -648,7 +753,7 @@ export class Sprite extends SpriteBase {
             this,
             {
               x: this.mouse.x,
-              y: this.mouse.y
+              y: this.mouse.y,
             },
             fast
           );
@@ -665,6 +770,7 @@ export class Sprite extends SpriteBase {
         }
         default:
           console.error(
+            // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
             `Cannot find target "${target}" in "touching". Did you mean to pass a sprite class instead?`
           );
           return false;
@@ -676,9 +782,10 @@ export class Sprite extends SpriteBase {
     return this._project.renderer.checkSpriteCollision(this, target, fast);
   }
 
-  colorTouching(color, target) {
+  colorTouching(color: Color, target: Sprite | Stage): boolean {
     if (typeof target === "string") {
       console.error(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `Cannot find target "${target}" in "touchingColor". Did you mean to pass a sprite class instead?`
       );
       return false;
@@ -686,6 +793,7 @@ export class Sprite extends SpriteBase {
 
     if (typeof color === "string") {
       console.error(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `Cannot find color "${color}" in "touchingColor". Did you mean to pass a Color instance instead?`
       );
       return false;
@@ -693,10 +801,10 @@ export class Sprite extends SpriteBase {
 
     if (target instanceof Color) {
       // "Color is touching color"
-      return this._project.renderer.checkColorCollision(this, target, color);
+      return !!this._project?.renderer.checkColorCollision(this, target, color);
     } else {
       // "Color is touching sprite" (not implemented in Scratch!)
-      return this._project.renderer.checkSpriteCollision(
+      return !!this._project?.renderer.checkSpriteCollision(
         this,
         target,
         false,
@@ -705,77 +813,88 @@ export class Sprite extends SpriteBase {
     }
   }
 
-  say(text) {
-    clearTimeout(this._speechBubble.timeout);
+  say(text: string) {
+    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "say", timeout: null };
   }
 
-  think(text) {
-    clearTimeout(this._speechBubble.timeout);
+  think(text: string) {
+    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "think", timeout: null };
   }
 
-  *sayAndWait(text, seconds) {
-    clearTimeout(this._speechBubble.timeout);
+  *sayAndWait(text: string, seconds: number) {
+    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
 
+    const speechBubble: SpeechBubble = { text, style: "say", timeout: null };
     let done = false;
-    const timeout = setTimeout(() => {
-      this._speechBubble.text = "";
-      this.timeout = null;
+    const timeout = window.setTimeout(() => {
+      speechBubble.text = "";
+      speechBubble.timeout = null;
       done = true;
     }, seconds * 1000);
 
-    this._speechBubble = { text, style: "say", timeout };
+    speechBubble.timeout = timeout;
+    this._speechBubble = speechBubble;
     while (!done) yield;
   }
 
-  *thinkAndWait(text, seconds) {
-    clearTimeout(this._speechBubble.timeout);
+  *thinkAndWait(text: string, seconds: number) {
+    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
 
+    const speechBubble: SpeechBubble = { text, style: "think", timeout: null };
     let done = false;
-    const timeout = setTimeout(() => {
-      this._speechBubble.text = "";
-      this.timeout = null;
+    const timeout = window.setTimeout(() => {
+      speechBubble.text = "";
+      speechBubble.timeout = null;
       done = true;
     }, seconds * 1000);
 
-    this._speechBubble = { text, style: "think", timeout };
+    speechBubble.timeout = timeout;
+    this._speechBubble = speechBubble;
     while (!done) yield;
   }
+
+  static RotationStyle = Object.freeze({
+    ALL_AROUND: Symbol("ALL_AROUND"),
+    LEFT_RIGHT: Symbol("LEFT_RIGHT"),
+    DONT_ROTATE: Symbol("DONT_ROTATE"),
+  });
 }
 
-Sprite.RotationStyle = Object.freeze({
-  ALL_AROUND: Symbol("ALL_AROUND"),
-  LEFT_RIGHT: Symbol("LEFT_RIGHT"),
-  DONT_ROTATE: Symbol("DONT_ROTATE")
-});
+type StageInitialConditions = {
+  width?: number;
+  height?: number;
+} & InitialConditions;
 
-export class Stage extends SpriteBase {
-  constructor(initialConditions, ...args) {
-    super(initialConditions, ...args);
+export class Stage<Vars extends object = object> extends SpriteBase<Vars> {
+  readonly width!: number;
+  readonly height!: number;
+  __counter: number;
+
+  constructor(initialConditions: StageInitialConditions, vars: Vars) {
+    super(initialConditions, vars);
 
     // Use defineProperties to make these non-writable.
     // Changing the width and height of the stage after initialization isn't supported.
     Object.defineProperties(this, {
       width: {
         value: initialConditions.width || 480,
-        enumerable: true
+        enumerable: true,
       },
       height: {
         value: initialConditions.height || 360,
-        enumerable: true
-      }
+        enumerable: true,
+      },
     });
-
-    this.name = "Stage";
 
     // For obsolete counter blocks.
     this.__counter = 0;
   }
 
   fireBackdropChanged() {
-    return this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
-      backdrop: this.costume.name
+    return this._project?.fireTrigger(Trigger.BACKDROP_CHANGED, {
+      backdrop: this.costume.name,
     });
   }
 }
