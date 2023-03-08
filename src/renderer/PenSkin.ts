@@ -1,6 +1,7 @@
 import Skin from "./Skin";
 import ShaderManager from "./ShaderManager";
 import type Color from "../Color";
+import type { RGBANormalized } from "../Color";
 import type Renderer from "../Renderer";
 import type { FramebufferInfo } from "../Renderer";
 
@@ -8,7 +9,7 @@ export default class PenSkin extends Skin {
   public _framebufferInfo: FramebufferInfo;
   private _lastPenState: {
     size: number;
-    color: [number, number, number, number];
+    color: RGBANormalized;
   };
 
   public constructor(renderer: Renderer, width: number, height: number) {
