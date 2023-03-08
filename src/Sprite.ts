@@ -157,7 +157,11 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   public set costumeNumber(number) {
-    this._costumeNumber = this.wrapClamp(number, 1, this.costumes.length);
+    if (Number.isFinite(number)) {
+      this._costumeNumber = this.wrapClamp(number, 1, this.costumes.length);
+    } else {
+      this._costumeNumber = 0;
+    }
   }
 
   public set costume(costume: number | string | Costume) {
@@ -168,7 +172,7 @@ abstract class SpriteBase<Vars extends object = object> {
       }
     }
     if (typeof costume === "number") {
-      if (!isNaN(costume)) this.costumeNumber = costume;
+      this.costumeNumber = costume;
       return;
     }
     if (typeof costume === "string") {
@@ -208,10 +212,7 @@ abstract class SpriteBase<Vars extends object = object> {
           }
 
           default: {
-            if (
-              Number.isFinite(Number(costume)) &&
-              costume.trim().length !== 0
-            ) {
+            if (!Number.isNaN(Number(costume)) && costume.trim().length !== 0) {
               this.costumeNumber = Number(costume);
             }
           }
