@@ -903,4 +903,13 @@ export class Stage<Vars extends object = object> extends SpriteBase<Vars> {
       backdrop: this.costume.name,
     });
   }
+
+  public get costumeNumber(): number {
+    return super.costumeNumber;
+  }
+
+  public set costumeNumber(number) {
+    super.costumeNumber = number;
+    void this.fireBackdropChanged();
+  }
 }
