@@ -701,7 +701,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     } while (t < 1);
   }
 
-  public moveAhead(value = Infinity): void {
+  public moveAhead(value: number | Sprite = Infinity): void {
     if (typeof value === "number") {
       this._project.changeSpriteLayer(this, value);
     } else {
@@ -709,7 +709,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
     }
   }
 
-  public moveBehind(value = Infinity): void {
+  public moveBehind(value: number | Sprite = Infinity): void {
     if (typeof value === "number") {
       this._project.changeSpriteLayer(this, -value);
     } else {
