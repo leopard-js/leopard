@@ -97,12 +97,10 @@ type InitialConditions = {
 };
 
 abstract class SpriteBase<Vars extends object = object> {
-  // TODO: make private
-  public _project!: Project;
+  protected _project!: Project;
 
   protected _costumeNumber: number;
-  // TODO: make private
-  public _layerOrder: number;
+  protected _layerOrder: number;
   public triggers: Trigger[];
   public watchers: Partial<Record<string, Watcher>>;
   protected costumes: Costume[];
