@@ -90,6 +90,16 @@ function hsvToRGB(
   };
 }
 
+/**
+ * RGBA color, with each component going from 0 to 255. Components may still be decimal.
+ */
+export type RGBA = [number, number, number, number];
+
+/**
+ * RGBA color, with each component going from 0 to 1.
+ */
+export type RGBANormalized = [number, number, number, number];
+
 export default class Color {
   private _h = 0;
   private _s = 0;
@@ -221,12 +231,12 @@ export default class Color {
     return `rgb(${rgb.join(", ")})`;
   }
 
-  public toRGBA(): [number, number, number, number] {
+  public toRGBA(): RGBA {
     const rgb = hsvToRGB(this._h, this._s, this._v);
     return [rgb.r, rgb.g, rgb.b, this._a * 255];
   }
 
-  public toRGBANormalized(): [number, number, number, number] {
+  public toRGBANormalized(): RGBANormalized {
     const rgb = hsvToRGB(this._h, this._s, this._v);
     return [rgb.r / 255, rgb.g / 255, rgb.b / 255, this._a];
   }

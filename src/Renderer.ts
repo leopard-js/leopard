@@ -11,6 +11,7 @@ import type Skin from "./renderer/Skin";
 
 import Costume from "./Costume";
 import type Color from "./Color";
+import type { RGBANormalized } from "./Color";
 import type Project from "./Project";
 import { Sprite, Stage, _EffectMap, SpeechBubble } from "./Sprite";
 
@@ -36,7 +37,7 @@ const colorToId = ([r, g, b]: [number, number, number] | Uint8Array): number =>
 type RenderSpriteOptions = {
   drawMode: DrawMode;
   effectMask?: number;
-  colorMask?: [number, number, number, number];
+  colorMask?: RGBANormalized;
   renderSpeechBubbles?: boolean;
   spriteColorId?: (target: Sprite | Stage) => number;
 };
@@ -448,7 +449,7 @@ export default class Renderer {
     scale: number,
     effects?: _EffectMap,
     effectMask?: number,
-    colorMask?: [number, number, number, number],
+    colorMask?: RGBANormalized,
     spriteColorId?: number
   ): void {
     const gl = this.gl;
@@ -572,7 +573,7 @@ export default class Renderer {
       drawMode: DrawMode;
       renderSpeechBubbles: boolean;
       effectMask: number;
-      colorMask?: [number, number, number, number];
+      colorMask?: RGBANormalized;
     } & RenderSpriteOptions = {
       drawMode: ShaderManager.DrawModes.SILHOUETTE,
       renderSpeechBubbles: false,
