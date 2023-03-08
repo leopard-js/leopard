@@ -8,10 +8,10 @@ export default class Sound {
   private audioBuffer: AudioBuffer | null;
   private source: AudioBufferSourceNode | null;
   private playbackRate: number;
-  private target?: AudioNode;
+  private target: AudioNode | undefined;
 
-  private _markDone?: () => void;
-  private _doneDownloading?: (fromMoreRecentCall: boolean) => void;
+  private _markDone: (() => void) | undefined;
+  private _doneDownloading: ((fromMoreRecentCall: boolean) => void) | undefined;
 
   private static _audioContext: AudioContext | undefined;
   public constructor(name: string, url: string) {
