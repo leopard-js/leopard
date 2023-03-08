@@ -372,9 +372,7 @@ export class EffectChain {
   private effectValues!: Record<EffectName, number>;
   private effectNodes: {
     [T in typeof effectDescriptors[number] as T["name"]]?: ReturnType<
-      // We need to infer this type here, I think
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      T extends PatchDescriptor<string, infer _V> ? T["makeNodes"] : never
+      T extends PatchDescriptor<string, any> ? T["makeNodes"] : never
     >;
   };
   private target?: AudioNode;
