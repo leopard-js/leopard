@@ -14,7 +14,6 @@ export default abstract class Skin {
   }
 
   // Get the skin's texture for a given (screen-space) scale.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public abstract getTexture(scale: number): WebGLTexture | null;
 
   // Get the skin image's ImageData at a given (screen-space) scale.
