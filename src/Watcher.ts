@@ -1,8 +1,53 @@
 import Color from "./Color";
 
+type WatcherValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | (string | number | boolean | null | undefined)[];
+
+type WatcherOptions = {
+  value?: () => WatcherValue;
+  setValue?: (value: number) => void;
+  label: string;
+  style?: "normal" | "large" | "slider";
+  visible?: boolean;
+  color?: Color;
+  step?: number;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+};
+
 export default class Watcher {
+  value: () => WatcherValue;
+  setValue: (value: number) => void;
+  _previousValue: unknown | symbol;
+  color: Color;
+  _label!: string;
+  _x!: number;
+  _y!: number;
+  _width: number | undefined;
+  _height: number | undefined;
+  _min!: number;
+  _max!: number;
+  _step!: number;
+  _style!: "normal" | "large" | "slider";
+  _visible!: boolean;
+
+  _dom!: {
+    node: HTMLElement;
+    label: HTMLElement;
+    value: HTMLElement;
+    slider: HTMLInputElement;
+  };
+
   constructor({
     value = () => "",
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
     setValue = () => {},
     label,
     style = "normal",
@@ -14,8 +59,8 @@ export default class Watcher {
     x = -240,
     y = 180,
     width,
-    height
-  }) {
+    height,
+  }: WatcherOptions) {
     this.initializeDOM();
 
     this.value = value;
@@ -34,6 +79,9 @@ export default class Watcher {
     this.y = y;
     this.width = width;
     this.height = height;
+    this.min = 0;
+    this.max = 100;
+    this.step = 1;
   }
 
   initializeDOM() {
@@ -52,8 +100,8 @@ export default class Watcher {
     slider.type = "range";
     slider.classList.add("leopard__watcherSlider");
 
-    slider.addEventListener("input", event => {
-      this.setValue(Number(event.target.value));
+    slider.addEventListener("input", () => {
+      this.setValue(Number(slider.value));
     });
 
     node.append(slider);
@@ -61,7 +109,7 @@ export default class Watcher {
     this._dom = { node, label, value, slider };
   }
 
-  updateDOM(renderTarget) {
+  updateDOM(renderTarget: HTMLElement) {
     if (renderTarget && !renderTarget.contains(this._dom.node)) {
       renderTarget.append(this._dom.node);
     }
@@ -86,11 +134,11 @@ export default class Watcher {
 
           const indexElem = document.createElement("div");
           indexElem.classList.add("leopard__watcherListItemIndex");
-          indexElem.innerText = index;
+          indexElem.innerText = String(index);
 
           const contentElem = document.createElement("div");
           contentElem.classList.add("leopard__watcherListItemContent");
-          contentElem.innerText = item.toString();
+          contentElem.innerText = String(item);
 
           itemElem.append(indexElem);
           itemElem.append(contentElem);
@@ -100,7 +148,7 @@ export default class Watcher {
     } else {
       // Render like a normal variable
       if (value !== this._previousValue) {
-        this._dom.value.innerText = value.toString();
+        this._dom.value.innerText = String(value);
       }
     }
 
@@ -112,7 +160,8 @@ export default class Watcher {
 
     // Set slider value
     if (this._style === "slider") {
-      this._dom.slider.value = value;
+      // TODO: handle non-numeric slider values
+      this._dom.slider.value = String(value);
     }
 
     // Update color
@@ -158,7 +207,7 @@ export default class Watcher {
     if (width) {
       this._dom.node.style.width = `${width}px`;
     } else {
-      this._dom.node.style.width = undefined;
+      this._dom.node.style.removeProperty("width");
     }
   }
 
@@ -170,7 +219,7 @@ export default class Watcher {
     if (height) {
       this._dom.node.style.height = `${height}px`;
     } else {
-      this._dom.node.style.height = undefined;
+      this._dom.node.style.removeProperty("height");
     }
   }
 
@@ -193,20 +242,20 @@ export default class Watcher {
     );
   }
 
-  get min() {
+  get min(): number {
     return this._min;
   }
-  set min(min) {
+  set min(min: number) {
     this._min = min;
-    this._dom.slider.min = min;
+    this._dom.slider.min = String(min);
   }
 
-  get max() {
+  get max(): number {
     return this._max;
   }
-  set max(max) {
+  set max(max: number) {
     this._max = max;
-    this._dom.slider.max = max;
+    this._dom.slider.max = String(max);
   }
 
   get step() {
@@ -214,7 +263,7 @@ export default class Watcher {
   }
   set step(step) {
     this._step = step;
-    this._dom.slider.step = step;
+    this._dom.slider.step = String(step);
   }
 
   get label() {

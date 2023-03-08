@@ -1,7 +1,12 @@
+import type Renderer from "../Renderer.js";
 import Skin from "./Skin.js";
 
 export default class BitmapSkin extends Skin {
-  constructor(renderer, image) {
+  _image: HTMLImageElement;
+  _imageData: ImageData | null;
+  _texture: WebGLTexture | null;
+
+  constructor(renderer: Renderer, image: HTMLImageElement) {
     super(renderer);
 
     this._image = image;
@@ -20,6 +25,7 @@ export default class BitmapSkin extends Skin {
       canvas.width = this._image.naturalWidth || this._image.width;
       canvas.height = this._image.naturalHeight || this._image.height;
       const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
       ctx.drawImage(this._image, 0, 0);
       // Cache image data so we can reuse it
       this._imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);

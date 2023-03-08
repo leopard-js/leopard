@@ -1,15 +1,20 @@
-import Matrix from "./Matrix.js";
+import Matrix, { MatrixType } from "./Matrix.js";
 
 import Rectangle from "./Rectangle.js";
 import effectTransformPoint from "./effectTransformPoint.js";
 import { effectBitmasks } from "./effectInfo.js";
 
+import type Renderer from "../Renderer.js";
 import { Sprite, Stage } from "../Sprite.js";
 
 // Returns the determinant of two vectors, the vector from A to B and the vector
 // from A to C. If positive, it means AC is counterclockwise from AB.
 // If negative, AC is clockwise from AB.
-const determinant = (a, b, c) => {
+const determinant = (
+  a: [number, number],
+  b: [number, number],
+  c: [number, number]
+) => {
   return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
 };
 
@@ -18,18 +23,31 @@ const determinant = (a, b, c) => {
 // TODO: store renderer-specific data on the sprite and have *it* set a
 // "transform changed" flag.
 class SpriteTransformDiff {
-  constructor(sprite) {
+  _sprite: Sprite | Stage;
+  _unset: boolean;
+
+  _lastX!: Sprite["x"] | undefined;
+  _lastY!: Sprite["y"] | undefined;
+  _lastRotation!: Sprite["direction"] | undefined;
+  _lastRotationStyle!: Sprite["rotationStyle"] | undefined;
+  _lastSize!: Sprite["size"] | undefined;
+  _lastCostume!: Sprite["costume"];
+  _lastCostumeLoaded!: boolean;
+
+  constructor(sprite: Sprite | Stage) {
     this._sprite = sprite;
     this._unset = true;
     this.update();
   }
 
   update() {
-    this._lastX = this._sprite.x;
-    this._lastY = this._sprite.y;
-    this._lastRotation = this._sprite.direction;
-    this._lastRotationStyle = this._sprite.rotationStyle;
-    this._lastSize = this._sprite.size;
+    if (this._sprite instanceof Sprite) {
+      this._lastX = this._sprite.x;
+      this._lastY = this._sprite.y;
+      this._lastRotation = this._sprite.direction;
+      this._lastRotationStyle = this._sprite.rotationStyle;
+      this._lastSize = this._sprite.size;
+    }
     this._lastCostume = this._sprite.costume;
     this._lastCostumeLoaded = this._sprite.costume.img.complete;
     this._unset = false;
@@ -37,11 +55,12 @@ class SpriteTransformDiff {
 
   get changed() {
     return (
-      this._lastX !== this._sprite.x ||
-      this._lastY !== this._sprite.y ||
-      this._lastRotation !== this._sprite.direction ||
-      this._lastRotationStyle !== this._sprite.rotationStyle ||
-      this._lastSize !== this._sprite.size ||
+      (this._sprite instanceof Sprite &&
+        (this._lastX !== this._sprite.x ||
+          this._lastY !== this._sprite.y ||
+          this._lastRotation !== this._sprite.direction ||
+          this._lastRotationStyle !== this._sprite.rotationStyle ||
+          this._lastSize !== this._sprite.size)) ||
       this._lastCostume !== this._sprite.costume ||
       this._lastCostumeLoaded !== this._sprite.costume.img.complete ||
       this._unset
@@ -51,7 +70,23 @@ class SpriteTransformDiff {
 
 // Renderer-specific data for an instance (the original or a clone) of a Sprite
 export default class Drawable {
-  constructor(renderer, sprite) {
+  _renderer: Renderer;
+  _sprite: Sprite | Stage;
+  _matrix: MatrixType;
+  _matrixDiff: SpriteTransformDiff;
+
+  _convexHullImageData: ImageData | null;
+  _convexHullMosaic: number;
+  _convexHullPixelate: number;
+  _convexHullWhirl: number;
+  _convexHullFisheye: number;
+  _convexHullPoints: [number, number][] | null;
+
+  _aabb: Rectangle;
+  _tightBoundingBox: Rectangle;
+  _convexHullMatrixDiff: SpriteTransformDiff;
+
+  constructor(renderer: Renderer, sprite: Sprite | Stage) {
     this._renderer = renderer;
     this._sprite = sprite;
 
@@ -97,11 +132,19 @@ export default class Drawable {
     const convexHullPoints = this._calculateConvexHull();
     // Maybe the costume isn't loaded yet. Return a 0x0 bounding box around the
     // center of the sprite.
-    if (convexHullPoints === null) {
+    if (convexHullPoints === null || this._convexHullImageData === null) {
+      if (this._sprite instanceof Stage) {
+        return Rectangle.fromBounds(
+          this._sprite.width / -2,
+          this._sprite.width / 2,
+          this._sprite.height / -2,
+          this._sprite.height / 2
+        );
+      }
       return Rectangle.fromBounds(
         this._sprite.x,
-        this._sprite.y,
         this._sprite.x,
+        this._sprite.y,
         this._sprite.y,
         this._tightBoundingBox
       );
@@ -111,7 +154,7 @@ export default class Drawable {
     let right = -Infinity;
     let top = -Infinity;
     let bottom = Infinity;
-    const transformedPoint = [0, 0];
+    const transformedPoint: [number, number] = [0, 0];
 
     // Each convex hull point is the center of a pixel. However, said pixels
     // each have area. We must take into account the size of the pixels when
@@ -175,14 +218,14 @@ export default class Drawable {
         effectBitmasks.whirl |
         effectBitmasks.fisheye);
 
-    const leftHull = [];
-    const rightHull = [];
+    const leftHull: [number, number][] = [];
+    const rightHull: [number, number][] = [];
 
     const { width, height, data } = imageData;
 
-    const pixelPos = [0, 0];
-    const effectPos = [0, 0];
-    let currentPoint;
+    const pixelPos: [number, number] = [0, 0];
+    const effectPos: [number, number] = [0, 0];
+    let currentPoint: [number, number] | undefined;
     // Not Scratch-space: y increases as we go downwards
     // Loop over all rows of pixels in the costume, starting at the top
     for (let y = 0; y < height; y++) {
@@ -208,7 +251,7 @@ export default class Drawable {
       }
 
       // There are no opaque pixels on this row. Go to the next one.
-      if (x >= width) continue;
+      if (x >= width || !currentPoint) continue;
 
       // If appending the current point to the left hull makes a
       // counterclockwise turn, we want to append the current point to it.

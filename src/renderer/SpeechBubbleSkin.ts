@@ -1,19 +1,34 @@
 import Skin from "./Skin.js";
+import type Renderer from "../Renderer.js";
+import type { SpeechBubble } from "../Sprite.js";
 
 const bubbleStyle = {
   maxLineWidth: 170,
   minWidth: 50,
   strokeWidth: 4,
   padding: 12,
-  tailHeight: 12
-};
+  tailHeight: 12,
+} as const;
 
 // TODO: multiline speech bubbles
 export default class SpeechBubbleSkin extends Skin {
-  constructor(renderer, bubble) {
+  _canvas: HTMLCanvasElement;
+  _ctx: CanvasRenderingContext2D;
+  _texture: WebGLTexture;
+  _bubble: SpeechBubble;
+  _flipped: boolean;
+  _rendered: boolean;
+  _renderedScale: number;
+  offsetX: number;
+  offsetY: number;
+
+  constructor(renderer: Renderer, bubble: SpeechBubble) {
     super(renderer);
 
     this._canvas = document.createElement("canvas");
+    const ctx = this._canvas.getContext("2d");
+    if (ctx === null) throw new Error("Could not get canvas context");
+    this._ctx = ctx;
     this._texture = this._makeTexture(null, this.gl.LINEAR);
     this._bubble = bubble;
     this._flipped = false;
@@ -24,27 +39,32 @@ export default class SpeechBubbleSkin extends Skin {
     this.height = 0;
     this.offsetX = -bubbleStyle.strokeWidth / 2;
     this.offsetY = this.offsetX + bubbleStyle.tailHeight;
-
-    this._renderBubble(this._bubble);
   }
 
   // To ensure proper text measurement and drawing, it's necessary to restyle the canvas after resizing it.
   _restyleCanvas() {
-    const ctx = this._canvas.getContext("2d");
+    const ctx = this._ctx;
     ctx.font = "16px sans-serif";
     ctx.textBaseline = "hanging";
   }
 
-  set flipped(flipped) {
+  set flipped(flipped: boolean) {
     this._flipped = flipped;
     this._rendered = false;
   }
 
-  _renderBubble(bubble, scale) {
+  _renderBubble(bubble: SpeechBubble, scale: number) {
     const canvas = this._canvas;
-    const ctx = canvas.getContext("2d");
+    const ctx = this._ctx;
 
-    const renderBubbleBackground = (x, y, w, h, r, style) => {
+    const renderBubbleBackground = (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number,
+      style: "say" | "think"
+    ) => {
       if (r > w / 2) r = w / 2;
       if (r > h / 2) r = h / 2;
       if (r < 0) return;
@@ -124,7 +144,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._renderedScale = scale;
   }
 
-  getTexture(scale) {
+  getTexture(scale: number) {
     if (!this._rendered || this._renderedScale !== scale) {
       this._renderBubble(this._bubble, scale);
       const gl = this.gl;
