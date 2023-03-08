@@ -13,14 +13,17 @@ export default abstract class Skin {
     this.height = 0;
   }
 
-  // Get the skin's texture for a given (screen-space) scale.
+  /**
+   * Get the skin's texture at a given screen-space scale.
+   * @param scale The screen-space scale factor for the texture, as a ratio of screen pixels to texture pixels.
+   */
   public abstract getTexture(scale: number): WebGLTexture | null;
 
-  // Get the skin image's ImageData at a given (screen-space) scale.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public getImageData(scale: number): ImageData | null {
-    throw new Error("getImageData not implemented for this skin type");
-  }
+  /**
+   * Gets the raster ImageData for a skin's texture at a given screen-space scale.
+   * @param scale The screen-space scale factor for the texture, as a ratio of screen pixels to texture pixels.
+   */
+  public abstract getImageData(scale: number): ImageData | null;
 
   // Helper function to create a texture from an image and handle all the boilerplate.
   protected _makeTexture(

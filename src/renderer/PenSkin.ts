@@ -42,6 +42,10 @@ export default class PenSkin extends Skin {
     return this._framebufferInfo.texture;
   }
 
+  public getImageData(): ImageData | null {
+    return null;
+  }
+
   public penLine(
     pt1: { x: number; y: number },
     pt2: { x: number; y: number },

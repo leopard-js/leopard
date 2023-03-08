@@ -162,6 +162,16 @@ export default class SpeechBubbleSkin extends Skin {
     return this._texture;
   }
 
+  public getImageData(scale: number): ImageData | null {
+    this.getTexture(scale);
+    return this._ctx.getImageData(
+      0,
+      0,
+      this._canvas.width,
+      this._canvas.height
+    );
+  }
+
   public destroy(): void {
     this.gl.deleteTexture(this._texture);
   }
