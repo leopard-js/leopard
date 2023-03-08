@@ -1,4 +1,4 @@
-import type Renderer from "../Renderer.js";
+import type Renderer from "../Renderer";
 
 export default abstract class Skin {
   renderer: Renderer;

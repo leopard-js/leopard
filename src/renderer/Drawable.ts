@@ -1,12 +1,12 @@
-import Matrix, { MatrixType } from "./Matrix.js";
+import Matrix, { MatrixType } from "./Matrix";
 
-import Rectangle from "./Rectangle.js";
-import effectTransformPoint from "./effectTransformPoint.js";
-import { effectBitmasks } from "./effectInfo.js";
-import type Skin from "./Skin.js";
+import Rectangle from "./Rectangle";
+import effectTransformPoint from "./effectTransformPoint";
+import { effectBitmasks } from "./effectInfo";
+import type Skin from "./Skin";
 
-import type Renderer from "../Renderer.js";
-import { Sprite, Stage } from "../Sprite.js";
+import type Renderer from "../Renderer";
+import { Sprite, Stage } from "../Sprite";
 
 // Returns the determinant of two vectors, the vector from A to B and the vector
 // from A to C. If positive, it means AC is counterclockwise from AB.

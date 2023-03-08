@@ -1,5 +1,5 @@
-import type Renderer from "../Renderer.js";
-import Skin from "./Skin.js";
+import type Renderer from "../Renderer";
+import Skin from "./Skin";
 
 export default class BitmapSkin extends Skin {
   _image: HTMLImageElement;

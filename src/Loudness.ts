@@ -1,4 +1,4 @@
-import Sound from "./Sound.js";
+import Sound from "./Sound";
 
 const IGNORABLE_ERROR = ["NotAllowedError", "NotFoundError"];
 

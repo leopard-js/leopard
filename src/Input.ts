@@ -1,4 +1,4 @@
-import type { Stage } from "./Sprite.js";
+import type { Stage } from "./Sprite";
 
 type Mouse = { x: number; y: number; down: boolean };
 

@@ -1,6 +1,6 @@
-import { SpriteShader, PenLineShader } from "./Shaders.js";
-import { effectNames, effectBitmasks } from "./effectInfo.js";
-import type Renderer from "../Renderer.js";
+import { SpriteShader, PenLineShader } from "./Shaders";
+import { effectNames, effectBitmasks } from "./effectInfo";
+import type Renderer from "../Renderer";
 
 // Everything contained in a shader. It contains both the program, and the locations of the shader inputs.
 class Shader {

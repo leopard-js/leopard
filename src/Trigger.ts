@@ -1,4 +1,4 @@
-import type { Sprite, Stage } from "./Sprite.js";
+import type { Sprite, Stage } from "./Sprite";
 
 const GREEN_FLAG = Symbol("GREEN_FLAG");
 const KEY_PRESSED = Symbol("KEY_PRESSED");
