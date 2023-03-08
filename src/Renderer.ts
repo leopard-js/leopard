@@ -303,7 +303,7 @@ export default class Renderer {
     const shouldIncludeLayer = (layer: Sprite | Stage | PenSkin): boolean =>
       !(
         (shouldRestrictLayers && !layers.has(layer)) ||
-        (typeof options.filter === "function" && !options.filter(layer))
+        (options.filter && !options.filter(layer))
       );
 
     // Stage
