@@ -216,7 +216,7 @@ export default class Project {
   }
 
   // TODO: add a way to start clone triggers from fireTrigger then make this private
-  public _startTriggers(triggers: TriggerWithTarget[]): Promise<void> {
+  public async _startTriggers(triggers: TriggerWithTarget[]): Promise<void> {
     // Only add these triggers to this.runningTriggers if they're not already there.
     // TODO: if the triggers are already running, they'll be restarted but their execution order is unchanged.
     // Does that match Scratch's behavior?
@@ -231,11 +231,9 @@ export default class Project {
         this.runningTriggers.push(trigger);
       }
     }
-    return Promise.all(
-      triggers.map(({ trigger, target }) => {
-        return trigger.start(target);
-      })
-    ).then();
+    await Promise.all(
+      triggers.map(({ trigger, target }) => trigger.start(target))
+    );
   }
 
   public get spritesAndClones(): Sprite[] {
