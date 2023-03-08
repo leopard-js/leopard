@@ -1,4 +1,4 @@
-import type { MatrixType } from "./Matrix.js";
+import type { MatrixType } from "./Matrix";
 
 export default class Rectangle {
   left: number;

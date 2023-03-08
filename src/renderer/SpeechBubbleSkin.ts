@@ -1,6 +1,6 @@
-import Skin from "./Skin.js";
-import type Renderer from "../Renderer.js";
-import type { SpeechBubble } from "../Sprite.js";
+import Skin from "./Skin";
+import type Renderer from "../Renderer";
+import type { SpeechBubble } from "../Sprite";
 
 const bubbleStyle = {
   maxLineWidth: 170,

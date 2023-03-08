@@ -1,13 +1,13 @@
-import Color from "./Color.js";
-import Trigger from "./Trigger.js";
-import Sound, { EffectChain, AudioEffectMap } from "./Sound.js";
-import Costume from "./Costume.js";
-import type { Mouse } from "./Input.js";
-import type Project from "./Project.js";
-import type Watcher from "./Watcher.js";
-import type { Yielding } from "./lib/yielding.js";
+import Color from "./Color";
+import Trigger from "./Trigger";
+import Sound, { EffectChain, AudioEffectMap } from "./Sound";
+import Costume from "./Costume";
+import type { Mouse } from "./Input";
+import type Project from "./Project";
+import type Watcher from "./Watcher";
+import type { Yielding } from "./lib/yielding";
 
-import { effectNames } from "./renderer/effectInfo.js";
+import { effectNames } from "./renderer/effectInfo";
 
 type Effects = {
   [x in typeof effectNames[number]]: number;
