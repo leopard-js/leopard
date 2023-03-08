@@ -1,7 +1,8 @@
-const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+const clamp = (n: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, n));
 
 // https://www.rapidtables.com/convert/color/rgb-to-hsv.html
-function rgbToHSV(r, g, b) {
+function rgbToHSV(r: number, g: number, b: number) {
   r /= 255;
   g /= 255;
   b /= 255;
@@ -26,17 +27,17 @@ function rgbToHSV(r, g, b) {
     s = delta / max;
   }
 
-  let v = max;
+  const v = max;
 
   return {
     h: h * 100,
     s: s * 100,
-    v: v * 100
+    v: v * 100,
   };
 }
 
 // https://www.rapidtables.com/convert/color/hsv-to-rgb.html
-function hsvToRGB(h, s, v) {
+function hsvToRGB(h: number, s: number, v: number) {
   h = (h / 100) * 360;
   s /= 100;
   v /= 100;
@@ -73,11 +74,16 @@ function hsvToRGB(h, s, v) {
   return {
     r: r * 255,
     g: g * 255,
-    b: b * 255
+    b: b * 255,
   };
 }
 
 export default class Color {
+  _h = 0;
+  _s = 0;
+  _v = 0;
+  _a = 1;
+
   constructor(h = 0, s = 0, v = 0, a = 1) {
     this.h = h;
     this.s = s;
@@ -85,16 +91,16 @@ export default class Color {
     this.a = a;
   }
 
-  static rgb(r, g, b, a = 1) {
+  static rgb(r: number, g: number, b: number, a = 1) {
     const { h, s, v } = rgbToHSV(r, g, b);
     return new Color(h, s, v, a);
   }
 
-  static hsv(h, s, v, a = 1) {
+  static hsv(h: number, s: number, v: number, a = 1) {
     return new Color(h, s, v, a);
   }
 
-  static num(n) {
+  static num(n: number | string) {
     n = Number(n);
 
     // Match Scratch rgba system
@@ -162,7 +168,7 @@ export default class Color {
     this._v = clamp(v, 0, 100);
   }
 
-  _setRGB(r, g, b) {
+  _setRGB(r: number, g: number, b: number) {
     r = clamp(r, 0, 255);
     g = clamp(g, 0, 255);
     b = clamp(b, 0, 255);
@@ -175,7 +181,7 @@ export default class Color {
   }
 
   toHexString(forceIncludeAlpha = false) {
-    const toHexDigits = n => {
+    const toHexDigits = (n: number) => {
       n = clamp(Math.round(n), 0, 255);
 
       let str = n.toString(16);
@@ -203,12 +209,12 @@ export default class Color {
     return `rgb(${rgb.join(", ")})`;
   }
 
-  toRGBA() {
+  toRGBA(): [number, number, number, number] {
     const rgb = hsvToRGB(this._h, this._s, this._v);
     return [rgb.r, rgb.g, rgb.b, this._a * 255];
   }
 
-  toRGBANormalized() {
+  toRGBANormalized(): [number, number, number, number] {
     const rgb = hsvToRGB(this._h, this._s, this._v);
     return [rgb.r / 255, rgb.g / 255, rgb.b / 255, this._a];
   }

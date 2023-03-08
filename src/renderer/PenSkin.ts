@@ -1,8 +1,17 @@
 import Skin from "./Skin.js";
 import ShaderManager from "./ShaderManager.js";
+import type Color from "../Color.js";
+import type Renderer from "../Renderer.js";
+import type { FramebufferInfo } from "../Renderer.js";
 
 export default class PenSkin extends Skin {
-  constructor(renderer, width, height) {
+  _framebufferInfo: FramebufferInfo;
+  _lastPenState: {
+    size: number;
+    color: [number, number, number, number];
+  };
+
+  constructor(renderer: Renderer, width: number, height: number) {
     super(renderer);
     this.width = width;
     this.height = height;
@@ -16,7 +25,7 @@ export default class PenSkin extends Skin {
 
     this._lastPenState = {
       size: 0,
-      color: [0, 0, 0, 0]
+      color: [0, 0, 0, 0],
     };
 
     this.clear();
@@ -32,7 +41,12 @@ export default class PenSkin extends Skin {
     return this._framebufferInfo.texture;
   }
 
-  penLine(pt1, pt2, color, size) {
+  penLine(
+    pt1: { x: number; y: number },
+    pt2: { x: number; y: number },
+    color: Color,
+    size: number
+  ) {
     const renderer = this.renderer;
     renderer._setFramebuffer(this._framebufferInfo);
 

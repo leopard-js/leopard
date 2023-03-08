@@ -1,51 +1,62 @@
 import Skin from "./Skin.js";
+import type Renderer from "../Renderer.js";
 
 // This means that the smallest mipmap will be 1/(2**4)th the size of the sprite's "100%" size.
 const MIPMAP_OFFSET = 4;
 
 export default class VectorSkin extends Skin {
-  constructor(renderer, image) {
+  _image: HTMLImageElement;
+  _canvas: HTMLCanvasElement;
+  _ctx: CanvasRenderingContext2D;
+  _imageDataMipLevel: number;
+  _imageData: ImageData | null;
+  _maxTextureSize: number;
+  _mipmaps: Map<number, WebGLTexture | null>;
+
+  constructor(renderer: Renderer, image: HTMLImageElement) {
     super(renderer);
 
     this._image = image;
     this._canvas = document.createElement("canvas");
+    const ctx = this._canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not get canvas context");
+    this._ctx = ctx;
 
     this._imageDataMipLevel = 0;
     this._imageData = null;
 
     this._maxTextureSize = renderer.gl.getParameter(
       renderer.gl.MAX_TEXTURE_SIZE
-    );
+    ) as number;
 
     this._setSizeFromImage(image);
 
     this._mipmaps = new Map();
   }
 
-  static mipLevelForScale(scale) {
+  static mipLevelForScale(scale: number) {
     return Math.max(Math.ceil(Math.log2(scale)) + MIPMAP_OFFSET, 0);
   }
 
-  getImageData(scale) {
+  getImageData(scale: number) {
     if (!this._image.complete) return null;
 
     // Round off the scale of the image data drawn to a given power-of-two mip level.
     const mipLevel = VectorSkin.mipLevelForScale(scale);
     if (!this._imageData || this._imageDataMipLevel !== mipLevel) {
-      const canvas = this._drawSvgToCanvas(mipLevel);
-      if (canvas === null) return null;
+      const ctx = this._drawSvgToCanvas(mipLevel);
+      if (ctx === null) return null;
+      const { canvas } = ctx;
 
       // Cache image data so we can reuse it
-      this._imageData = canvas
-        .getContext("2d")
-        .getImageData(0, 0, canvas.width, canvas.height);
+      this._imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       this._imageDataMipLevel = mipLevel;
     }
 
     return this._imageData;
   }
 
-  _drawSvgToCanvas(mipLevel) {
+  _drawSvgToCanvas(mipLevel: number): CanvasRenderingContext2D | null {
     const scale = 2 ** (mipLevel - MIPMAP_OFFSET);
 
     const image = this._image;
@@ -61,30 +72,30 @@ export default class VectorSkin extends Skin {
     }
 
     // Instead of uploading the image to WebGL as a texture, render the image to a canvas and upload the canvas.
-    const canvas = this._canvas;
-    const ctx = canvas.getContext("2d");
+    const ctx = this._ctx;
+    const { canvas } = ctx;
 
     canvas.width = width;
     canvas.height = height;
 
     ctx.drawImage(image, 0, 0, width, height);
-    return this._canvas;
+    return ctx;
   }
 
   // TODO: handle proper subpixel positioning when SVG viewbox has non-integer coordinates
   // This will require rethinking costume + project loading probably
-  _createMipmap(mipLevel) {
+  _createMipmap(mipLevel: number) {
     // Instead of uploading the image to WebGL as a texture, render the image to a canvas and upload the canvas.
-    const canvas = this._drawSvgToCanvas(mipLevel);
+    const ctx = this._drawSvgToCanvas(mipLevel);
     this._mipmaps.set(
       mipLevel,
       // Use linear (i.e. smooth) texture filtering for vectors
       // If the image is 0x0, we return null. Check for that.
-      canvas === null ? null : this._makeTexture(canvas, this.gl.LINEAR)
+      ctx === null ? null : this._makeTexture(ctx.canvas, this.gl.LINEAR)
     );
   }
 
-  getTexture(scale) {
+  getTexture(scale: number) {
     if (!this._image.complete) return null;
 
     // Because WebGL doesn't support vector graphics, substitute a bunch of bitmaps.
@@ -97,7 +108,7 @@ export default class VectorSkin extends Skin {
     const mipLevel = VectorSkin.mipLevelForScale(scale);
     if (!this._mipmaps.has(mipLevel)) this._createMipmap(mipLevel);
 
-    return this._mipmaps.get(mipLevel);
+    return this._mipmaps.get(mipLevel) ?? null;
   }
 
   destroy() {

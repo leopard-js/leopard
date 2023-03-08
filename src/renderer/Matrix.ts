@@ -12,7 +12,7 @@ export default class Matrix {
   }
 
   // Reset a matrix to the identity matrix
-  static identity(dst) {
+  static identity(dst: MatrixType) {
     dst[0] = 1;
     dst[1] = 0;
     dst[2] = 0;
@@ -26,7 +26,7 @@ export default class Matrix {
   }
 
   // Translate a matrix by the given X and Y values
-  static translate(dst, src, x, y) {
+  static translate(dst: MatrixType, src: MatrixType, x: number, y: number) {
     const a00 = src[0],
       a01 = src[1],
       a02 = src[2],
@@ -52,7 +52,7 @@ export default class Matrix {
   }
 
   // Rotate a matrix, in radians
-  static rotate(dst, src, rad) {
+  static rotate(dst: MatrixType, src: MatrixType, rad: number) {
     const a00 = src[0],
       a01 = src[1],
       a02 = src[2],
@@ -80,7 +80,7 @@ export default class Matrix {
   }
 
   // Scale a matrix by the given X and Y values
-  static scale(dst, src, x, y) {
+  static scale(dst: MatrixType, src: MatrixType, x: number, y: number) {
     dst[0] = x * src[0];
     dst[1] = x * src[1];
     dst[2] = x * src[2];
@@ -96,7 +96,11 @@ export default class Matrix {
   }
 
   // Transform a 2D point by the given matrix
-  static transformPoint(m, dst, src) {
+  static transformPoint(
+    m: MatrixType,
+    dst: [number, number],
+    src: [number, number]
+  ) {
     const x = src[0];
     const y = src[1];
     dst[0] = m[0] * x + m[3] * y + m[6];
@@ -104,3 +108,5 @@ export default class Matrix {
     return dst;
   }
 }
+
+export type MatrixType = Float32Array;

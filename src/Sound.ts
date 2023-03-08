@@ -1,7 +1,19 @@
 import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio.js";
 
 export default class Sound {
-  constructor(name, url) {
+  name: string;
+  url: string;
+
+  audioBuffer: AudioBuffer | null;
+  source: AudioBufferSourceNode | null;
+  playbackRate: number;
+  target?: AudioNode;
+
+  _markDone?: () => void;
+  _doneDownloading?: (fromMoreRecentCall: boolean) => void;
+
+  static _audioContext: AudioContext | undefined;
+  constructor(name: string, url: string) {
     this.name = name;
     this.url = url;
 
@@ -10,11 +22,11 @@ export default class Sound {
     this.playbackRate = 1;
 
     // TODO: Remove this line; initiate downloads from somewhere else instead.
-    this.downloadMyAudioBuffer();
+    void this.downloadMyAudioBuffer();
   }
 
   get duration() {
-    return this.audioBuffer.duration;
+    return this.audioBuffer ? this.audioBuffer.duration : 0;
   }
 
   *start() {
@@ -51,7 +63,7 @@ export default class Sound {
       // finish playing. Of course, the latest call returns true, and so the
       // containing playUntilDone() (if present) knows to wait.
       const oldDoneDownloading = this._doneDownloading;
-      this._doneDownloading = fromMoreRecentCall => {
+      this._doneDownloading = (fromMoreRecentCall) => {
         if (fromMoreRecentCall) {
           isLatestCallToStart = false;
         } else {
@@ -77,7 +89,7 @@ export default class Sound {
 
     // If we failed to download the audio buffer, just stop here - the sound will
     // never play, so it doesn't make sense to wait for it.
-    if (!this.audioBuffer) {
+    if (!this.audioBuffer || !this.source) {
       return;
     }
 
@@ -118,27 +130,32 @@ export default class Sound {
 
   downloadMyAudioBuffer() {
     return fetch(this.url)
-      .then(body => body.arrayBuffer())
-      .then(arrayBuffer => {
+      .then((body) => body.arrayBuffer())
+      .then((arrayBuffer) => {
         if (isADPCMData(arrayBuffer)) {
           return decodeADPCMAudio(arrayBuffer, Sound.audioContext).catch(
-            error => {
+            (error: Error) => {
               console.warn(
-                `Failed to load sound "${this.name}" - will not play:\n` + error
+                `Failed to load sound "${this.name}" - will not play:\n` +
+                  error.toString()
               );
               return null;
             }
           );
         } else {
-          return new Promise((resolve, reject) => {
-            Sound.audioContext.decodeAudioData(arrayBuffer, resolve, reject);
+          return new Promise((resolve: DecodeSuccessCallback, reject) => {
+            void Sound.audioContext.decodeAudioData(
+              arrayBuffer,
+              resolve,
+              reject
+            );
           });
         }
       })
-      .then(audioBuffer => {
+      .then((audioBuffer) => {
         this.audioBuffer = audioBuffer;
         if (this._doneDownloading) {
-          this._doneDownloading();
+          this._doneDownloading(false);
         }
         return audioBuffer;
       });
@@ -164,7 +181,7 @@ export default class Sound {
     this.source.start(Sound.audioContext.currentTime);
   }
 
-  connect(target) {
+  connect(target: AudioNode) {
     if (target !== this.target) {
       this.target = target;
       if (this.source) {
@@ -174,35 +191,139 @@ export default class Sound {
     }
   }
 
-  setPlaybackRate(value) {
+  setPlaybackRate(value: number) {
     this.playbackRate = value;
     if (this.source) {
       this.source.playbackRate.value = value;
     }
   }
 
-  isConnectedTo(target) {
+  isConnectedTo(target: AudioNode) {
     return this.target === target;
   }
 
   // Note: "this" refers to the Sound class in static functions.
 
-  static get audioContext() {
-    this._setupAudioContext();
+  static get audioContext(): AudioContext {
+    if (!this._audioContext) {
+      const AudioContext =
+        window.AudioContext ||
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+        ((window as any).webkitAudioContext as AudioContext);
+      this._audioContext = new AudioContext();
+    }
     return this._audioContext;
   }
 
-  static _setupAudioContext() {
-    if (!this._audioContext) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this._audioContext = new AudioContext();
-    }
-  }
-
-  static decodeADPCMAudio(audioBuffer) {
+  static decodeADPCMAudio(audioBuffer: ArrayBuffer) {
     return decodeADPCMAudio(audioBuffer, this.audioContext);
   }
 }
+
+// Instead of creating a basic Effect class and then implementing a subclass
+// for each effect type, we use a simplified object-descriptor style.
+// The makeNodes() function returns an object which is passed on to set(), so
+// that effects are able to access a variety of nodes (or other values, if
+// necessary) required to execute the desired effect.
+//
+// The code in makeNodes as well as the general definition for each effect is
+// all graciously based on LLK's scratch-audio library.
+//
+// The initial value of an effect should always be the value at which the
+// sound is not affected at all - i.e, it would be the same if the effect
+// nodes were completely disconnected from the chain or otherwise had never
+// been applied. This allows for clean discarding of effect nodes when returned
+// to the initial value.
+//
+// The order of this array matches AudioEngine's effects list in scratch-audio.
+// Earlier in the list is closer to the EffectChain input node; later is closer
+// to its target (output). Note that a non-"patch" effect's position in the
+// array has no bearing on effect behavior, since it isn't part of the chain
+// system.
+//
+// Note that this descriptor list is fairly easy to build on, if we'd like to
+// add more audio effects in the future. (Scratch used to have more, but they
+// were removed - see commit ff6cd4a - because they depended on an external
+// library and were too processor-intensive to support on some devices.)
+const PanEffect: EffectDescriptor<
+  true,
+  "pan",
+  { leftGain: GainNode; rightGain: GainNode }
+> = {
+  name: "pan",
+  initial: 0,
+  minimum: -100,
+  maximum: 100,
+  isPatch: true,
+  makeNodes() {
+    const aCtx = Sound.audioContext;
+    const input = aCtx.createGain();
+    const leftGain = aCtx.createGain();
+    const rightGain = aCtx.createGain();
+    const channelMerger = aCtx.createChannelMerger(2);
+    const output = channelMerger;
+    input.connect(leftGain);
+    input.connect(rightGain);
+    leftGain.connect(channelMerger, 0, 0);
+    rightGain.connect(channelMerger, 0, 1);
+    return { input, output, leftGain, rightGain, channelMerger };
+  },
+  set(value, { leftGain, rightGain }) {
+    const p = (value + 100) / 200;
+    const leftVal = Math.cos((p * Math.PI) / 2);
+    const rightVal = Math.sin((p * Math.PI) / 2);
+    const { currentTime } = Sound.audioContext;
+    const { decayWait, decayDuration } = EffectChain;
+    leftGain.gain.setTargetAtTime(
+      leftVal,
+      currentTime + decayWait,
+      decayDuration
+    );
+    rightGain.gain.setTargetAtTime(
+      rightVal,
+      currentTime + decayWait,
+      decayDuration
+    );
+  },
+} as const;
+const PitchEffect: EffectDescriptor<false, "pitch", never> = {
+  name: "pitch",
+  initial: 0,
+  isPatch: false,
+  set(value, sound) {
+    const interval = value / 10;
+    const ratio = Math.pow(2, interval / 12);
+    sound.setPlaybackRate(ratio);
+  },
+} as const;
+const VolumeEffect: EffectDescriptor<true, "volume", { node: GainNode }> = {
+  name: "volume",
+  initial: 100,
+  minimum: 0,
+  maximum: 100,
+  resetOnStart: false,
+  resetOnClone: true,
+  isPatch: true,
+  makeNodes() {
+    const node = Sound.audioContext.createGain();
+    return {
+      input: node,
+      output: node,
+      node,
+    };
+  },
+  set(value, { node }) {
+    node.gain.linearRampToValueAtTime(
+      value / 100,
+      Sound.audioContext.currentTime + EffectChain.decayDuration
+    );
+  },
+} as const;
+
+const effectDescriptors = [PanEffect, PitchEffect, VolumeEffect] as const;
+type EffectName = typeof effectDescriptors[number]["name"];
+
+type EffectChainConfig = { getNonPatchSoundList: () => Sound[] };
 
 export class EffectChain {
   // The code in this class is functionally comparable to the class of the same
@@ -211,7 +332,21 @@ export class EffectChain {
   // a portable way to store the effect chain, independent of the audio sources
   // it affects.
 
-  constructor(config) {
+  // TODO: stop storing config; we just use getNonPatchSoundList directly
+  config: EffectChainConfig;
+  inputNode: AudioNode;
+  getNonPatchSoundList: () => Sound[];
+  effectValues!: Record<EffectName, number>;
+  effectNodes: {
+    [T in typeof effectDescriptors[number] as T["name"]]?: ReturnType<
+      // We need to infer this type here, I think
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      T extends PatchDescriptor<string, infer _V> ? T["makeNodes"] : never
+    >;
+  };
+  target?: AudioNode;
+
+  constructor(config: EffectChainConfig) {
     const { getNonPatchSoundList } = config;
     this.config = config;
 
@@ -241,8 +376,8 @@ export class EffectChain {
     if (this.effectValues) {
       for (const [name, initialValue] of Object.entries(
         EffectChain.getInitialEffectValues()
-      )) {
-        if (EffectChain.getEffectDescriptor(name).reset !== false) {
+      ) as [EffectName, number][]) {
+        if (EffectChain.getEffectDescriptor(name).resetOnStart !== false) {
           this.setEffectValue(name, initialValue);
         }
       }
@@ -251,7 +386,7 @@ export class EffectChain {
     }
   }
 
-  updateAudioEffect(name) {
+  updateAudioEffect(name: EffectName) {
     const descriptor = EffectChain.getEffectDescriptor(name);
 
     if (!descriptor) {
@@ -267,15 +402,22 @@ export class EffectChain {
       // who have existent nodes. This means we'll skip non-patch effects as
       // well as effects are set to their initial value.
 
-      let next = descriptor;
+      let nextDescriptor: EffectDescriptorBase<EffectName> = descriptor;
       do {
-        next = EffectChain.getNextEffectDescriptor(next.name);
-      } while (next && !this.effectNodes[next.name]);
+        nextDescriptor = EffectChain.getNextEffectDescriptor(
+          nextDescriptor.name
+        )!;
+      } while (nextDescriptor && !this.effectNodes[nextDescriptor.name]);
 
-      let previous = descriptor;
+      let previousDescriptor: EffectDescriptorBase<EffectName> = descriptor;
       do {
-        previous = EffectChain.getPreviousEffectDescriptor(previous.name);
-      } while (previous && !this.effectNodes[previous.name]);
+        previousDescriptor = EffectChain.getPreviousEffectDescriptor(
+          previousDescriptor.name
+        )!;
+      } while (
+        previousDescriptor &&
+        !this.effectNodes[previousDescriptor.name]
+      );
 
       // If we have previous and next values available, they'll currently be
       // the corresponding descriptors. But we only ever need to access the
@@ -283,12 +425,14 @@ export class EffectChain {
       // with the actual objects containing the effect's nodes here to simplify
       // later code.
 
-      if (next) {
-        next = this.effectNodes[next.name];
+      let next;
+      if (nextDescriptor) {
+        next = this.effectNodes[nextDescriptor.name];
       }
 
-      if (previous) {
-        next = this.effectNodes[previous.name];
+      let previous;
+      if (previousDescriptor) {
+        previous = this.effectNodes[previousDescriptor.name];
       }
 
       // If there is no preceding or following effect which has existent nodes,
@@ -321,10 +465,10 @@ export class EffectChain {
       // node as both its input and output.) Other effects are more complex.
       // The code in this block controls the actual chaining behavior of
       // EffectChain, assuring that all effects form a clean chain.
-      let nodes = this.effectNodes[descriptor.name];
+      let nodes = this.effectNodes[descriptor.name]!;
       if (!nodes && value !== descriptor.initial) {
         nodes = descriptor.makeNodes();
-        this.effectNodes[descriptor.name] = nodes;
+        this.effectNodes[descriptor.name] = nodes as never;
 
         // Connect the previous effect, or, if there is none, the EffectChain
         // input, to this effect. Also disconnect it from whatever it was
@@ -370,7 +514,7 @@ export class EffectChain {
           delete this.effectNodes[name];
         }
       } else {
-        descriptor.set(value, nodes);
+        descriptor.set(value, nodes as never);
       }
     } else {
       // Non-"patch" effects operate directly on Sound objects, accessing
@@ -382,7 +526,7 @@ export class EffectChain {
     }
   }
 
-  connect(target) {
+  connect(target: AudioNode) {
     this.target = target;
 
     // All the code here is basically the same as what's written in
@@ -390,13 +534,17 @@ export class EffectChain {
     // disconnect the final output in the chain - which may be the input
     // node - and then connect it to the newly specified target.
 
-    let last = EffectChain.getLastEffectDescriptor();
+    let lastDescriptor: EffectDescriptorBase<EffectName> =
+      EffectChain.getLastEffectDescriptor();
     do {
-      last = EffectChain.getPreviousEffectDescriptor(last.name);
-    } while (last && !this.effectNodes[last.name]);
+      lastDescriptor = EffectChain.getPreviousEffectDescriptor(
+        lastDescriptor.name
+      )!;
+    } while (lastDescriptor && !this.effectNodes[lastDescriptor.name]);
 
-    if (last) {
-      last = this.effectNodes[last.name];
+    let last;
+    if (lastDescriptor) {
+      last = this.effectNodes[lastDescriptor.name]!;
     } else {
       last = { output: this.inputNode };
     }
@@ -405,7 +553,7 @@ export class EffectChain {
     last.output.connect(target);
   }
 
-  setEffectValue(name, value) {
+  setEffectValue(name: EffectName, value: number | string | boolean) {
     value = Number(value);
     if (
       name in this.effectValues &&
@@ -418,7 +566,7 @@ export class EffectChain {
     }
   }
 
-  changeEffectValue(name, value) {
+  changeEffectValue(name: EffectName, value: number | string | boolean) {
     value = Number(value);
     if (name in this.effectValues && !isNaN(value) && value !== 0) {
       this.effectValues[name] += value;
@@ -427,68 +575,83 @@ export class EffectChain {
     }
   }
 
-  clampEffectValue(name) {
+  clampEffectValue(name: EffectName) {
     // Not all effects are clamped (pitch, for example); it's also possible to
     // specify only a minimum or maximum bound, instead of both.
     const descriptor = EffectChain.getEffectDescriptor(name);
     let value = this.effectValues[name];
-    if ("minimum" in descriptor && value < descriptor.minimum) {
+    if (typeof descriptor.minimum === "number" && value < descriptor.minimum) {
       value = descriptor.minimum;
-    } else if ("maximum" in descriptor && value > descriptor.maximum) {
+    } else if (
+      typeof descriptor.maximum === "number" &&
+      value > descriptor.maximum
+    ) {
       value = descriptor.maximum;
     }
     this.effectValues[name] = value;
   }
 
-  getEffectValue(name) {
+  getEffectValue(name: EffectName): number {
     return this.effectValues[name] || 0;
   }
 
-  clone(newConfig) {
+  clone(newConfig: EffectChainConfig) {
     const newEffectChain = new EffectChain(
       Object.assign({}, this.config, newConfig)
     );
 
-    for (const [name, value] of Object.entries(this.effectValues)) {
+    for (const [name, value] of Object.entries(this.effectValues) as [
+      EffectName,
+      number
+    ][]) {
       const descriptor = EffectChain.getEffectDescriptor(name);
       if (!descriptor.resetOnClone) {
         newEffectChain.setEffectValue(name, value);
       }
     }
 
-    newEffectChain.connect(this.target);
+    if (this.target) newEffectChain.connect(this.target);
 
     return newEffectChain;
   }
 
-  applyToSound(sound) {
+  applyToSound(sound: Sound) {
     sound.connect(this.inputNode);
 
-    for (const [name, value] of Object.entries(this.effectValues)) {
+    for (const [name, value] of Object.entries(this.effectValues) as [
+      EffectName,
+      number
+    ][]) {
       const descriptor = EffectChain.getEffectDescriptor(name);
       if (!descriptor.isPatch) {
-        descriptor.set(value, sound);
+        (descriptor as PatchlessDescriptor<string>).set(value, sound);
       }
     }
   }
 
-  isTargetOf(sound) {
+  isTargetOf(sound: Sound) {
     return sound.isConnectedTo(this.inputNode);
   }
 
-  static getInitialEffectValues() {
+  static getInitialEffectValues(): Record<EffectName, number> {
     // This would be an excellent place to use Object.fromEntries, but that
     // function has been implemented in only the latest of a few modern
     // browsers. :P
-    const initials = {};
+    const initials: Partial<Record<EffectName, number>> = {};
     for (const { name, initial } of this.effectDescriptors) {
       initials[name] = initial;
     }
-    return initials;
+    return initials as Record<EffectName, number>;
   }
 
-  static getEffectDescriptor(name) {
-    return this.effectDescriptors.find(descriptor => descriptor.name === name);
+  static getEffectDescriptor(
+    name: EffectName
+  ): typeof EffectChain["effectDescriptors"][number] {
+    // We know this is non-null because this.effectDescriptors has every effect descriptor in it.
+    // TODO: use a Record?
+    return this.effectDescriptors.find(
+      (descriptor) => descriptor.name === name
+    )!;
   }
 
   static getFirstEffectDescriptor() {
@@ -499,7 +662,7 @@ export class EffectChain {
     return this.effectDescriptors[this.effectDescriptors.length - 1];
   }
 
-  static getNextEffectDescriptor(name) {
+  static getNextEffectDescriptor(name: EffectName) {
     // .find() provides three values to its passed function: the value of the
     // current item, that item's index, and the array on which .find() is
     // operating. In this case, we're only concerned with the index.
@@ -514,7 +677,7 @@ export class EffectChain {
       .find((_, i) => this.effectDescriptors[i].name === name);
   }
 
-  static getPreviousEffectDescriptor(name) {
+  static getPreviousEffectDescriptor(name: EffectName) {
     // This function's a little simpler, since it doesn't involve shifting the
     // list. We still use slice(), but this time simply to cut off the last
     // item; that item will never come before any other, after all. We search
@@ -526,110 +689,45 @@ export class EffectChain {
       .slice(0, -1)
       .find((_, i) => this.effectDescriptors[i + 1].name === name);
   }
+
+  // These are constant values which can be affected to tweak the way effects
+  // are applied. They match the values used in Scratch 3.0.
+  static decayDuration = 0.025;
+  static decayWait = 0.05;
+
+  static effectDescriptors = effectDescriptors;
 }
 
-// These are constant values which can be affected to tweak the way effects
-// are applied. They match the values used in Scratch 3.0.
-EffectChain.decayDuration = 0.025;
-EffectChain.decayWait = 0.05;
+type EffectDescriptorBase<Name> = {
+  name: Name;
+  initial: number;
+  minimum?: number;
+  maximum?: number;
+  resetOnStart?: boolean;
+  resetOnClone?: boolean;
+};
 
-// Instead of creating a basic Effect class and then implementing a subclass
-// for each effect type, we use a simplified object-descriptor style.
-// The makeNodes() function returns an object which is passed on to set(), so
-// that effects are able to access a variety of nodes (or other values, if
-// necessary) required to execute the desired effect.
-//
-// The code in makeNodes as well as the general definition for each effect is
-// all graciously based on LLK's scratch-audio library.
-//
-// The initial value of an effect should always be the value at which the
-// sound is not affected at all - i.e, it would be the same if the effect
-// nodes were completely disconnected from the chain or otherwise had never
-// been applied. This allows for clean discarding of effect nodes when returned
-// to the initial value.
-//
-// The order of this array matches AudioEngine's effects list in scratch-audio.
-// Earlier in the list is closer to the EffectChain input node; later is closer
-// to its target (output). Note that a non-"patch" effect's position in the
-// array has no bearing on effect behavior, since it isn't part of the chain
-// system.
-//
-// Note that this descriptor list is fairly easy to build on, if we'd like to
-// add more audio effects in the future. (Scratch used to have more, but they
-// were removed - see commit ff6cd4a - because they depended on an external
-// library and were too processor-intensive to support on some devices.)
-EffectChain.effectDescriptors = [
-  {
-    name: "pan",
-    initial: 0,
-    minimum: -100,
-    maximum: 100,
-    isPatch: true,
-    makeNodes() {
-      const aCtx = Sound.audioContext;
-      const input = aCtx.createGain();
-      const leftGain = aCtx.createGain();
-      const rightGain = aCtx.createGain();
-      const channelMerger = aCtx.createChannelMerger(2);
-      const output = channelMerger;
-      input.connect(leftGain);
-      input.connect(rightGain);
-      leftGain.connect(channelMerger, 0, 0);
-      rightGain.connect(channelMerger, 0, 1);
-      return { input, output, leftGain, rightGain, channelMerger };
-    },
-    set(value, { input, output, leftGain, rightGain }) {
-      const p = (value + 100) / 200;
-      const leftVal = Math.cos((p * Math.PI) / 2);
-      const rightVal = Math.sin((p * Math.PI) / 2);
-      const { currentTime } = Sound.audioContext;
-      const { decayWait, decayDuration } = EffectChain;
-      leftGain.gain.setTargetAtTime(
-        leftVal,
-        currentTime + decayWait,
-        decayDuration
-      );
-      rightGain.gain.setTargetAtTime(
-        rightVal,
-        currentTime + decayWait,
-        decayDuration
-      );
-    }
-  },
-  {
-    name: "pitch",
-    initial: 0,
-    isPatch: false,
-    set(value, sound) {
-      const interval = value / 10;
-      const ratio = Math.pow(2, interval / 12);
-      sound.setPlaybackRate(ratio);
-    }
-  },
-  {
-    name: "volume",
-    initial: 100,
-    minimum: 0,
-    maximum: 100,
-    resetOnStart: false,
-    resetOnClone: true,
-    isPatch: true,
-    makeNodes() {
-      const node = Sound.audioContext.createGain();
-      return {
-        input: node,
-        output: node,
-        node
-      };
-    },
-    set(value, { node }) {
-      node.gain.linearRampToValueAtTime(
-        value / 100,
-        Sound.audioContext.currentTime + EffectChain.decayDuration
-      );
-    }
-  }
-];
+type PatchlessDescriptor<Name> = {
+  isPatch: false;
+  set: (value: number, sound: Sound) => void;
+} & EffectDescriptorBase<Name>;
+
+type PatchDescriptor<Name, Nodes> = {
+  isPatch: true;
+  makeNodes: () => Nodes & { input: AudioNode; output: AudioNode };
+  set: (
+    value: number,
+    nodes: Nodes & { input: AudioNode; output: AudioNode }
+  ) => void;
+} & EffectDescriptorBase<Name>;
+
+type EffectDescriptor<
+  isPatch extends boolean,
+  Name extends string,
+  Nodes extends isPatch extends true ? object : never
+> = isPatch extends true
+  ? PatchDescriptor<Name, Nodes>
+  : PatchlessDescriptor<Name>;
 
 export class AudioEffectMap {
   // This class provides a simple interface for setting and getting audio
@@ -637,14 +735,16 @@ export class AudioEffectMap {
   // for graphic effects). It takes an EffectChain and automatically generates
   // properties according to the names of the effect descriptors, acting with
   // the EffectChain's API when accessed.
+  effectChain: EffectChain;
 
-  constructor(effectChain) {
+  constructor(effectChain: EffectChain) {
     this.effectChain = effectChain;
 
     for (const { name } of EffectChain.effectDescriptors) {
       Object.defineProperty(this, name, {
         get: () => effectChain.getEffectValue(name),
-        set: value => effectChain.setEffectValue(name, value)
+        set: (value: string | number | boolean) =>
+          effectChain.setEffectValue(name, value),
       });
     }
   }
