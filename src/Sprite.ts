@@ -110,8 +110,6 @@ abstract class SpriteBase<Vars extends object = object> {
   public effects: _EffectMap;
   public audioEffects: AudioEffectMap;
 
-  public _speechBubble?: SpeechBubble;
-
   protected _vars: Vars;
 
   public constructor(initialConditions: InitialConditions, vars: Vars) {
@@ -380,10 +378,6 @@ abstract class SpriteBase<Vars extends object = object> {
   }
 
   public *askAndWait(question: string): Yielding<void> {
-    if (this._speechBubble && this instanceof Sprite) {
-      this.say("");
-    }
-
     let done = false;
     void this._project.askAndWait(question).then(() => {
       done = true;
@@ -533,6 +527,7 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
   private _penDown: boolean;
   public penSize: number;
   private _penColor: Color;
+  public _speechBubble?: SpeechBubble;
 
   public constructor(initialConditions: SpriteInitialConditions, vars: Vars) {
     super(initialConditions, vars);
@@ -570,6 +565,14 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
       style: "say",
       timeout: null,
     };
+  }
+
+  public *askAndWait(question: string): Yielding<void> {
+    if (this._speechBubble && this instanceof Sprite) {
+      this.say("");
+    }
+
+    yield* super.askAndWait(question);
   }
 
   public createClone(): void {
