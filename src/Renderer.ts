@@ -287,13 +287,11 @@ export default class Renderer {
   // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
   private _renderLayers(
     layers?: Set<Sprite | Stage | PenSkin>,
-    optionsIn: {
-      filter?: (layer: Sprite | Stage | PenSkin) => boolean;
-    } & Partial<RenderSpriteOptions> = {}
+    optionsIn: Partial<RenderSpriteOptions> = {},
+    filter?: (layer: Sprite | Stage | PenSkin) => boolean
   ): void {
     const options = {
       drawMode: ShaderManager.DrawModes.DEFAULT,
-      renderSpeechBubbles: true,
       ...optionsIn,
     };
 
@@ -304,7 +302,7 @@ export default class Renderer {
     const shouldIncludeLayer = (layer: Sprite | Stage | PenSkin): boolean =>
       !(
         (shouldRestrictLayers && !layers.has(layer)) ||
-        (options.filter && !options.filter(layer))
+        (filter && !filter(layer))
       );
 
     // Stage
@@ -517,8 +515,8 @@ export default class Renderer {
     );
 
     if (
-      options.renderSpeechBubbles &&
-      '_speechBubble' in sprite &&
+      options.renderSpeechBubbles !== false &&
+      "_speechBubble" in sprite &&
       sprite._speechBubble &&
       sprite._speechBubble.text !== "" &&
       sprite instanceof Sprite
@@ -705,9 +703,7 @@ export default class Renderer {
     this._stencilSprite(spr, sprColor);
 
     // Render the sprites to check that we're touching, which will now be masked in to the area of the first sprite.
-    this._renderLayers(undefined, {
-      filter: (layer) => layer !== spr,
-    });
+    this._renderLayers(undefined, undefined, (layer) => layer !== spr);
 
     // Make sure to disable the stencil test so as not to affect other rendering!
     gl.disable(gl.STENCIL_TEST);
