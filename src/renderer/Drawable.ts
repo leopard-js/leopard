@@ -3,6 +3,7 @@ import Matrix, { MatrixType } from "./Matrix.js";
 import Rectangle from "./Rectangle.js";
 import effectTransformPoint from "./effectTransformPoint.js";
 import { effectBitmasks } from "./effectInfo.js";
+import type Skin from "./Skin.js";
 
 import type Renderer from "../Renderer.js";
 import { Sprite, Stage } from "../Sprite.js";
@@ -14,7 +15,7 @@ const determinant = (
   a: [number, number],
   b: [number, number],
   c: [number, number]
-) => {
+): number => {
   return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
 };
 
@@ -40,7 +41,7 @@ class SpriteTransformDiff {
     this.update();
   }
 
-  update() {
+  update(): void {
     if (this._sprite instanceof Sprite) {
       this._lastX = this._sprite.x;
       this._lastY = this._sprite.y;
@@ -53,7 +54,7 @@ class SpriteTransformDiff {
     this._unset = false;
   }
 
-  get changed() {
+  get changed(): boolean {
     return (
       (this._sprite instanceof Sprite &&
         (this._lastX !== this._sprite.x ||
@@ -114,18 +115,18 @@ export default class Drawable {
     this._convexHullMatrixDiff = new SpriteTransformDiff(sprite);
   }
 
-  getCurrentSkin() {
+  getCurrentSkin(): Skin {
     return this._renderer._getSkin(this._sprite.costume);
   }
 
   // Get the rough axis-aligned bounding box for this sprite. Not as tight as
   // getTightBoundingBox, especially when rotated.
-  getAABB() {
+  getAABB(): Rectangle {
     return Rectangle.fromMatrix(this.getMatrix(), this._aabb);
   }
 
   // Get the Scratch-space tight bounding box for this sprite.
-  getTightBoundingBox() {
+  getTightBoundingBox(): Rectangle {
     if (!this._convexHullMatrixDiff.changed) return this._tightBoundingBox;
 
     const matrix = this.getMatrix();
@@ -189,7 +190,7 @@ export default class Drawable {
     return this._tightBoundingBox;
   }
 
-  _calculateConvexHull() {
+  _calculateConvexHull(): [number, number][] | null {
     const sprite = this._sprite;
     const skin = this.getCurrentSkin();
     const imageData = skin.getImageData(
@@ -326,7 +327,7 @@ export default class Drawable {
     return this._convexHullPoints;
   }
 
-  _calculateSpriteMatrix() {
+  _calculateSpriteMatrix(): void {
     const m = this._matrix;
     Matrix.identity(m);
     const spr = this._sprite;
@@ -368,7 +369,7 @@ export default class Drawable {
     this._matrixDiff.update();
   }
 
-  getMatrix() {
+  getMatrix(): MatrixType {
     // If all the values we used to calculate the matrix haven't changed since
     // we last calculated the matrix, we can just return the matrix as-is.
     if (this._matrixDiff.changed) {

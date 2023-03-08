@@ -45,7 +45,7 @@ export default class Trigger {
     this.stop = () => {};
   }
 
-  get isEdgeActivated() {
+  get isEdgeActivated(): boolean {
     return (
       this.trigger === TIMER_GREATER_THAN ||
       this.trigger === LOUDNESS_GREATER_THAN
@@ -54,7 +54,10 @@ export default class Trigger {
 
   // Evaluate the given trigger option, whether it's a value or a function that
   // returns a value given a target
-  option(option: string, target: Sprite | Stage) {
+  option(
+    option: string,
+    target: Sprite | Stage
+  ): number | string | boolean | undefined {
     const triggerOption = this.options[option];
     // If the given option is a function, evaluate that function, passing in
     // the target that we're evaluating the trigger for
@@ -68,7 +71,7 @@ export default class Trigger {
     trigger: Trigger["trigger"],
     options: Trigger["options"] | undefined,
     target: Sprite | Stage
-  ) {
+  ): boolean {
     if (this.trigger !== trigger) return false;
     for (const option in options) {
       if (this.option(option, target) !== options[option]) return false;
@@ -77,7 +80,7 @@ export default class Trigger {
     return true;
   }
 
-  start(target: Sprite | Stage) {
+  start(target: Sprite | Stage): Promise<void> {
     this.stop();
 
     const boundScript = this._script.bind(target);
@@ -86,43 +89,27 @@ export default class Trigger {
     this._runningScript = boundScript();
 
     return new Promise<void>((resolve) => {
-      this.stop = () => {
+      this.stop = (): void => {
         this.done = true;
         resolve();
       };
     });
   }
 
-  step() {
+  step(): void {
     if (!this._runningScript) return;
     this.done = !!this._runningScript.next().done;
     if (this.done) this.stop();
   }
 
-  static get GREEN_FLAG() {
-    return GREEN_FLAG;
-  }
-  static get KEY_PRESSED() {
-    return KEY_PRESSED;
-  }
-  static get BROADCAST() {
-    return BROADCAST;
-  }
-  static get CLICKED() {
-    return CLICKED;
-  }
-  static get CLONE_START() {
-    return CLONE_START;
-  }
-  static get LOUDNESS_GREATER_THAN() {
-    return LOUDNESS_GREATER_THAN;
-  }
-  static get TIMER_GREATER_THAN() {
-    return TIMER_GREATER_THAN;
-  }
-  static get BACKDROP_CHANGED() {
-    return BACKDROP_CHANGED;
-  }
+  static GREEN_FLAG = GREEN_FLAG;
+  static KEY_PRESSED = KEY_PRESSED;
+  static BROADCAST = BROADCAST;
+  static CLICKED = CLICKED;
+  static CLONE_START = CLONE_START;
+  static LOUDNESS_GREATER_THAN = LOUDNESS_GREATER_THAN;
+  static TIMER_GREATER_THAN = TIMER_GREATER_THAN;
+  static BACKDROP_CHANGED = BACKDROP_CHANGED;
 }
 
 export type { TriggerOption, TriggerOptions };

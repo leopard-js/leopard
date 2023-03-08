@@ -42,7 +42,7 @@ export default class SpeechBubbleSkin extends Skin {
   }
 
   // To ensure proper text measurement and drawing, it's necessary to restyle the canvas after resizing it.
-  _restyleCanvas() {
+  _restyleCanvas(): void {
     const ctx = this._ctx;
     ctx.font = "16px sans-serif";
     ctx.textBaseline = "hanging";
@@ -53,7 +53,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._rendered = false;
   }
 
-  _renderBubble(bubble: SpeechBubble, scale: number) {
+  _renderBubble(bubble: SpeechBubble, scale: number): void {
     const canvas = this._canvas;
     const ctx = this._ctx;
 
@@ -64,7 +64,7 @@ export default class SpeechBubbleSkin extends Skin {
       h: number,
       r: number,
       style: "say" | "think"
-    ) => {
+    ): void => {
       if (r > w / 2) r = w / 2;
       if (r > h / 2) r = h / 2;
       if (r < 0) return;
@@ -144,7 +144,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._renderedScale = scale;
   }
 
-  getTexture(scale: number) {
+  getTexture(scale: number): WebGLTexture {
     if (!this._rendered || this._renderedScale !== scale) {
       this._renderBubble(this._bubble, scale);
       const gl = this.gl;
@@ -162,7 +162,7 @@ export default class SpeechBubbleSkin extends Skin {
     return this._texture;
   }
 
-  destroy() {
+  destroy(): void {
     this.gl.deleteTexture(this._texture);
   }
 }

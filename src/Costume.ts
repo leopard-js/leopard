@@ -20,11 +20,11 @@ export default class Costume {
     this.center = center;
   }
 
-  get width() {
+  get width(): number {
     return this.img.naturalWidth;
   }
 
-  get height() {
+  get height(): number {
     return this.img.naturalHeight;
   }
 }

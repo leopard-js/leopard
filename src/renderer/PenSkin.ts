@@ -31,13 +31,13 @@ export default class PenSkin extends Skin {
     this.clear();
   }
 
-  destroy() {
+  destroy(): void {
     const gl = this.gl;
     gl.deleteTexture(this._framebufferInfo.texture);
     gl.deleteFramebuffer(this._framebufferInfo.framebuffer);
   }
 
-  getTexture() {
+  getTexture(): WebGLTexture {
     return this._framebufferInfo.texture;
   }
 
@@ -46,7 +46,7 @@ export default class PenSkin extends Skin {
     pt2: { x: number; y: number },
     color: Color,
     size: number
-  ) {
+  ): void {
     const renderer = this.renderer;
     renderer._setFramebuffer(this._framebufferInfo);
 
@@ -116,7 +116,7 @@ export default class PenSkin extends Skin {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
-  clear() {
+  clear(): void {
     this.renderer._setFramebuffer(this._framebufferInfo);
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);

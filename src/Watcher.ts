@@ -8,11 +8,13 @@ type WatcherValue =
   | undefined
   | (string | number | boolean | null | undefined)[];
 
+type WatcherStyle = "normal" | "large" | "slider";
+
 type WatcherOptions = {
   value?: () => WatcherValue;
   setValue?: (value: number) => void;
   label: string;
-  style?: "normal" | "large" | "slider";
+  style?: WatcherStyle;
   visible?: boolean;
   color?: Color;
   step?: number;
@@ -35,7 +37,7 @@ export default class Watcher {
   _min!: number;
   _max!: number;
   _step!: number;
-  _style!: "normal" | "large" | "slider";
+  _style!: WatcherStyle;
   _visible!: boolean;
 
   _dom!: {
@@ -84,7 +86,7 @@ export default class Watcher {
     this.step = 1;
   }
 
-  initializeDOM() {
+  initializeDOM(): void {
     const node = document.createElement("div");
     node.classList.add("leopard__watcher");
 
@@ -109,7 +111,7 @@ export default class Watcher {
     this._dom = { node, label, value, slider };
   }
 
-  updateDOM(renderTarget: HTMLElement) {
+  updateDOM(renderTarget: HTMLElement): void {
     if (renderTarget && !renderTarget.contains(this._dom.node)) {
       renderTarget.append(this._dom.node);
     }
@@ -175,7 +177,7 @@ export default class Watcher {
     this._dom.value.style.setProperty("--watcher-text-color", textColor);
   }
 
-  get visible() {
+  get visible(): boolean {
     return this._visible;
   }
   set visible(visible) {
@@ -183,7 +185,7 @@ export default class Watcher {
     this._dom.node.style.visibility = visible ? "visible" : "hidden";
   }
 
-  get x() {
+  get x(): number {
     return this._x;
   }
   set x(x) {
@@ -191,7 +193,7 @@ export default class Watcher {
     this._dom.node.style.left = `${x - 240}px`;
   }
 
-  get y() {
+  get y(): number {
     return this._y;
   }
   set y(y) {
@@ -199,7 +201,7 @@ export default class Watcher {
     this._dom.node.style.top = `${180 - y}px`;
   }
 
-  get width() {
+  get width(): number | undefined {
     return this._width;
   }
   set width(width) {
@@ -211,7 +213,7 @@ export default class Watcher {
     }
   }
 
-  get height() {
+  get height(): number | undefined {
     return this._height;
   }
   set height(height) {
@@ -223,7 +225,7 @@ export default class Watcher {
     }
   }
 
-  get style() {
+  get style(): WatcherStyle {
     return this._style;
   }
   set style(style) {
@@ -258,7 +260,7 @@ export default class Watcher {
     this._dom.slider.max = String(max);
   }
 
-  get step() {
+  get step(): number {
     return this._step;
   }
   set step(step) {
@@ -266,7 +268,7 @@ export default class Watcher {
     this._dom.slider.step = String(step);
   }
 
-  get label() {
+  get label(): string {
     return this._label;
   }
   set label(label) {

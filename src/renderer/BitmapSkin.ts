@@ -16,7 +16,7 @@ export default class BitmapSkin extends Skin {
     this._setSizeFromImage(image);
   }
 
-  getImageData() {
+  getImageData(): ImageData | null {
     // Make sure to handle potentially non-loaded textures
     if (!this._image.complete) return null;
 
@@ -34,7 +34,7 @@ export default class BitmapSkin extends Skin {
     return this._imageData;
   }
 
-  getTexture() {
+  getTexture(): WebGLTexture | null {
     // Make sure to handle potentially non-loaded textures
     const image = this._image;
     if (!image.complete) return null;
@@ -46,7 +46,7 @@ export default class BitmapSkin extends Skin {
     return this._texture;
   }
 
-  destroy() {
+  destroy(): void {
     if (this._texture !== null) this.gl.deleteTexture(this._texture);
   }
 }

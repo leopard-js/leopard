@@ -55,7 +55,7 @@ export default abstract class Skin {
   }
 
   // Helper function to set this skin's size based on an image that may or may not be loaded.
-  _setSizeFromImage(image: HTMLImageElement) {
+  _setSizeFromImage(image: HTMLImageElement): void {
     if (image.complete) {
       this.width = image.naturalWidth;
       this.height = image.naturalHeight;

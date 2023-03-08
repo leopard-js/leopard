@@ -34,11 +34,11 @@ export default class VectorSkin extends Skin {
     this._mipmaps = new Map();
   }
 
-  static mipLevelForScale(scale: number) {
+  static mipLevelForScale(scale: number): number {
     return Math.max(Math.ceil(Math.log2(scale)) + MIPMAP_OFFSET, 0);
   }
 
-  getImageData(scale: number) {
+  getImageData(scale: number): ImageData | null {
     if (!this._image.complete) return null;
 
     // Round off the scale of the image data drawn to a given power-of-two mip level.
@@ -84,7 +84,7 @@ export default class VectorSkin extends Skin {
 
   // TODO: handle proper subpixel positioning when SVG viewbox has non-integer coordinates
   // This will require rethinking costume + project loading probably
-  _createMipmap(mipLevel: number) {
+  _createMipmap(mipLevel: number): void {
     // Instead of uploading the image to WebGL as a texture, render the image to a canvas and upload the canvas.
     const ctx = this._drawSvgToCanvas(mipLevel);
     this._mipmaps.set(
@@ -95,7 +95,7 @@ export default class VectorSkin extends Skin {
     );
   }
 
-  getTexture(scale: number) {
+  getTexture(scale: number): WebGLTexture | null {
     if (!this._image.complete) return null;
 
     // Because WebGL doesn't support vector graphics, substitute a bunch of bitmaps.
@@ -111,7 +111,7 @@ export default class VectorSkin extends Skin {
     return this._mipmaps.get(mipLevel) ?? null;
   }
 
-  destroy() {
+  destroy(): void {
     for (const mip of this._mipmaps.values()) {
       this.gl.deleteTexture(mip);
     }
