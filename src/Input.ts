@@ -9,6 +9,7 @@ export default class Input {
 
   public mouse: Mouse;
   public keys: string[];
+
   public constructor(
     stage: Input["_stage"],
     canvas: Input["_canvas"],
