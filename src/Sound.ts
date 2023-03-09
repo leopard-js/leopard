@@ -372,6 +372,7 @@ export class EffectChain {
   private effectValues!: Record<EffectName, number>;
   private effectNodes: {
     [T in typeof effectDescriptors[number] as T["name"]]?: ReturnType<
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       T extends PatchDescriptor<string, any> ? T["makeNodes"] : never
     >;
   };
@@ -500,6 +501,7 @@ export class EffectChain {
         nodes = descriptor.makeNodes();
         // The "as any" cast is needed because TypeScript can't infer that the
         // descriptor's name determines the type of its nodes
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
         this.effectNodes[descriptor.name] = nodes as any;
 
         // Connect the previous effect, or, if there is none, the EffectChain
@@ -548,6 +550,7 @@ export class EffectChain {
       } else {
         // The "as any" cast is needed because TypeScript can't infer that the
         // descriptor's name determines the type of its nodes
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
         descriptor.set(value, nodes as any);
       }
     } else {
@@ -636,7 +639,9 @@ export class EffectChain {
   }
 
   public clone(newConfig: EffectChainConfig): EffectChain {
-    const newEffectChain = new EffectChain({getNonPatchSoundList: this.getNonPatchSoundList});
+    const newEffectChain = new EffectChain({
+      getNonPatchSoundList: this.getNonPatchSoundList,
+    });
 
     for (const [name, value] of Object.entries(this.effectValues) as [
       EffectName,
