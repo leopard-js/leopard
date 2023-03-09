@@ -521,8 +521,8 @@ export class Sprite extends SpriteBase {
   public size: number;
   public visible: boolean;
 
-  private parent: Sprite | null;
-  public clones: Sprite[];
+  private parent: this | null;
+  public clones: this[];
 
   private _penDown: boolean;
   public penSize: number;
@@ -577,7 +577,7 @@ export class Sprite extends SpriteBase {
 
   public createClone(): void {
     const clone = Object.assign(
-      Object.create(Object.getPrototypeOf(this) as object) as Sprite,
+      Object.create(Object.getPrototypeOf(this) as object) as this,
       this
     );
 
@@ -598,7 +598,7 @@ export class Sprite extends SpriteBase {
     // Clones inherit audio effects from the original sprite, for some reason.
     // Couldn't explain it, but that's the behavior in Scratch 3.0.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let original: Sprite = this;
+    let original = this;
     while (original.parent) {
       original = original.parent;
     }
@@ -632,7 +632,7 @@ export class Sprite extends SpriteBase {
     );
   }
 
-  public andClones(): Sprite[] {
+  public andClones(): this[] {
     return [this, ...this.clones.flatMap((clone) => clone.andClones())];
   }
 
