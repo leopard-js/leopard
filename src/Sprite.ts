@@ -96,7 +96,7 @@ type InitialConditions = {
   layerOrder?: number;
 };
 
-abstract class SpriteBase<Vars extends object = object> {
+abstract class SpriteBase {
   protected _project!: Project;
 
   protected _costumeNumber: number;
@@ -110,9 +110,9 @@ abstract class SpriteBase<Vars extends object = object> {
   public effects: _EffectMap;
   public audioEffects: AudioEffectMap;
 
-  protected _vars: Vars;
+  protected _vars: object;
 
-  public constructor(initialConditions: InitialConditions, vars: Vars) {
+  public constructor(initialConditions: InitialConditions, vars = {}) {
     // TODO: pass project in here, ideally
     const { costumeNumber, layerOrder = 0 } = initialConditions;
     this._costumeNumber = costumeNumber;
@@ -146,7 +146,7 @@ abstract class SpriteBase<Vars extends object = object> {
     return this._project.sprites;
   }
 
-  public get vars(): Vars {
+  public get vars(): object {
     return this._vars;
   }
 
@@ -513,7 +513,7 @@ type SpriteInitialConditions = {
   penColor?: Color;
 };
 
-export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
+export class Sprite extends SpriteBase {
   private _x: number;
   private _y: number;
   private _direction: number;
@@ -522,14 +522,14 @@ export class Sprite<Vars extends object = object> extends SpriteBase<Vars> {
   public visible: boolean;
 
   private parent: Sprite | null;
-  public clones: Sprite<Vars>[];
+  public clones: Sprite[];
 
   private _penDown: boolean;
   public penSize: number;
   private _penColor: Color;
   public _speechBubble?: SpeechBubble;
 
-  public constructor(initialConditions: SpriteInitialConditions, vars: Vars) {
+  public constructor(initialConditions: SpriteInitialConditions, vars = {}) {
     super(initialConditions, vars);
 
     const {
@@ -876,12 +876,12 @@ type StageInitialConditions = {
   height?: number;
 } & InitialConditions;
 
-export class Stage<Vars extends object = object> extends SpriteBase<Vars> {
+export class Stage extends SpriteBase {
   public readonly width!: number;
   public readonly height!: number;
   public __counter: number;
 
-  public constructor(initialConditions: StageInitialConditions, vars: Vars) {
+  public constructor(initialConditions: StageInitialConditions, vars = {}) {
     super(initialConditions, vars);
 
     // Use defineProperties to make these non-writable.
