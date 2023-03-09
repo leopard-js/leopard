@@ -639,9 +639,14 @@ export class EffectChain {
   }
 
   public clone(newConfig: EffectChainConfig): EffectChain {
-    const newEffectChain = new EffectChain({
-      getNonPatchSoundList: this.getNonPatchSoundList,
-    });
+    const newEffectChain = new EffectChain(
+      Object.assign(
+        {
+          getNonPatchSoundList: this.getNonPatchSoundList,
+        },
+        newConfig
+      )
+    );
 
     for (const [name, value] of Object.entries(this.effectValues) as [
       EffectName,
