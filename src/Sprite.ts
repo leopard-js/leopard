@@ -568,7 +568,7 @@ export class Sprite extends SpriteBase {
   }
 
   public *askAndWait(question: string): Yielding<void> {
-    if (this._speechBubble && this instanceof Sprite) {
+    if (this._speechBubble) {
       this.say("");
     }
 
