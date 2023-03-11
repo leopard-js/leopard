@@ -433,7 +433,7 @@ export default class Renderer {
     // Used for mapping drawn sprites back to their indices in a list.
     // By looking at the color of a given pixel, we can tell which sprite is
     // the topmost one drawn on that pixel.
-    if (drawMode === ShaderManager.DrawModes.SPRITE_ID) {
+    if (drawMode === ShaderManager.DrawModes.SPRITE_ID && typeof spriteColorId === "number") {
       this.gl.uniform3fv(
         this._currentShader.uniforms.u_spriteId,
         idToColor(spriteColorId)
@@ -456,7 +456,8 @@ export default class Renderer {
       spriteScale,
       sprite.effects,
       options.effectMask,
-      options.colorMask
+      options.colorMask,
+      options.spriteColorId ? options.spriteColorId(sprite) : undefined
     );
 
     if (
@@ -672,22 +673,16 @@ export default class Renderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
+    const spriteIndices = new Map();
     for (let i = 0; i < sprites.length; i++) {
-      const sprite = sprites[i];
-      this._renderSkin(
-        this._getSkin(sprite.costume),
-        ShaderManager.DrawModes.SPRITE_ID,
-        this._getDrawable(sprite).getMatrix(),
-        1 /* scale */,
-        sprite.effects,
-        null,
-        null,
-        i
-      );
+      spriteIndices.set(sprites[i], i);
     }
 
-    this._renderLayers(new Set([sprites]), {
-      effectMask: ~effectBitmasks.ghost
+    this._renderLayers(new Set(sprites), {
+      effectMask: ~effectBitmasks.ghost,
+      drawMode: ShaderManager.DrawModes.SPRITE_ID,
+      // let's not use indexOf here--that would be O(n^2)
+      spriteColorId: (target) => spriteIndices.get(target)
     });
 
     const hoveredPixel = new Uint8Array(4);
