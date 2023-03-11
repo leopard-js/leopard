@@ -8,6 +8,13 @@ type TriggerOption =
 
 type TriggerOptions = Partial<Record<string, TriggerOption>>;
 
+type TriggerCreator =
+  ((
+    optionsOrScript: TriggerOptions | GeneratorFunction,
+    script?: GeneratorFunction
+  ) => Trigger)
+    & {symbol: symbol};
+
 export default class Trigger {
   public trigger;
   private options: TriggerOptions;
@@ -16,12 +23,6 @@ export default class Trigger {
   public done: boolean;
   private stop: () => void;
 
-  public constructor(
-    trigger: symbol,
-    options: TriggerOptions,
-    script?: GeneratorFunction
-  );
-  public constructor(trigger: symbol, script: GeneratorFunction);
   public constructor(
     trigger: symbol,
     optionsOrScript: TriggerOptions | GeneratorFunction,
@@ -101,16 +102,45 @@ export default class Trigger {
     return new Trigger(this.trigger, this.options, this._script);
   }
 
-  public static readonly GREEN_FLAG = Symbol("GREEN_FLAG");
-  public static readonly KEY_PRESSED = Symbol("KEY_PRESSED");
-  public static readonly BROADCAST = Symbol("BROADCAST");
-  public static readonly CLICKED = Symbol("CLICKED");
-  public static readonly CLONE_START = Symbol("CLONE_START");
-  public static readonly LOUDNESS_GREATER_THAN = Symbol(
-    "LOUDNESS_GREATER_THAN"
-  );
-  public static readonly TIMER_GREATER_THAN = Symbol("TIMER_GREATER_THAN");
-  public static readonly BACKDROP_CHANGED = Symbol("BACKDROP_CHANGED");
+  private static triggerCreatorHelper(symbolText: string): TriggerCreator {
+    const symbol = Symbol(symbolText);
+    const triggerCreator: TriggerCreator = function(optionsOrScript, script) {
+      return new Trigger(symbol, optionsOrScript, script);
+    };
+
+    triggerCreator.symbol = symbol;
+    return triggerCreator;
+  }
+
+  /**
+   * Each property below doubles as a function to create a trigger and a unique
+   * object to match trigger instances against that class. For example:
+   *
+   *   this.triggers = [Trigger.greenFlag(this.whenGreenFlagClicked)];
+   *   if (aTrigger.match(Trigger.greenFlag)) ...;
+   *
+   */
+  public static readonly greenFlag = this.triggerCreatorHelper("GREEN_FLAG");
+  public static readonly keyPressed = this.triggerCreatorHelper("KEY_PRESSED");
+  public static readonly receivedBroadcast = this.triggerCreatorHelper("BROADCAST");
+  public static readonly clicked = this.triggerCreatorHelper("CLICKED");
+  public static readonly startedAsClone = this.triggerCreatorHelper("CLONE_START");
+  public static readonly loudnessGreaterThan = this.triggerCreatorHelper("LOUDNESS_GREATER_THAN");
+  public static readonly timerGreaterThan = this.triggerCreatorHelper("TIMER_GREATER_THAN");
+  public static readonly backdropChanged = this.triggerCreatorHelper("BACKDROP_CHANGED");
+
+  /**
+   * @deprecated
+   * Prefer accessing the properties above to create or match a trigger.
+   */
+  public static readonly GREEN_FLAG = this.greenFlag.symbol;
+  public static readonly KEY_PRESSED = this.keyPressed.symbol;
+  public static readonly BROADCAST = this.receivedBroadcast.symbol;
+  public static readonly CLICKED = this.clicked.symbol;
+  public static readonly CLONE_START = this.startedAsClone.symbol;
+  public static readonly LOUDNESS_GREATER_THAN = this.loudnessGreaterThan.symbol;
+  public static readonly TIMER_GREATER_THAN = this.timerGreaterThan.symbol;
+  public static readonly BACKDROP_CHANGED = this.backdropChanged.symbol;
 }
 
 export type { TriggerOption, TriggerOptions };
