@@ -627,18 +627,13 @@ export class Sprite extends SpriteBase {
         break;
     }
     this.direction = this.radToScratch(Math.atan2(dy, dx));
-    const { x, y } = this.keepInFence(this.x, this.y);
-    this.goto(x, y);
+    this.positionInFence();
   }
 
-  keepInFence(newX, newY) {
+  positionInFence() {
     // https://github.com/LLK/scratch-vm/blob/develop/src/sprites/rendered-target.js#L949
     const fence = this.stage.fence;
     const bounds = this._project.renderer.getTightBoundingBox(this);
-    bounds.left += newX - this.x;
-    bounds.right += newX - this.x;
-    bounds.top += newY - this.y;
-    bounds.bottom += newY - this.y;
 
     let dx = 0,
       dy = 0;
@@ -654,10 +649,8 @@ export class Sprite extends SpriteBase {
     if (bounds.bottom < fence.bottom) {
       dy += fence.bottom - bounds.bottom;
     }
-    return {
-      x: newX + dx,
-      y: newY + dy
-    };
+
+    this.goto(this.x + dx, this.y + dy);
   }
 
   get penDown() {
