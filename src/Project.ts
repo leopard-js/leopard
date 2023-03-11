@@ -1,4 +1,4 @@
-import Trigger, { TriggerOptions } from "./Trigger";
+import Trigger, { TriggerCreator, TriggerOptions } from "./Trigger";
 import Renderer from "./Renderer";
 import Input from "./Input";
 import LoudnessHandler from "./Loudness";
@@ -43,7 +43,7 @@ export default class Project {
 
     this.renderer = new Renderer(this, null);
     this.input = new Input(this.stage, this.renderer.stage, (key) => {
-      void this.fireTrigger(Trigger.KEY_PRESSED, { key });
+      void this.fireTrigger(Trigger.keyPressed, { key });
     });
 
     this.loudnessHandler = new LoudnessHandler();
@@ -87,7 +87,7 @@ export default class Project {
 
       const matchingTriggers: TriggerWithTarget[] = [];
       for (const trigger of clickedSprite.triggers) {
-        if (trigger.matches(Trigger.CLICKED, {}, clickedSprite)) {
+        if (trigger.matches(Trigger.clicked, {}, clickedSprite)) {
           matchingTriggers.push({ trigger, target: clickedSprite });
         }
       }
@@ -104,24 +104,25 @@ export default class Project {
     if (Sound.audioContext.state === "suspended") {
       void Sound.audioContext.resume();
     }
-    void this.fireTrigger(Trigger.GREEN_FLAG);
+    void this.fireTrigger(Trigger.greenFlag);
     this.input.focus();
   }
 
   // Find triggers which match the given condition
   private _matchingTriggers(
-    triggerMatches: (tr: Trigger, target: Sprite | Stage) => boolean
+    triggerMatches: (trigger: Trigger, target: Sprite | Stage) => boolean
   ): TriggerWithTarget[] {
     const matchingTriggers: TriggerWithTarget[] = [];
     const targets = this.spritesAndStage;
+
     for (const target of targets) {
-      const matchingTargetTriggers = target.triggers.filter((tr) =>
-        triggerMatches(tr, target)
-      );
-      for (const match of matchingTargetTriggers) {
-        matchingTriggers.push({ trigger: match, target });
+      for (const trigger of target.triggers) {
+        if (triggerMatches(trigger, target)) {
+          matchingTriggers.push({ trigger, target });
+        }
       }
     }
+
     return matchingTriggers;
   }
 
@@ -131,15 +132,15 @@ export default class Project {
     for (const triggerWithTarget of edgeActivated) {
       const { trigger, target } = triggerWithTarget;
       let predicate;
-      switch (trigger.trigger) {
-        case Trigger.TIMER_GREATER_THAN:
-          predicate = this.timer > trigger.option("VALUE", target)!;
-          break;
-        case Trigger.LOUDNESS_GREATER_THAN:
-          predicate = this.loudness > trigger.option("VALUE", target)!;
-          break;
-        default:
-          throw new Error(`Unimplemented trigger ${String(trigger.trigger)}`);
+
+      // TODO: This is kind of awkward, can we use the Trigger.matches()
+      // options argument?
+      if (trigger.matches(Trigger.timerGreaterThan)) {
+        predicate = this.timer > trigger.option("VALUE", target)!;
+      } else if (trigger.matches(Trigger.loudnessGreaterThan)) {
+        predicate = this.loudness > trigger.option("VALUE", target)!;
+      } else {
+        throw new Error(`Unimplemented trigger ${String(trigger.trigger)}`);
       }
 
       // Default to false
@@ -190,9 +191,10 @@ export default class Project {
     this.render();
   }
 
-  public fireTrigger(trigger: symbol, options?: TriggerOptions): Promise<void> {
+  // TODO: Only accept TriggerCreator.
+  public fireTrigger(creator: TriggerCreator | symbol, options?: TriggerOptions): Promise<void> {
     // Special trigger behaviors
-    if (trigger === Trigger.GREEN_FLAG) {
+    if (Trigger.matches(creator, Trigger.greenFlag)) {
       this.restartTimer();
       this.stopAllSounds();
       this.runningTriggers = [];
@@ -208,8 +210,8 @@ export default class Project {
       }
     }
 
-    const matchingTriggers = this._matchingTriggers((tr, target) =>
-      tr.matches(trigger, options, target)
+    const matchingTriggers = this._matchingTriggers((trigger, target) =>
+      trigger.matches(creator, options, target)
     );
 
     return this._startTriggers(matchingTriggers);

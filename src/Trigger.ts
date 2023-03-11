@@ -8,7 +8,10 @@ type TriggerOption =
 
 type TriggerOptions = Partial<Record<string, TriggerOption>>;
 
-type TriggerCreator =
+// TODO: Remove symbol property. This is for support with old-style triggers.
+// A unique function serves as a valid distinguisher and reduces the overall
+// type footprint.
+export type TriggerCreator =
   ((
     optionsOrScript: TriggerOptions | GeneratorFunction,
     script?: GeneratorFunction
@@ -16,7 +19,9 @@ type TriggerCreator =
     & {symbol: symbol};
 
 export default class Trigger {
+  // TODO: Expose as TriggerCreator instead of symbol.
   public trigger;
+
   private options: TriggerOptions;
   private _script: GeneratorFunction;
   private _runningScript: Generator | undefined;
@@ -24,11 +29,16 @@ export default class Trigger {
   private stop: () => void;
 
   public constructor(
-    trigger: symbol,
+    // TODO: Only accept TriggerCreator.
+    trigger: symbol | TriggerCreator,
     optionsOrScript: TriggerOptions | GeneratorFunction,
     script?: GeneratorFunction
   ) {
-    this.trigger = trigger;
+    if (typeof trigger === "function") {
+      this.trigger = trigger.symbol;
+    } else {
+      this.trigger = trigger;
+    }
 
     if (typeof script === "undefined") {
       this.options = {};
@@ -66,13 +76,20 @@ export default class Trigger {
   }
 
   public matches(
-    trigger: Trigger["trigger"],
-    options: Trigger["options"] | undefined,
-    target: Sprite | Stage
+    // TODO: Rework to not accept a symbol. Just compare to TriggerCreator.
+    trigger: TriggerCreator | symbol,
+    options?: Trigger["options"],
+    target?: Sprite | Stage
   ): boolean {
-    if (this.trigger !== trigger) return false;
+    if (options && !target) {
+      throw new Error("Expected target to check options against");
+    }
+
+    const triggerSymbol = (typeof trigger === "function" ? trigger.symbol : trigger);
+    if (this.trigger !== triggerSymbol) return false;
+
     for (const option in options) {
-      if (this.option(option, target) !== options[option]) return false;
+      if (this.option(option, target!) !== options[option]) return false;
     }
 
     return true;
@@ -100,6 +117,24 @@ export default class Trigger {
 
   public clone(): Trigger {
     return new Trigger(this.trigger, this.options, this._script);
+  }
+
+  /**
+   * Check if two TriggerCreators match. This interface is intended to be
+   * agnostic to the Trigger class' internals.
+   *
+   * Note: This is not for matching actual Trigger instances against a
+   * TriggerCreator. Use the trigger's own .matches() function, which accepts
+   * additional options relevant to that situation.
+   */
+  public static matches(
+    // TODO: Rework to not accept symbols. Just compare trigger and creator.
+    trigger: TriggerCreator | symbol,
+    creator: TriggerCreator | symbol,
+  ): boolean {
+    const triggerSymbol = (typeof trigger === "symbol" ? trigger : trigger.symbol);
+    const creatorSymbol = (typeof creator === "symbol" ? creator : creator.symbol);
+    return triggerSymbol === creatorSymbol;
   }
 
   private static triggerCreatorHelper(symbolText: string): TriggerCreator {

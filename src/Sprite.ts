@@ -359,7 +359,7 @@ abstract class SpriteBase {
   }
 
   public broadcast(name: string): Promise<void> {
-    return this._project.fireTrigger(Trigger.BROADCAST, { name });
+    return this._project.fireTrigger(Trigger.receivedBroadcast, { name });
   }
 
   public *broadcastAndWait(name: string): Yielding<void> {
@@ -902,7 +902,7 @@ export class Stage extends SpriteBase {
   }
 
   public fireBackdropChanged(): Promise<void> {
-    return this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
+    return this._project.fireTrigger(Trigger.backdropChanged, {
       backdrop: this.costume.name,
     });
   }
