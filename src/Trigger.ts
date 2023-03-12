@@ -28,6 +28,8 @@ export default class Trigger {
   public done: boolean;
   private stop: () => void;
 
+  protected static alertedDeprecatedSymbols: Set<Symbol> = new Set();
+
   public constructor(
     // TODO: Only accept TriggerCreator.
     trigger: symbol | TriggerCreator,
@@ -48,9 +50,46 @@ export default class Trigger {
       this._script = script;
     }
 
+    // This is deliberately positioned after this.options is set.
+    if (typeof trigger === "symbol") {
+      this.warnDeprecatedConstructorSyntax();
+    }
+
     this.done = false;
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     this.stop = () => {};
+  }
+
+  private warnDeprecatedConstructorSyntax() {
+    const symbol = this.trigger;
+
+    if (Trigger.alertedDeprecatedSymbols.has(symbol)) {
+      return;
+    } else {
+      Trigger.alertedDeprecatedSymbols.add(symbol);
+    }
+
+    const topMessage = `Trigger.${symbol.description} syntax is deprecated - it'll be removed in a future version of Leopard.`;
+
+    const triggerCreatorName = Object.entries(Object.getOwnPropertyDescriptors(Trigger))
+      .find(([_key, { value }]) => typeof value === "function" && value.symbol === symbol)?.[0];
+
+    if (!triggerCreatorName) {
+      console.warn(topMessage + '.');
+      return;
+    }
+
+    const stringifyOptions = () =>
+      `{${
+        Object.entries(this.options!)
+          .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+          .join(', ')}}`;
+
+    const triggerSyntax = Object.keys(this.options).length
+      ? `Trigger.${triggerCreatorName}(${stringifyOptions()}, this.myScript)`
+      : `Trigger.${triggerCreatorName}(this.myScript)`;
+
+    console.warn(`${topMessage}\nUse the new syntax:  ${triggerSyntax}`);
   }
 
   public get isEdgeActivated(): boolean {
