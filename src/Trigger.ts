@@ -154,15 +154,17 @@ export default class Trigger {
    *   this.triggers = [Trigger.greenFlag(this.whenGreenFlagClicked)];
    *   if (aTrigger.match(Trigger.greenFlag)) ...;
    *
+   * TODO: Remove symbol strings.
    */
   public static readonly greenFlag = this.triggerCreatorHelper("GREEN_FLAG");
   public static readonly keyPressed = this.triggerCreatorHelper("KEY_PRESSED");
-  public static readonly receivedBroadcast = this.triggerCreatorHelper("BROADCAST");
+  public static readonly broadcastReceived = this.triggerCreatorHelper("BROADCAST");
   public static readonly clicked = this.triggerCreatorHelper("CLICKED");
   public static readonly startedAsClone = this.triggerCreatorHelper("CLONE_START");
   public static readonly loudnessGreaterThan = this.triggerCreatorHelper("LOUDNESS_GREATER_THAN");
   public static readonly timerGreaterThan = this.triggerCreatorHelper("TIMER_GREATER_THAN");
   public static readonly backdropChanged = this.triggerCreatorHelper("BACKDROP_CHANGED");
+  public static readonly unreachable = this.triggerCreatorHelper("UNREACHABLE");
 
   /**
    * @deprecated
@@ -170,7 +172,7 @@ export default class Trigger {
    */
   public static readonly GREEN_FLAG = this.greenFlag.symbol;
   public static readonly KEY_PRESSED = this.keyPressed.symbol;
-  public static readonly BROADCAST = this.receivedBroadcast.symbol;
+  public static readonly BROADCAST = this.broadcastReceived.symbol;
   public static readonly CLICKED = this.clicked.symbol;
   public static readonly CLONE_START = this.startedAsClone.symbol;
   public static readonly LOUDNESS_GREATER_THAN = this.loudnessGreaterThan.symbol;

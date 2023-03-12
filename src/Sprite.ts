@@ -359,7 +359,7 @@ abstract class SpriteBase {
   }
 
   public broadcast(name: string): Promise<void> {
-    return this._project.fireTrigger(Trigger.receivedBroadcast, { name });
+    return this._project.fireTrigger(Trigger.broadcastReceived, { name });
   }
 
   public *broadcastAndWait(name: string): Yielding<void> {
