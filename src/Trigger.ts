@@ -167,13 +167,13 @@ export default class Trigger {
    * additional options relevant to that situation.
    */
   public static matches(
-    // TODO: Rework to not accept symbols. Just compare trigger and creator.
-    trigger: TriggerCreator | symbol,
-    creator: TriggerCreator | symbol,
+    // TODO: Rework to not accept symbols. Just compare both TriggerCreators.
+    triggerCreator1: TriggerCreator | symbol,
+    triggerCreator2: TriggerCreator | symbol,
   ): boolean {
-    const triggerSymbol = (typeof trigger === "symbol" ? trigger : trigger.symbol);
-    const creatorSymbol = (typeof creator === "symbol" ? creator : creator.symbol);
-    return triggerSymbol === creatorSymbol;
+    const symbol1 = (typeof triggerCreator1 === "symbol" ? triggerCreator1 : triggerCreator1.symbol);
+    const symbol2 = (typeof triggerCreator2 === "symbol" ? triggerCreator2 : triggerCreator2.symbol);
+    return symbol1 === symbol2;
   }
 
   private static triggerCreatorHelper(symbolText: string): TriggerCreator {
@@ -191,7 +191,7 @@ export default class Trigger {
    * object to match trigger instances against that class. For example:
    *
    *   this.triggers = [Trigger.greenFlag(this.whenGreenFlagClicked)];
-   *   if (aTrigger.match(Trigger.greenFlag)) ...;
+   *   if (aTrigger.matches(Trigger.greenFlag)) ...;
    *
    * TODO: Remove symbol strings.
    */
