@@ -6,12 +6,17 @@ const effectNames = [
   "pixelate",
   "mosaic",
   "brightness",
-  "ghost"
-];
+  "ghost",
+] as const;
 
-const effectBitmasks = {};
-for (let i = 0; i < effectNames.length; i++) {
-  effectBitmasks[effectNames[i]] = 1 << i;
-}
+const effectBitmasks = {
+  color: 1,
+  fisheye: 2,
+  whirl: 4,
+  pixelate: 8,
+  mosaic: 16,
+  brightness: 32,
+  ghost: 64,
+} as const;
 
 export { effectNames, effectBitmasks };

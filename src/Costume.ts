@@ -1,5 +1,12 @@
 export default class Costume {
-  constructor(name, url, center = { x: 0, y: 0 }) {
+  public name: string;
+  public url: string;
+  public img: HTMLImageElement;
+  public isBitmap: boolean;
+  public resolution: 2 | 1;
+  public center: { x: number; y: number };
+
+  public constructor(name: string, url: string, center = { x: 0, y: 0 }) {
     this.name = name;
     this.url = url;
 
@@ -14,11 +21,11 @@ export default class Costume {
     this.center = center;
   }
 
-  get width() {
+  public get width(): number {
     return this.img.naturalWidth;
   }
 
-  get height() {
+  public get height(): number {
     return this.img.naturalHeight;
   }
 }
