@@ -15,7 +15,7 @@
   "author": "Josh Pullen <hello@joshuapullen.com> (https://joshuapullen.com/)",
   "contributors": [
     "adroitwhiz <adroitwhiz@protonmail.com> (https://github.com/adroitwhiz)",
-    "Florrie Haero Miller <towerofnix@gmail.com> (https://github.com/towerofnix)"
+    "Quasar Nebula <qznebula@protonmail.com> (https://github.com/towerofnix)"
   ],
   "main": "dist/index.umd.js",
   "module": "dist/index.esm.js",
