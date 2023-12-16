@@ -1,34 +1,34 @@
 {
   "name": "leopard",
   "version": "1.5.1",
-  "description": "Make Scratch-like projects with JavaScript.",
   "private": false,
-  "browser": true,
-  "main": "dist/index.umd.js",
-  "module": "dist/index.esm.js",
-  "scripts": {
-    "dev": "rollup -c --watch",
-    "build": "rollup -c",
-    "prepare": "npm run build",
-    "lint": "eslint \"./src/**.ts\""
+  "description": "Make Scratch-like projects with JavaScript.",
+  "homepage": "https://leopardjs.com/",
+  "bugs": {
+    "url": "https://github.com/PullJosh/leopard/issues"
   },
-  "files": [
-    "dist/"
-  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PullJosh/leopard.git"
   },
+  "license": "MIT",
   "author": "Josh Pullen <hello@joshuapullen.com> (https://joshuapullen.com/)",
   "contributors": [
     "adroitwhiz <adroitwhiz@protonmail.com> (https://github.com/adroitwhiz)",
     "Florrie Haero Miller <towerofnix@gmail.com> (https://github.com/towerofnix)"
   ],
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/PullJosh/leopard/issues"
+  "main": "dist/index.umd.js",
+  "module": "dist/index.esm.js",
+  "browser": true,
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c --watch",
+    "lint": "eslint \"./src/**.ts\"",
+    "prepare": "npm run build"
   },
-  "homepage": "https://leopardjs.com/",
   "devDependencies": {
     "@rollup/plugin-typescript": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
