@@ -5,11 +5,11 @@
   "description": "Make Scratch-like projects with JavaScript.",
   "homepage": "https://leopardjs.com/",
   "bugs": {
-    "url": "https://github.com/PullJosh/leopard/issues"
+    "url": "https://github.com/leopard-js/leopard/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PullJosh/leopard.git"
+    "url": "https://github.com/leopard-js/leopard.git"
   },
   "license": "MIT",
   "author": "Josh Pullen <hello@joshuapullen.com> (https://joshuapullen.com/)",
