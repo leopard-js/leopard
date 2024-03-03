@@ -1,11 +1,36 @@
-import Trigger from "./Trigger.js";
-import Renderer from "./Renderer.js";
-import Input from "./Input.js";
-import LoudnessHandler from "./Loudness.js";
-import Sound from "./Sound.js";
+import Trigger, { TriggerOptions } from "./Trigger";
+import Renderer from "./Renderer";
+import Input from "./Input";
+import LoudnessHandler from "./Loudness";
+import Sound from "./Sound";
+import type { Stage, Sprite } from "./Sprite";
+
+type TriggerWithTarget = {
+  target: Sprite | Stage;
+  trigger: Trigger;
+};
 
 export default class Project {
-  constructor(stage, sprites = {}, { frameRate = 30 } = {}) {
+  public stage: Stage;
+  public sprites: Partial<Record<string, Sprite>>;
+  public renderer: Renderer;
+  public input: Input;
+
+  private loudnessHandler: LoudnessHandler;
+  private _cachedLoudness: number | null;
+
+  public runningTriggers: TriggerWithTarget[];
+
+  public answer: string | null;
+  private timerStart!: Date;
+
+  /**
+   * Used to keep track of what edge-activated trigger predicates evaluted to
+   * on the previous step.
+   */
+  private _prevStepTriggerPredicates: WeakMap<Trigger, boolean>;
+
+  public constructor(stage: Stage, sprites = {}, { frameRate = 30 } = {}) {
     this.stage = stage;
     this.sprites = sprites;
 
@@ -16,9 +41,9 @@ export default class Project {
     }
     this.stage._project = this;
 
-    this.renderer = new Renderer(this);
-    this.input = new Input(this.stage, this.renderer.stage, key => {
-      this.fireTrigger(Trigger.KEY_PRESSED, { key });
+    this.renderer = new Renderer(this, null);
+    this.input = new Input(this.stage, this.renderer.stage, (key) => {
+      void this.fireTrigger(Trigger.KEY_PRESSED, { key });
     });
 
     this.loudnessHandler = new LoudnessHandler();
@@ -26,8 +51,6 @@ export default class Project {
     this._cachedLoudness = null;
 
     this.runningTriggers = [];
-    // Used to keep track of what edge-activated trigger predicates evaluted to
-    // on the previous step.
     this._prevStepTriggerPredicates = new WeakMap();
 
     this.restartTimer();
@@ -43,7 +66,7 @@ export default class Project {
     this._renderLoop();
   }
 
-  attach(renderTarget) {
+  public attach(renderTarget: string | HTMLElement): void {
     this.renderer.setRenderTarget(renderTarget);
     this.renderer.stage.addEventListener("click", () => {
       // Chrome requires a user gesture on the page before we can start the
@@ -51,46 +74,48 @@ export default class Project {
       // When we click the stage, that counts as a user gesture, so try
       // resuming the audio context.
       if (Sound.audioContext.state === "suspended") {
-        Sound.audioContext.resume();
+        void Sound.audioContext.resume();
       }
 
       let clickedSprite = this.renderer.pick(this.spritesAndClones, {
         x: this.input.mouse.x,
-        y: this.input.mouse.y
+        y: this.input.mouse.y,
       });
       if (!clickedSprite) {
         clickedSprite = this.stage;
       }
 
-      const matchingTriggers = [];
+      const matchingTriggers: TriggerWithTarget[] = [];
       for (const trigger of clickedSprite.triggers) {
         if (trigger.matches(Trigger.CLICKED, {}, clickedSprite)) {
           matchingTriggers.push({ trigger, target: clickedSprite });
         }
       }
 
-      this._startTriggers(matchingTriggers);
+      void this._startTriggers(matchingTriggers);
     });
   }
 
-  greenFlag() {
+  public greenFlag(): void {
     // Chrome requires a user gesture on the page before we can start the
     // audio context.
     // When greenFlag is triggered, it's likely that the cause of it was some
     // kind of button click, so try resuming the audio context.
     if (Sound.audioContext.state === "suspended") {
-      Sound.audioContext.resume();
+      void Sound.audioContext.resume();
     }
-    this.fireTrigger(Trigger.GREEN_FLAG);
+    void this.fireTrigger(Trigger.GREEN_FLAG);
     this.input.focus();
   }
 
   // Find triggers which match the given condition
-  _matchingTriggers(triggerMatches) {
-    let matchingTriggers = [];
+  private _matchingTriggers(
+    triggerMatches: (tr: Trigger, target: Sprite | Stage) => boolean
+  ): TriggerWithTarget[] {
+    const matchingTriggers: TriggerWithTarget[] = [];
     const targets = this.spritesAndStage;
     for (const target of targets) {
-      const matchingTargetTriggers = target.triggers.filter(tr =>
+      const matchingTargetTriggers = target.triggers.filter((tr) =>
         triggerMatches(tr, target)
       );
       for (const match of matchingTargetTriggers) {
@@ -100,21 +125,21 @@ export default class Project {
     return matchingTriggers;
   }
 
-  _stepEdgeActivatedTriggers() {
-    const edgeActivated = this._matchingTriggers(tr => tr.isEdgeActivated);
-    const triggersToStart = [];
+  private _stepEdgeActivatedTriggers(): void {
+    const edgeActivated = this._matchingTriggers((tr) => tr.isEdgeActivated);
+    const triggersToStart: TriggerWithTarget[] = [];
     for (const triggerWithTarget of edgeActivated) {
       const { trigger, target } = triggerWithTarget;
       let predicate;
       switch (trigger.trigger) {
         case Trigger.TIMER_GREATER_THAN:
-          predicate = this.timer > trigger.option("VALUE", target);
+          predicate = this.timer > trigger.option("VALUE", target)!;
           break;
         case Trigger.LOUDNESS_GREATER_THAN:
-          predicate = this.loudness > trigger.option("VALUE", target);
+          predicate = this.loudness > trigger.option("VALUE", target)!;
           break;
         default:
-          throw new Error(`Unimplemented trigger ${trigger.trigger}`);
+          throw new Error(`Unimplemented trigger ${String(trigger.trigger)}`);
       }
 
       // Default to false
@@ -127,10 +152,10 @@ export default class Project {
         triggersToStart.push(triggerWithTarget);
       }
     }
-    this._startTriggers(triggersToStart);
+    void this._startTriggers(triggersToStart);
   }
 
-  step() {
+  private step(): void {
     this._cachedLoudness = null;
     this._stepEdgeActivatedTriggers();
 
@@ -146,24 +171,26 @@ export default class Project {
     );
   }
 
-  render() {
+  private render(): void {
     // Render to canvas
-    this.renderer.update(this.stage, this.spritesAndClones);
+    this.renderer.update();
 
     // Update watchers
-    for (const sprite of [...Object.values(this.sprites), this.stage]) {
-      for (const watcher of Object.values(sprite.watchers)) {
-        watcher.updateDOM(this.renderer.renderTarget);
+    if (this.renderer.renderTarget) {
+      for (const sprite of [...Object.values(this.sprites), this.stage]) {
+        for (const watcher of Object.values(sprite!.watchers)) {
+          watcher!.updateDOM(this.renderer.renderTarget);
+        }
       }
     }
   }
 
-  _renderLoop() {
+  private _renderLoop(): void {
     requestAnimationFrame(this._renderLoop.bind(this));
     this.render();
   }
 
-  fireTrigger(trigger, options) {
+  public fireTrigger(trigger: symbol, options?: TriggerOptions): Promise<void> {
     // Special trigger behaviors
     if (trigger === Trigger.GREEN_FLAG) {
       this.restartTimer();
@@ -171,7 +198,7 @@ export default class Project {
       this.runningTriggers = [];
 
       for (const spriteName in this.sprites) {
-        const sprite = this.sprites[spriteName];
+        const sprite = this.sprites[spriteName]!;
         sprite.clones = [];
       }
 
@@ -188,14 +215,15 @@ export default class Project {
     return this._startTriggers(matchingTriggers);
   }
 
-  _startTriggers(triggers) {
+  // TODO: add a way to start clone triggers from fireTrigger then make this private
+  public async _startTriggers(triggers: TriggerWithTarget[]): Promise<void> {
     // Only add these triggers to this.runningTriggers if they're not already there.
     // TODO: if the triggers are already running, they'll be restarted but their execution order is unchanged.
     // Does that match Scratch's behavior?
     for (const trigger of triggers) {
       if (
         !this.runningTriggers.find(
-          runningTrigger =>
+          (runningTrigger) =>
             trigger.trigger === runningTrigger.trigger &&
             trigger.target === runningTrigger.target
         )
@@ -203,25 +231,27 @@ export default class Project {
         this.runningTriggers.push(trigger);
       }
     }
-    return Promise.all(
-      triggers.map(({ trigger, target }) => {
-        return trigger.start(target);
-      })
+    await Promise.all(
+      triggers.map(({ trigger, target }) => trigger.start(target))
     );
   }
 
-  get spritesAndClones() {
+  public get spritesAndClones(): Sprite[] {
     return Object.values(this.sprites)
-      .flatMap(sprite => sprite.andClones())
+      .flatMap((sprite) => sprite!.andClones())
       .sort((a, b) => a._layerOrder - b._layerOrder);
   }
 
-  get spritesAndStage() {
+  public get spritesAndStage(): (Sprite | Stage)[] {
     return [...this.spritesAndClones, this.stage];
   }
 
-  changeSpriteLayer(sprite, layerDelta, relativeToSprite = sprite) {
-    let spritesArray = this.spritesAndClones;
+  public changeSpriteLayer(
+    sprite: Sprite,
+    layerDelta: number,
+    relativeToSprite = sprite
+  ): void {
+    const spritesArray = this.spritesAndClones;
 
     const originalIndex = spritesArray.indexOf(sprite);
     const relativeToIndex = spritesArray.indexOf(relativeToSprite);
@@ -242,26 +272,26 @@ export default class Project {
     });
   }
 
-  stopAllSounds() {
+  public stopAllSounds(): void {
     for (const target of this.spritesAndStage) {
       target.stopAllOfMySounds();
     }
   }
 
-  get timer() {
-    const ms = new Date() - this.timerStart;
+  public get timer(): number {
+    const ms = new Date().getTime() - this.timerStart.getTime();
     return ms / 1000;
   }
 
-  restartTimer() {
+  public restartTimer(): void {
     this.timerStart = new Date();
   }
 
-  async askAndWait(question) {
+  public async askAndWait(question: string): Promise<void> {
     this.answer = await this.renderer.displayAskBox(question);
   }
 
-  get loudness() {
+  public get loudness(): number {
     if (this._cachedLoudness === null) {
       this._cachedLoudness = this.loudnessHandler.getLoudness();
     }

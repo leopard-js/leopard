@@ -1,5 +1,20 @@
+import type { Stage } from "./Sprite";
+
+type Mouse = { x: number; y: number; down: boolean };
+
 export default class Input {
-  constructor(stage, canvas, onKeyDown) {
+  private _stage;
+  private _canvas;
+  private _onKeyDown;
+
+  public mouse: Mouse;
+  public keys: string[];
+
+  public constructor(
+    stage: Stage,
+    canvas: HTMLCanvasElement,
+    onKeyDown: (key: string) => unknown
+  ) {
     this._stage = stage;
     this._canvas = canvas;
 
@@ -20,42 +35,42 @@ export default class Input {
     this._onKeyDown = onKeyDown;
   }
 
-  _mouseMove(e) {
+  private _mouseMove(e: MouseEvent): void {
     const rect = this._canvas.getBoundingClientRect();
     const scaleX = this._stage.width / rect.width;
     const scaleY = this._stage.height / rect.height;
     const realCoords = {
       x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
+      y: (e.clientY - rect.top) * scaleY,
     };
 
     this.mouse = {
       ...this.mouse,
       x: realCoords.x - this._stage.width / 2,
-      y: -realCoords.y + this._stage.height / 2
+      y: -realCoords.y + this._stage.height / 2,
     };
   }
 
-  _mouseDown() {
+  private _mouseDown(): void {
     this.mouse = {
       ...this.mouse,
-      down: true
+      down: true,
     };
   }
 
-  _mouseUp() {
+  private _mouseUp(): void {
     this.mouse = {
       ...this.mouse,
-      down: false
+      down: false,
     };
   }
 
-  _keyup(e) {
+  private _keyup(e: KeyboardEvent): void {
     const key = this._getKeyName(e);
-    this.keys = this.keys.filter(k => k !== key);
+    this.keys = this.keys.filter((k) => k !== key);
   }
 
-  _keydown(e) {
+  private _keydown(e: KeyboardEvent): void {
     e.preventDefault();
 
     const key = this._getKeyName(e);
@@ -66,7 +81,7 @@ export default class Input {
     this._onKeyDown(key);
   }
 
-  _getKeyName(e) {
+  private _getKeyName(e: KeyboardEvent): string {
     if (e.key === "ArrowUp") return "up arrow";
     if (e.key === "ArrowDown") return "down arrow";
     if (e.key === "ArrowLeft") return "left arrow";
@@ -77,12 +92,14 @@ export default class Input {
     return e.key.toLowerCase();
   }
 
-  keyPressed(name) {
+  public keyPressed(name: string): boolean {
     if (name === "any") return this.keys.length > 0;
     return this.keys.indexOf(name) > -1;
   }
 
-  focus() {
+  public focus(): void {
     this._canvas.focus();
   }
 }
+
+export type { Mouse };

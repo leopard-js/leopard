@@ -1,19 +1,34 @@
-import Skin from "./Skin.js";
+import Skin from "./Skin";
+import type Renderer from "../Renderer";
+import type { SpeechBubble, SpeechBubbleStyle } from "../Sprite";
 
 const bubbleStyle = {
   maxLineWidth: 170,
   minWidth: 50,
   strokeWidth: 4,
   padding: 12,
-  tailHeight: 12
-};
+  tailHeight: 12,
+} as const;
 
 // TODO: multiline speech bubbles
 export default class SpeechBubbleSkin extends Skin {
-  constructor(renderer, bubble) {
+  private _canvas: HTMLCanvasElement;
+  private _ctx: CanvasRenderingContext2D;
+  private _texture: WebGLTexture;
+  private _bubble: SpeechBubble;
+  private _flipped: boolean;
+  private _rendered: boolean;
+  private _renderedScale: number;
+  public offsetX: number;
+  public offsetY: number;
+
+  public constructor(renderer: Renderer, bubble: SpeechBubble) {
     super(renderer);
 
     this._canvas = document.createElement("canvas");
+    const ctx = this._canvas.getContext("2d");
+    if (ctx === null) throw new Error("Could not get canvas context");
+    this._ctx = ctx;
     this._texture = this._makeTexture(null, this.gl.LINEAR);
     this._bubble = bubble;
     this._flipped = false;
@@ -24,27 +39,36 @@ export default class SpeechBubbleSkin extends Skin {
     this.height = 0;
     this.offsetX = -bubbleStyle.strokeWidth / 2;
     this.offsetY = this.offsetX + bubbleStyle.tailHeight;
-
-    this._renderBubble(this._bubble);
   }
 
   // To ensure proper text measurement and drawing, it's necessary to restyle the canvas after resizing it.
-  _restyleCanvas() {
-    const ctx = this._canvas.getContext("2d");
+  private _restyleCanvas(): void {
+    const ctx = this._ctx;
     ctx.font = "16px sans-serif";
     ctx.textBaseline = "hanging";
   }
 
-  set flipped(flipped) {
+  public get flipped(): boolean {
+    return this._flipped;
+  }
+
+  public set flipped(flipped) {
     this._flipped = flipped;
     this._rendered = false;
   }
 
-  _renderBubble(bubble, scale) {
+  private _renderBubble(bubble: SpeechBubble, scale: number): void {
     const canvas = this._canvas;
-    const ctx = canvas.getContext("2d");
+    const ctx = this._ctx;
 
-    const renderBubbleBackground = (x, y, w, h, r, style) => {
+    const renderBubbleBackground = (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number,
+      style: SpeechBubbleStyle
+    ): void => {
       if (r > w / 2) r = w / 2;
       if (r > h / 2) r = h / 2;
       if (r < 0) return;
@@ -57,7 +81,7 @@ export default class SpeechBubbleSkin extends Skin {
         ctx.lineTo(Math.min(x + 3 * r, x + w - r), y + h);
         ctx.lineTo(x + r / 2, y + h + r);
         ctx.lineTo(x + r, y + h);
-      } else if (style === "think") {
+      } else {
         ctx.ellipse(x + r * 2.25, y + h, (r * 3) / 4, r / 2, 0, 0, Math.PI);
       }
       ctx.arcTo(x, y + h, x, y, r);
@@ -124,7 +148,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._renderedScale = scale;
   }
 
-  getTexture(scale) {
+  public getTexture(scale: number): WebGLTexture {
     if (!this._rendered || this._renderedScale !== scale) {
       this._renderBubble(this._bubble, scale);
       const gl = this.gl;
@@ -142,7 +166,17 @@ export default class SpeechBubbleSkin extends Skin {
     return this._texture;
   }
 
-  destroy() {
+  public getImageData(scale: number): ImageData | null {
+    this.getTexture(scale);
+    return this._ctx.getImageData(
+      0,
+      0,
+      this._canvas.width,
+      this._canvas.height
+    );
+  }
+
+  public destroy(): void {
     this.gl.deleteTexture(this._texture);
   }
 }

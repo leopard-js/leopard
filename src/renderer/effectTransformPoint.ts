@@ -1,10 +1,15 @@
-import { effectBitmasks } from "./effectInfo.js";
+import { effectBitmasks } from "./effectInfo";
+import type Drawable from "./Drawable";
 
 const CENTER = 0.5;
 const EPSILON = 1e-3;
 
 // Transform a texture-space point using the effects defined on the given drawable.
-const effectTransformPoint = (drawable, src, dst) => {
+const effectTransformPoint = (
+  drawable: Drawable,
+  src: [number, number],
+  dst: [number, number]
+): [number, number] => {
   const { effects } = drawable._sprite;
   const effectBitmask = effects._bitmask;
 

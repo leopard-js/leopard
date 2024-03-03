@@ -1,39 +1,54 @@
-import Sound from "./Sound.js";
+import Sound from "./Sound";
 
 const IGNORABLE_ERROR = ["NotAllowedError", "NotFoundError"];
 
+const enum ConnectionState {
+  /** We have not tried connecting yet. */
+  NOT_CONNECTED,
+  /** We are in the middle of connecting. */
+  CONNECTING,
+  /** We connected successfully. */
+  CONNECTED,
+  /** There was an error connecting. */
+  ERROR,
+}
+
 // https://github.com/LLK/scratch-audio/blob/develop/src/Loudness.js
 export default class LoudnessHandler {
-  constructor() {
-    // TODO: use a TypeScript enum
-    this.connectionState = "NOT_CONNECTED";
+  private connectionState: ConnectionState;
+  private audioStream: MediaStream | undefined;
+  private analyser: AnalyserNode | undefined;
+  private micDataArray: Float32Array | undefined;
+  private _lastValue: number | undefined;
+
+  public constructor() {
+    this.connectionState = ConnectionState.NOT_CONNECTED;
   }
 
-  get audioContext() {
+  private get audioContext(): AudioContext {
     return Sound.audioContext;
   }
 
-  async connect() {
+  private async connect(): Promise<void> {
     // If we're in the middle of connecting, or failed to connect,
     // don't attempt to connect again
-    if (this.connectionState !== "NOT_CONNECTED") return;
-    this.connectionState = "CONNECTING";
+    if (this.connectionState !== ConnectionState.NOT_CONNECTED) return;
+    this.connectionState = ConnectionState.CONNECTING;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       // Chrome blocks usage of audio until the user interacts with the page.
       // By calling `resume` here, we will wait until that happens.
       await Sound.audioContext.resume();
-      this.hasConnected = true;
       this.audioStream = stream;
       const mic = this.audioContext.createMediaStreamSource(stream);
       this.analyser = this.audioContext.createAnalyser();
       mic.connect(this.analyser);
       this.micDataArray = new Float32Array(this.analyser.fftSize);
-      this.connectionState = "CONNECTED";
+      this.connectionState = ConnectionState.CONNECTED;
     } catch (e) {
-      this.connectionState = "ERROR";
-      if (IGNORABLE_ERROR.includes(e.name)) {
+      this.connectionState = ConnectionState.ERROR;
+      if (IGNORABLE_ERROR.includes((e as Error).name)) {
         console.warn("Mic is not available.");
       } else {
         throw e;
@@ -41,8 +56,13 @@ export default class LoudnessHandler {
     }
   }
 
-  get loudness() {
-    if (this.connectionState !== "CONNECTED" || !this.audioStream.active) {
+  private get loudness(): number {
+    if (
+      this.connectionState !== ConnectionState.CONNECTED ||
+      !this.audioStream?.active ||
+      !this.analyser ||
+      !this.micDataArray
+    ) {
       return -1;
     }
 
@@ -67,8 +87,8 @@ export default class LoudnessHandler {
     return rms;
   }
 
-  getLoudness() {
-    this.connect();
+  public getLoudness(): number {
+    void this.connect();
     return this.loudness;
   }
 }

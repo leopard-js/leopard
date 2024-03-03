@@ -1,7 +1,12 @@
-import Skin from "./Skin.js";
+import type Renderer from "../Renderer";
+import Skin from "./Skin";
 
 export default class BitmapSkin extends Skin {
-  constructor(renderer, image) {
+  private _image: HTMLImageElement;
+  private _imageData: ImageData | null;
+  private _texture: WebGLTexture | null;
+
+  public constructor(renderer: Renderer, image: HTMLImageElement) {
     super(renderer);
 
     this._image = image;
@@ -11,7 +16,7 @@ export default class BitmapSkin extends Skin {
     this._setSizeFromImage(image);
   }
 
-  getImageData() {
+  public getImageData(): ImageData | null {
     // Make sure to handle potentially non-loaded textures
     if (!this._image.complete) return null;
 
@@ -20,6 +25,7 @@ export default class BitmapSkin extends Skin {
       canvas.width = this._image.naturalWidth || this._image.width;
       canvas.height = this._image.naturalHeight || this._image.height;
       const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
       ctx.drawImage(this._image, 0, 0);
       // Cache image data so we can reuse it
       this._imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -28,7 +34,7 @@ export default class BitmapSkin extends Skin {
     return this._imageData;
   }
 
-  getTexture() {
+  public getTexture(): WebGLTexture | null {
     // Make sure to handle potentially non-loaded textures
     const image = this._image;
     if (!image.complete) return null;
@@ -40,7 +46,7 @@ export default class BitmapSkin extends Skin {
     return this._texture;
   }
 
-  destroy() {
+  public destroy(): void {
     if (this._texture !== null) this.gl.deleteTexture(this._texture);
   }
 }

@@ -3,13 +3,38 @@
     "ecmaVersion": 9,
     "sourceType": "module"
   },
-  "plugins": ["prettier"],
-  "extends": ["eslint:recommended", "plugin:prettier/recommended"],
+  "plugins": ["@typescript-eslint", "prettier"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:prettier/recommended"
+  ],
   "env": {
     "browser": true,
     "es6": true
   },
   "rules": {
     "no-console": ["warn", {"allow": ["warn", "error"]}]
-  }
+  },
+  "overrides": [
+      {
+        "files": ["src/**/*"],
+        "parserOptions": {
+          "parser": "@typescript-eslint/parser",
+          "project": "./tsconfig.json"
+        },
+        "extends": [
+          "plugin:@typescript-eslint/recommended",
+          "plugin:@typescript-eslint/recommended-requiring-type-checking"
+        ],
+        "env": {
+          "browser": true
+        },
+        "rules": {
+          "@typescript-eslint/no-non-null-assertion": "off",
+          "@typescript-eslint/explicit-member-accessibility": "error",
+          "@typescript-eslint/prefer-return-this-type": "error",
+          "@typescript-eslint/explicit-function-return-type": ["error", {"allowExpressions": true}]
+        }
+      }
+  ]
 }
