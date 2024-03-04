@@ -701,6 +701,53 @@ export class Sprite extends SpriteBase {
     } while (t < 1);
   }
 
+  ifOnEdgeBounce() {
+    const nearestEdge = this.nearestEdge();
+    if (!nearestEdge) return;
+    const rad = this.scratchToRad(this.direction);
+    let dx = Math.cos(rad);
+    let dy = Math.sin(rad);
+    switch (nearestEdge) {
+      case Sprite.Edge.LEFT:
+        dx = Math.max(0.2, Math.abs(dx));
+        break;
+      case Sprite.Edge.RIGHT:
+        dx = -Math.max(0.2, Math.abs(dx));
+        break;
+      case Sprite.Edge.TOP:
+        dy = -Math.max(0.2, Math.abs(dy));
+        break;
+      case Sprite.Edge.BOTTOM:
+        dy = Math.max(0.2, Math.abs(dy));
+        break;
+    }
+    this.direction = this.radToScratch(Math.atan2(dy, dx));
+    this.positionInFence();
+  }
+
+  positionInFence() {
+    // https://github.com/LLK/scratch-vm/blob/develop/src/sprites/rendered-target.js#L949
+    const fence = this.stage.fence;
+    const bounds = this._project.renderer.getTightBoundingBox(this);
+
+    let dx = 0,
+      dy = 0;
+    if (bounds.left < fence.left) {
+      dx += fence.left - bounds.left;
+    }
+    if (bounds.right > fence.right) {
+      dx += fence.right - bounds.right;
+    }
+    if (bounds.top > fence.top) {
+      dy += fence.top - bounds.top;
+    }
+    if (bounds.bottom < fence.bottom) {
+      dy += fence.bottom - bounds.bottom;
+    }
+
+    this.goto(this.x + dx, this.y + dy);
+  }
+
   public moveAhead(value: number | Sprite = Infinity): void {
     if (typeof value === "number") {
       this._project.changeSpriteLayer(this, value);
@@ -822,6 +869,38 @@ export class Sprite extends SpriteBase {
     }
   }
 
+  nearestEdge() {
+    const bounds = this._project.renderer.getTightBoundingBox(this);
+    const { width: stageWidth, height: stageHeight } = this.stage;
+    const distLeft = Math.max(0, stageWidth / 2 + bounds.left);
+    const distTop = Math.max(0, stageHeight / 2 - bounds.top);
+    const distRight = Math.max(0, stageWidth / 2 - bounds.right);
+    const distBottom = Math.max(0, stageHeight / 2 + bounds.bottom);
+    // Find the nearest edge.
+    let nearestEdge = null;
+    let minDist = Infinity;
+    if (distLeft < minDist) {
+      minDist = distLeft;
+      nearestEdge = Sprite.Edge.LEFT;
+    }
+    if (distTop < minDist) {
+      minDist = distTop;
+      nearestEdge = Sprite.Edge.TOP;
+    }
+    if (distRight < minDist) {
+      minDist = distRight;
+      nearestEdge = Sprite.Edge.RIGHT;
+    }
+    if (distBottom < minDist) {
+      minDist = distBottom;
+      nearestEdge = Sprite.Edge.BOTTOM;
+    }
+    if (minDist > 0) {
+      nearestEdge = null;
+    }
+    return nearestEdge;
+  }
+
   public say(text: string): void {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "say", timeout: null };
@@ -869,6 +948,13 @@ export class Sprite extends SpriteBase {
     LEFT_RIGHT: Symbol("LEFT_RIGHT"),
     DONT_ROTATE: Symbol("DONT_ROTATE"),
   });
+
+  public static Edge = Object.freeze({
+    BOTTOM: Symbol("BOTTOM"),
+    LEFT: Symbol("LEFT"),
+    RIGHT: Symbol("RIGHT"),
+    TOP: Symbol("TOP")
+  });
 }
 
 type StageInitialConditions = {
@@ -880,6 +966,12 @@ export class Stage extends SpriteBase {
   public readonly width!: number;
   public readonly height!: number;
   public __counter: number;
+  public fence: {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  }
 
   public constructor(initialConditions: StageInitialConditions, vars = {}) {
     super(initialConditions, vars);
@@ -896,6 +988,13 @@ export class Stage extends SpriteBase {
         enumerable: true,
       },
     });
+
+    this.fence = {
+      left: -this.width / 2,
+      right: this.width / 2,
+      top: this.height / 2,
+      bottom: -this.height / 2
+    };
 
     // For obsolete counter blocks.
     this.__counter = 0;
