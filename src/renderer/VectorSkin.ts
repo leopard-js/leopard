@@ -100,6 +100,11 @@ export default class VectorSkin extends Skin {
   public getTexture(scale: number): WebGLTexture | null {
     if (!this._image.complete) return null;
 
+    if (isNaN(scale)) {
+      console.warn(`VectorSkin.getTexture got unexpected NaN scale`);
+      return null;
+    }
+
     // Because WebGL doesn't support vector graphics, substitute a bunch of bitmaps.
     // This skin contains several renderings of its image at different scales.
     // We render the SVG at 0.5x scale, 1x scale, 2x scale, 4x scale, etc. and store those as textures,

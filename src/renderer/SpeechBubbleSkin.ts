@@ -149,6 +149,11 @@ export default class SpeechBubbleSkin extends Skin {
   }
 
   public getTexture(scale: number): WebGLTexture | null {
+    if (isNaN(scale)) {
+      console.warn(`SpeechBubbleSkin.getTexture got unexpected NaN scale`);
+      return null;
+    }
+
     if (!this._rendered || this._renderedScale !== scale) {
       this._renderBubble(this._bubble, scale);
       const gl = this.gl;
