@@ -87,12 +87,15 @@ export default class VectorSkin extends Skin {
   private _createMipmap(mipLevel: number): void {
     // Instead of uploading the image to WebGL as a texture, render the image to a canvas and upload the canvas.
     const ctx = this._drawSvgToCanvas(mipLevel);
-    this._mipmaps.set(
-      mipLevel,
-      // Use linear (i.e. smooth) texture filtering for vectors
-      // If the image is 0x0, we return null. Check for that.
-      ctx === null ? null : this._makeTexture(ctx.canvas, this.gl.LINEAR)
-    );
+
+    // If the image is 0x0, we return null. Check for that.
+    if (ctx === null) {
+      this._mipmaps.set(mipLevel, null);
+      return;
+    }
+
+    // Use linear (i.e. smooth) texture filtering for vectors.
+    this._mipmaps.set(mipLevel, this._makeTexture(ctx.canvas, this.gl.LINEAR));
   }
 
   public getTexture(scale: number): WebGLTexture | null {
