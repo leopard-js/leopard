@@ -148,7 +148,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._renderedScale = scale;
   }
 
-  public getTexture(scale: number): WebGLTexture {
+  public getTexture(scale: number): WebGLTexture | null {
     if (!this._rendered || this._renderedScale !== scale) {
       this._renderBubble(this._bubble, scale);
       const gl = this.gl;

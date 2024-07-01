@@ -84,18 +84,17 @@ export default class VectorSkin extends Skin {
 
   // TODO: handle proper subpixel positioning when SVG viewbox has non-integer coordinates
   // This will require rethinking costume + project loading probably
-  private _createMipmap(mipLevel: number): void {
+  private _createMipmap(mipLevel: number): WebGLTexture | null {
     // Instead of uploading the image to WebGL as a texture, render the image to a canvas and upload the canvas.
     const ctx = this._drawSvgToCanvas(mipLevel);
 
     // If the image is 0x0, we return null. Check for that.
     if (ctx === null) {
-      this._mipmaps.set(mipLevel, null);
-      return;
+      return null;
     }
 
     // Use linear (i.e. smooth) texture filtering for vectors.
-    this._mipmaps.set(mipLevel, this._makeTexture(ctx.canvas, this.gl.LINEAR));
+    return this._makeTexture(ctx.canvas, this.gl.LINEAR);
   }
 
   public getTexture(scale: number): WebGLTexture | null {
@@ -109,7 +108,9 @@ export default class VectorSkin extends Skin {
     // This means that one texture pixel will always be between 0.5x and 1x the size of one rendered pixel,
     // but never bigger than one rendered pixel--this prevents blurriness from blowing up the texture too much.
     const mipLevel = VectorSkin.mipLevelForScale(scale);
-    if (!this._mipmaps.has(mipLevel)) this._createMipmap(mipLevel);
+    if (!this._mipmaps.has(mipLevel)) {
+      this._mipmaps.set(mipLevel, this._createMipmap(mipLevel));
+    }
 
     return this._mipmaps.get(mipLevel) ?? null;
   }
