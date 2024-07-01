@@ -14,7 +14,7 @@ const bubbleStyle = {
 export default class SpeechBubbleSkin extends Skin {
   private _canvas: HTMLCanvasElement;
   private _ctx: CanvasRenderingContext2D;
-  private _texture: WebGLTexture;
+  private _texture: WebGLTexture | null;
   private _bubble: SpeechBubble;
   private _flipped: boolean;
   private _rendered: boolean;
