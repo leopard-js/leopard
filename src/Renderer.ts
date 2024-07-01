@@ -500,17 +500,31 @@ export default class Renderer {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
+  private _getSpriteScale(sprite: Sprite | Stage): number {
+    if ("size" in sprite) {
+      if (typeof sprite.size !== "number") {
+        console.warn(`Expected a number, sprite ${sprite.constructor.name} size is ${typeof sprite.size}. Treating as 100%.`);
+        return 1;
+      } else if (isNaN(sprite.size)) {
+        console.warn(`Expected a number, sprite ${sprite.constructor.name} size is NaN. Treating as 100%.`);
+        return 1;
+      } else {
+        return sprite.size / 100;
+      }
+    } else {
+      return 1;
+    }
+  }
+
   private renderSprite(
     sprite: Sprite | Stage,
     options: RenderSpriteOptions
   ): void {
-    const spriteScale = "size" in sprite ? sprite.size / 100 : 1;
-
     this._renderSkin(
       this._getSkin(sprite.costume),
       options.drawMode,
       this._getDrawable(sprite).getMatrix(),
-      spriteScale,
+      this._getSpriteScale(sprite),
       sprite.effects,
       options.effectMask,
       options.colorMask,
