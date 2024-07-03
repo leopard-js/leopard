@@ -226,6 +226,10 @@ export default class Project {
   }
 
   private _startDragging(): void {
+    if (!this.spritesAndClones.includes(this._consideringDraggingSprite)) {
+      this._consideringDraggingSprite = null;
+    }
+
     if (this._consideringDraggingSprite) {
       this.draggingSprite = this._consideringDraggingSprite;
       this._consideringDraggingSprite = null;
