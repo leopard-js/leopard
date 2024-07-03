@@ -611,6 +611,12 @@ export default class Renderer {
       }
     }
 
+    // Filter out the sprite that is being dragged, if any.
+    // A sprite that is being dragged can detect other sprites, but other sprites can't detect it.
+    if (this.project.draggingSprite) {
+      targets.delete(this.project.draggingSprite);
+    }
+
     const sprBox = Rectangle.copy(
       this.getBoundingBox(spr),
       __collisionBox

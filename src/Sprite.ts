@@ -634,6 +634,10 @@ export class Sprite extends SpriteBase {
     this._project.runningTriggers = this._project.runningTriggers.filter(
       ({ target }) => target !== this
     );
+
+    if (this._project.draggingSprite === this) {
+      this._project.draggingSprite = null;
+    }
   }
 
   public andClones(): this[] {
@@ -648,7 +652,8 @@ export class Sprite extends SpriteBase {
     this._direction = this.normalizeDeg(dir);
   }
 
-  public goto(x: number, y: number): void {
+  public goto(x: number, y: number, fromDrag?: boolean): void {
+    if (this._project.draggingSprite === this && !fromDrag) return;
     if (x === this.x && y === this.y) return;
 
     if (this.penDown) {
