@@ -740,10 +740,10 @@ export default class Renderer {
   }
 
   // Pick the topmost sprite at the given point (if one exists).
-  public pick(
-    sprites: (Sprite | Stage)[],
+  public pick<T extends Sprite | Stage>(
+    sprites: T[],
     point: { x: number; y: number }
-  ): Sprite | Stage | null {
+  ): T | null {
     this._setFramebuffer(this._collisionBuffer);
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);
