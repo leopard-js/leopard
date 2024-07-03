@@ -508,6 +508,7 @@ type SpriteInitialConditions = {
   costumeNumber: number;
   size: number;
   visible: boolean;
+  draggable?: boolean;
   penDown?: boolean;
   penSize?: number;
   penColor?: Color;
@@ -520,6 +521,7 @@ export class Sprite extends SpriteBase {
   public rotationStyle: RotationStyle;
   public size: number;
   public visible: boolean;
+  public draggable: boolean;
 
   private parent: this | null;
   public clones: this[];
@@ -540,6 +542,7 @@ export class Sprite extends SpriteBase {
       costumeNumber,
       size,
       visible,
+      draggable,
       penDown,
       penSize,
       penColor,
@@ -552,6 +555,7 @@ export class Sprite extends SpriteBase {
     this._costumeNumber = costumeNumber;
     this.size = size;
     this.visible = visible;
+    this.draggable = draggable || false;
 
     this.parent = null;
     this.clones = [];
