@@ -1,6 +1,12 @@
 import type { Stage } from "./Sprite";
 
-type Mouse = { x: number; y: number; down: boolean };
+type Mouse = {
+  x: number;
+  y: number;
+
+  down: boolean;
+  downAt: { x: number; y: number } | null;
+};
 
 export default class Input {
   private _stage;
@@ -23,7 +29,7 @@ export default class Input {
       this._canvas.tabIndex = 0;
     }
 
-    this.mouse = { x: 0, y: 0, down: false };
+    this.mouse = { x: 0, y: 0, down: false, downAt: null };
     this._canvas.addEventListener("mousemove", this._mouseMove.bind(this));
     this._canvas.addEventListener("mousedown", this._mouseDown.bind(this));
     this._canvas.addEventListener("mouseup", this._mouseUp.bind(this));
@@ -55,6 +61,10 @@ export default class Input {
     this.mouse = {
       ...this.mouse,
       down: true,
+      downAt: {
+        x: this.mouse.x,
+        y: this.mouse.y,
+      },
     };
   }
 
@@ -62,6 +72,7 @@ export default class Input {
     this.mouse = {
       ...this.mouse,
       down: false,
+      downAt: null,
     };
   }
 
