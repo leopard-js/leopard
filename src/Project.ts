@@ -81,24 +81,32 @@ export default class Project {
     this._renderLoop();
   }
 
-  private _bindListenerFunctions() {
+  private _bindListenerFunctions(): void {
     this._onStageClick = this._onStageClick.bind(this);
-    this._onStageMouseDown = this._onStageMouseDown.bind(this);
-    this._onStageMouseMove = this._onStageMouseMove.bind(this);
-    this._onStageMouseUp = this._onStageMouseUp.bind(this);
-    this._onPageMouseUp = this._onPageMouseUp.bind(this);
+    this._onStagePointerPress = this._onStagePointerPress.bind(this);
+    this._onStagePointerMove = this._onStagePointerMove.bind(this);
+    this._onStagePointerRelease = this._onStagePointerRelease.bind(this);
+    this._onPagePointerRelease = this._onPagePointerRelease.bind(this);
   }
 
   public attach(renderTarget: string | HTMLElement): void {
+    /* eslint-disable @typescript-eslint/unbound-method */
+
     this.renderer.setRenderTarget(renderTarget);
 
-    this.renderer.stage.addEventListener("click", this._onStageClick);
-    this.renderer.stage.addEventListener("mousedown", this._onStageMouseDown);
-    this.renderer.stage.addEventListener("mousemove", this._onStageMouseMove);
-    this.renderer.stage.addEventListener("mouseup", this._onStageMouseUp);
+    const { stage } = this.renderer;
+    stage.addEventListener("click", this._onStageClick);
+    stage.addEventListener("mousedown", this._onStagePointerPress);
+    stage.addEventListener("mousemove", this._onStagePointerMove);
+    stage.addEventListener("mouseup", this._onStagePointerRelease);
+    stage.addEventListener("touchstart", this._onStagePointerMove);
+    stage.addEventListener("touchmove", this._onStagePointerMove);
+    stage.addEventListener("touchend", this._onStagePointerRelease);
 
-    if (this.renderer.stage.ownerDocument) {
-      this.renderer.stage.ownerDocument.addEventListener("mouseup", this._onPageMouseUp);
+    const { ownerDocument: stageDocument } = stage;
+    if (stageDocument) {
+      stageDocument.addEventListener("mouseup", this._onPagePointerRelease);
+      stageDocument.addEventListener("touchend", this._onPagePointerRelease);
     }
   }
 
@@ -180,7 +188,7 @@ export default class Project {
     }
   }
 
-  private _onStageMouseDown(): void {
+  private _onStagePointerPress(): void {
     this._startIdleDragTimeout();
 
     const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
@@ -201,7 +209,7 @@ export default class Project {
     }
   }
 
-  private _onStageMouseMove(): void {
+  private _onStagePointerMove(): void {
     if (this.input.mouse.down) {
       if (!this.draggingSprite) {
         // Consider dragging based on if the mouse has traveled far from where it was pressed down.
@@ -215,7 +223,10 @@ export default class Project {
           // checking for the presence of a draggable sprite *where the mouse was pressed down,
           // no matter where it is now.* This makes for subtly predictable and hilarious hijinks:
           // https://github.com/scratchfoundation/scratch-gui/pull/1434#issuecomment-2207679144
-          this._tryStartingDraggingFrom(this.input.mouse.downAt!.x, this.input.mouse.downAt!.y);
+          this._tryStartingDraggingFrom(
+            this.input.mouse.downAt!.x,
+            this.input.mouse.downAt!.y
+          );
         }
       }
 
@@ -229,7 +240,7 @@ export default class Project {
     }
   }
 
-  private _onStageMouseUp(): void {
+  private _onStagePointerRelease(): void {
     // Releasing the mouse terminates a drag, and if this is the case, don't start click triggers.
     if (this._clearDragging()) {
       return;
@@ -247,14 +258,18 @@ export default class Project {
     }
   }
 
-  private _onPageMouseUp(): void {
+  private _onPagePointerRelease(): void {
     // Releasing the mouse outside of the stage canvas should never start click triggers,
     // so we don't care if a drag was actually cleared or not.
     void this._clearDragging();
   }
 
   private _tryStartingDraggingFrom(x: number, y: number): void {
-    const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, { x, y });
+    const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
+      x,
+      y,
+    });
+
     if (spriteUnderMouse && spriteUnderMouse.draggable) {
       this.draggingSprite = spriteUnderMouse;
       this._clearIdleDragTimeout();
@@ -287,7 +302,11 @@ export default class Project {
     // i.e. it will start dragging regardless where the mouse actually is when this timeout activates -
     // although usually, it's in the same place, because you just pressed it down and held it still.
     this._idleDragTimeout = window.setTimeout(
-      this._tryStartingDraggingFrom.bind(this, this.input.mouse.x, this.input.mouse.y),
+      this._tryStartingDraggingFrom.bind(
+        this,
+        this.input.mouse.x,
+        this.input.mouse.y
+      ),
       400
     );
   }
