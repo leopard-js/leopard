@@ -26,7 +26,6 @@ export default class Project {
 
   public draggingSprite: Sprite | null;
   public dragThreshold: number;
-  private _consideringDraggingSprite: Sprite | null;
   private _dragOffsetX: number;
   private _dragOffsetY: number;
   private _idleDragTimeout: number | null;
@@ -64,7 +63,6 @@ export default class Project {
 
     this.answer = null;
     this.draggingSprite = null;
-    this._consideringDraggingSprite = null;
     this._dragOffsetX = 0;
     this._dragOffsetY = 0;
     this._idleDragTimeout = null;
@@ -98,7 +96,6 @@ export default class Project {
       const spriteUnderMouse = this._spriteUnderMouse;
       const targetUnderMouse = this._targetUnderMouse;
       if (spriteUnderMouse && spriteUnderMouse.draggable) {
-        this._consideringDraggingSprite = spriteUnderMouse;
         this._startIdleDragTimeout();
       } else {
         this._startClickTriggersFor(targetUnderMouse);
@@ -109,9 +106,9 @@ export default class Project {
       // TODO: Effects - goto() and moveAhead() - are applied immediately.
       // Do we want to buffer them to apply at the start of the next tick?
       if (this.input.mouse.down) {
-        if (this._consideringDraggingSprite && this.input.mouse.downAt) {
-          const distanceX = this.input.mouse.x - this.input.mouse.downAt.x;
-          const distanceY = this.input.mouse.y - this.input.mouse.downAt.y;
+        if (!this.draggingSprite) {
+          const distanceX = this.input.mouse.x - this.input.mouse.downAt!.x;
+          const distanceY = this.input.mouse.y - this.input.mouse.downAt!.y;
           const distanceFromMouseDown = Math.sqrt(
             distanceX ** 2 + distanceY ** 2
           );
@@ -226,26 +223,21 @@ export default class Project {
   }
 
   private _startDragging(): void {
-    if (!this.spritesAndClones.includes(this._consideringDraggingSprite)) {
-      this._consideringDraggingSprite = null;
-    }
+    const spriteUnderMouse = this._spriteUnderMouse;
+    if (!spriteUnderMouse || !spriteUnderMouse.draggable) return;
 
-    if (this._consideringDraggingSprite) {
-      this.draggingSprite = this._consideringDraggingSprite;
-      this._consideringDraggingSprite = null;
-      this._clearIdleDragTimeout();
+    this.draggingSprite = spriteUnderMouse;
+    this._clearIdleDragTimeout();
 
-      this._dragOffsetX = this.draggingSprite.x - this.input.mouse.x;
-      this._dragOffsetY = this.draggingSprite.y - this.input.mouse.y;
+    this._dragOffsetX = this.draggingSprite.x - this.input.mouse.x;
+    this._dragOffsetY = this.draggingSprite.y - this.input.mouse.y;
 
-      this.draggingSprite.moveAhead();
-    }
+    this.draggingSprite.moveAhead();
   }
 
   private _clearDragging(): boolean {
     const wasDragging = !!this.draggingSprite;
     this.draggingSprite = null;
-    this._consideringDraggingSprite = null;
     this._dragOffsetX = 0;
     this._dragOffsetY = 0;
     this._clearIdleDragTimeout();
