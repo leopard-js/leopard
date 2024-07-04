@@ -92,50 +92,77 @@ export default class Project {
       }
     });
 
-    this.renderer.stage.addEventListener("mousedown", () => {
-      const spriteUnderMouse = this._spriteUnderMouse;
-      const targetUnderMouse = this._targetUnderMouse;
-      if (spriteUnderMouse && spriteUnderMouse.draggable) {
-        this._startIdleDragTimeout();
+    this.renderer.stage.addEventListener("mousedown", event => {
+      this._startIdleDragTimeout();
+
+      const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
+        x: this.input.mouse.x,
+        y: this.input.mouse.y,
+      });
+
+      if (spriteUnderMouse) {
+        // Draggable sprites' click triggers are started when the mouse is released
+        // (provided no drag has started by that point). However, they still occlude
+        // a click on the stage.
+        if (!spriteUnderMouse.draggable) {
+          this._startClickTriggersFor(spriteUnderMouse);
+        }
       } else {
-        this._startClickTriggersFor(targetUnderMouse);
+        // If there's no sprite under the mouse at all, the stage was clicked.
+        this._startClickTriggersFor(this.stage);
       }
     });
 
     this.renderer.stage.addEventListener("mousemove", () => {
-      // TODO: Effects - goto() and moveAhead() - are applied immediately.
-      // Do we want to buffer them to apply at the start of the next tick?
       if (this.input.mouse.down) {
         if (!this.draggingSprite) {
+          // Consider dragging based on if the mouse has traveled far from where it was pressed down.
           const distanceX = this.input.mouse.x - this.input.mouse.downAt!.x;
           const distanceY = this.input.mouse.y - this.input.mouse.downAt!.y;
           const distanceFromMouseDown = Math.sqrt(
             distanceX ** 2 + distanceY ** 2
           );
           if (distanceFromMouseDown > this.dragThreshold) {
-            this._startDragging();
+            // Try starting dragging from where the mouse was pressed down. Yes, this means we're
+            // checking for the presence of a draggable sprite *where the mouse was pressed down,
+            // no matter where it is now.* This makes for subtly predictable and hilarious hijinks:
+            // https://github.com/scratchfoundation/scratch-gui/pull/1434#issuecomment-2207679144
+            this._tryStartingDraggingFrom(this.input.mouse.downAt!.x, this.input.mouse.downAt!.y);
           }
         }
 
         if (this.draggingSprite) {
           const gotoX = this.input.mouse.x + this._dragOffsetX;
           const gotoY = this.input.mouse.y + this._dragOffsetY;
+
+          // TODO: This is applied immediately. Do we want to buffer it til the start of the next tick?
           this.draggingSprite.goto(gotoX, gotoY, true);
         }
       }
     });
 
     this.renderer.stage.addEventListener("mouseup", () => {
-      if (!this._clearDragging()) {
-        const spriteUnderMouse = this._spriteUnderMouse;
-        if (spriteUnderMouse && spriteUnderMouse.draggable) {
-          this._startClickTriggersFor(spriteUnderMouse);
-        }
+      // Releasing the mouse terminates a drag, and if this is the case, don't start click triggers.
+      if (this._clearDragging()) {
+        return;
+      }
+
+      const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
+        x: this.input.mouse.x,
+        y: this.input.mouse.y,
+      });
+
+      // Only draggable sprites start click triggers when the mouse is released.
+      // Non-draggable sprites' click triggers are started when the mouse is pressed.
+      if (spriteUnderMouse && spriteUnderMouse.draggable) {
+        this._startClickTriggersFor(spriteUnderMouse);
       }
     });
 
     if (this.renderer.stage.ownerDocument) {
       this.renderer.stage.ownerDocument.addEventListener("mouseup", () => {
+        // Releasing the mouse outside of the stage canvas should never start click triggers,
+        // so we don't care if a drag was actually cleared or not.
         void this._clearDragging();
       });
     }
@@ -211,28 +238,21 @@ export default class Project {
     void this._startTriggers(matchingTriggers);
   }
 
-  private get _spriteUnderMouse(): Sprite | null {
-    return this.renderer.pick(this.spritesAndClones, {
-      x: this.input.mouse.x,
-      y: this.input.mouse.y,
-    });
-  }
+  private _tryStartingDraggingFrom(x: number, y: number): void {
+    const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, { x, y });
+    if (spriteUnderMouse && spriteUnderMouse.draggable) {
+      this.draggingSprite = spriteUnderMouse;
+      this._clearIdleDragTimeout();
 
-  private get _targetUnderMouse(): Sprite | Stage {
-    return this._spriteUnderMouse || this.stage;
-  }
+      // Note the drag offset is in terms of where the drag is starting from, not where the mouse is now.
+      // This has the apparent effect of teleporting the sprite a significant distance, if you moved your
+      // mouse far away from where you pressed it down.
+      this._dragOffsetX = this.draggingSprite.x - x;
+      this._dragOffsetY = this.draggingSprite.y - y;
 
-  private _startDragging(): void {
-    const spriteUnderMouse = this._spriteUnderMouse;
-    if (!spriteUnderMouse || !spriteUnderMouse.draggable) return;
-
-    this.draggingSprite = spriteUnderMouse;
-    this._clearIdleDragTimeout();
-
-    this._dragOffsetX = this.draggingSprite.x - this.input.mouse.x;
-    this._dragOffsetY = this.draggingSprite.y - this.input.mouse.y;
-
-    this.draggingSprite.moveAhead();
+      // TODO: This is applied immediately. Do we want to buffer it til the start of the next tick?
+      this.draggingSprite.moveAhead();
+    }
   }
 
   private _clearDragging(): boolean {
@@ -245,8 +265,14 @@ export default class Project {
   }
 
   private _startIdleDragTimeout(): void {
+    // We call this the "idle drag timeout" because it's only relevant if you haven't moved the mouse
+    // past the drag threshold, so that you'd just call _tryStartDraggingFrom normally. (Or you *have*
+    // moved it past the threshold, but are not currently moving it on the frame when this timeout
+    // activates.) Note that the bind is to the position of the mouse when the mouse is pressed down,
+    // i.e. it will start dragging regardless where the mouse actually is when this timeout activates -
+    // although usually, it's in the same place, because you just pressed it down and held it still.
     this._idleDragTimeout = window.setTimeout(
-      this._startDragging.bind(this),
+      this._tryStartingDraggingFrom.bind(this, this.input.mouse.x, this.input.mouse.y),
       400
     );
   }
