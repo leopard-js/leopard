@@ -37,6 +37,8 @@ export default class Project {
   private _prevStepTriggerPredicates: WeakMap<Trigger, boolean>;
 
   public constructor(stage: Stage, sprites = {}, { frameRate = 30 } = {}) {
+    this._bindListenerFunctions();
+
     this.stage = stage;
     this.sprites = sprites;
 
@@ -79,92 +81,24 @@ export default class Project {
     this._renderLoop();
   }
 
+  private _bindListenerFunctions() {
+    this._onStageClick = this._onStageClick.bind(this);
+    this._onStageMouseDown = this._onStageMouseDown.bind(this);
+    this._onStageMouseMove = this._onStageMouseMove.bind(this);
+    this._onStageMouseUp = this._onStageMouseUp.bind(this);
+    this._onPageMouseUp = this._onPageMouseUp.bind(this);
+  }
+
   public attach(renderTarget: string | HTMLElement): void {
     this.renderer.setRenderTarget(renderTarget);
 
-    this.renderer.stage.addEventListener("click", () => {
-      // Chrome requires a user gesture on the page before we can start the
-      // audio context.
-      // When we click the stage, that counts as a user gesture, so try
-      // resuming the audio context.
-      if (Sound.audioContext.state === "suspended") {
-        void Sound.audioContext.resume();
-      }
-    });
-
-    this.renderer.stage.addEventListener("mousedown", event => {
-      this._startIdleDragTimeout();
-
-      const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
-        x: this.input.mouse.x,
-        y: this.input.mouse.y,
-      });
-
-      if (spriteUnderMouse) {
-        // Draggable sprites' click triggers are started when the mouse is released
-        // (provided no drag has started by that point). However, they still occlude
-        // a click on the stage.
-        if (!spriteUnderMouse.draggable) {
-          this._startClickTriggersFor(spriteUnderMouse);
-        }
-      } else {
-        // If there's no sprite under the mouse at all, the stage was clicked.
-        this._startClickTriggersFor(this.stage);
-      }
-    });
-
-    this.renderer.stage.addEventListener("mousemove", () => {
-      if (this.input.mouse.down) {
-        if (!this.draggingSprite) {
-          // Consider dragging based on if the mouse has traveled far from where it was pressed down.
-          const distanceX = this.input.mouse.x - this.input.mouse.downAt!.x;
-          const distanceY = this.input.mouse.y - this.input.mouse.downAt!.y;
-          const distanceFromMouseDown = Math.sqrt(
-            distanceX ** 2 + distanceY ** 2
-          );
-          if (distanceFromMouseDown > this.dragThreshold) {
-            // Try starting dragging from where the mouse was pressed down. Yes, this means we're
-            // checking for the presence of a draggable sprite *where the mouse was pressed down,
-            // no matter where it is now.* This makes for subtly predictable and hilarious hijinks:
-            // https://github.com/scratchfoundation/scratch-gui/pull/1434#issuecomment-2207679144
-            this._tryStartingDraggingFrom(this.input.mouse.downAt!.x, this.input.mouse.downAt!.y);
-          }
-        }
-
-        if (this.draggingSprite) {
-          const gotoX = this.input.mouse.x + this._dragOffsetX;
-          const gotoY = this.input.mouse.y + this._dragOffsetY;
-
-          // TODO: This is applied immediately. Do we want to buffer it til the start of the next tick?
-          this.draggingSprite.goto(gotoX, gotoY, true);
-        }
-      }
-    });
-
-    this.renderer.stage.addEventListener("mouseup", () => {
-      // Releasing the mouse terminates a drag, and if this is the case, don't start click triggers.
-      if (this._clearDragging()) {
-        return;
-      }
-
-      const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
-        x: this.input.mouse.x,
-        y: this.input.mouse.y,
-      });
-
-      // Only draggable sprites start click triggers when the mouse is released.
-      // Non-draggable sprites' click triggers are started when the mouse is pressed.
-      if (spriteUnderMouse && spriteUnderMouse.draggable) {
-        this._startClickTriggersFor(spriteUnderMouse);
-      }
-    });
+    this.renderer.stage.addEventListener("click", this._onStageClick);
+    this.renderer.stage.addEventListener("mousedown", this._onStageMouseDown);
+    this.renderer.stage.addEventListener("mousemove", this._onStageMouseMove);
+    this.renderer.stage.addEventListener("mouseup", this._onStageMouseUp);
 
     if (this.renderer.stage.ownerDocument) {
-      this.renderer.stage.ownerDocument.addEventListener("mouseup", () => {
-        // Releasing the mouse outside of the stage canvas should never start click triggers,
-        // so we don't care if a drag was actually cleared or not.
-        void this._clearDragging();
-      });
+      this.renderer.stage.ownerDocument.addEventListener("mouseup", this._onPageMouseUp);
     }
   }
 
@@ -236,6 +170,87 @@ export default class Project {
     }
 
     void this._startTriggers(matchingTriggers);
+  }
+
+  private _onStageClick(): void {
+    // Chrome requires a user gesture on the page before we can start the audio context.
+    // When we click the stage, that counts as a user gesture, so try resuming the audio context.
+    if (Sound.audioContext.state === "suspended") {
+      void Sound.audioContext.resume();
+    }
+  }
+
+  private _onStageMouseDown(): void {
+    this._startIdleDragTimeout();
+
+    const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
+      x: this.input.mouse.x,
+      y: this.input.mouse.y,
+    });
+
+    if (spriteUnderMouse) {
+      // Draggable sprites' click triggers are started when the mouse is released
+      // (provided no drag has started by that point). However, they still occlude
+      // a click on the stage.
+      if (!spriteUnderMouse.draggable) {
+        this._startClickTriggersFor(spriteUnderMouse);
+      }
+    } else {
+      // If there's no sprite under the mouse at all, the stage was clicked.
+      this._startClickTriggersFor(this.stage);
+    }
+  }
+
+  private _onStageMouseMove(): void {
+    if (this.input.mouse.down) {
+      if (!this.draggingSprite) {
+        // Consider dragging based on if the mouse has traveled far from where it was pressed down.
+        const distanceX = this.input.mouse.x - this.input.mouse.downAt!.x;
+        const distanceY = this.input.mouse.y - this.input.mouse.downAt!.y;
+        const distanceFromMouseDown = Math.sqrt(
+          distanceX ** 2 + distanceY ** 2
+        );
+        if (distanceFromMouseDown > this.dragThreshold) {
+          // Try starting dragging from where the mouse was pressed down. Yes, this means we're
+          // checking for the presence of a draggable sprite *where the mouse was pressed down,
+          // no matter where it is now.* This makes for subtly predictable and hilarious hijinks:
+          // https://github.com/scratchfoundation/scratch-gui/pull/1434#issuecomment-2207679144
+          this._tryStartingDraggingFrom(this.input.mouse.downAt!.x, this.input.mouse.downAt!.y);
+        }
+      }
+
+      if (this.draggingSprite) {
+        const gotoX = this.input.mouse.x + this._dragOffsetX;
+        const gotoY = this.input.mouse.y + this._dragOffsetY;
+
+        // TODO: This is applied immediately. Do we want to buffer it til the start of the next tick?
+        this.draggingSprite.goto(gotoX, gotoY, true);
+      }
+    }
+  }
+
+  private _onStageMouseUp(): void {
+    // Releasing the mouse terminates a drag, and if this is the case, don't start click triggers.
+    if (this._clearDragging()) {
+      return;
+    }
+
+    const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
+      x: this.input.mouse.x,
+      y: this.input.mouse.y,
+    });
+
+    // Only draggable sprites start click triggers when the mouse is released.
+    // Non-draggable sprites' click triggers are started when the mouse is pressed.
+    if (spriteUnderMouse && spriteUnderMouse.draggable) {
+      this._startClickTriggersFor(spriteUnderMouse);
+    }
+  }
+
+  private _onPageMouseUp(): void {
+    // Releasing the mouse outside of the stage canvas should never start click triggers,
+    // so we don't care if a drag was actually cleared or not.
+    void this._clearDragging();
   }
 
   private _tryStartingDraggingFrom(x: number, y: number): void {
