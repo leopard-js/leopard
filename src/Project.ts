@@ -28,6 +28,7 @@ export default class Project {
   public dragThreshold: number;
   private _dragOffsetX: number;
   private _dragOffsetY: number;
+  private _dragQualified: boolean;
   private _idleDragTimeout: number | null;
 
   /**
@@ -67,6 +68,7 @@ export default class Project {
     this.draggingSprite = null;
     this._dragOffsetX = 0;
     this._dragOffsetY = 0;
+    this._dragQualified = false;
     this._idleDragTimeout = null;
 
     // TODO: Enable customizing, like frameRate
@@ -188,8 +190,17 @@ export default class Project {
     }
   }
 
-  private _onStagePointerPress(): void {
-    this._startIdleDragTimeout();
+  private _onStagePointerPress(event: PointerEvent | TouchEvent): void {
+    if (
+      (event instanceof PointerEvent && event.button === 0) ||
+      (window.TouchEvent && event instanceof TouchEvent)
+    ) {
+      // Qualifying a drag doesn't mean we actually are dragging anything, it just indicates that
+      // the current pointer movement - starting from this mousedown / touchstart event - is suitable
+      // for beginning a drag, provided the conditions line up right.
+      this._dragQualified = true;
+      this._startIdleDragTimeout();
+    }
 
     const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
       x: this.input.mouse.x,
@@ -210,7 +221,7 @@ export default class Project {
   }
 
   private _onStagePointerMove(): void {
-    if (this.input.mouse.down) {
+    if (this.input.mouse.down && this._dragQualified) {
       if (!this.draggingSprite) {
         // Consider dragging based on if the mouse has traveled far from where it was pressed down.
         const distanceX = this.input.mouse.x - this.input.mouse.downAt!.x;
@@ -241,7 +252,7 @@ export default class Project {
   }
 
   private _onStagePointerRelease(): void {
-    // Releasing the mouse terminates a drag, and if this is the case, don't start click triggers.
+    // Releasing the mouse terminates a drag. If one was terminated, don't start click triggers.
     if (this._clearDragging()) {
       return;
     }
@@ -260,7 +271,7 @@ export default class Project {
 
   private _onPagePointerRelease(): void {
     // Releasing the mouse outside of the stage canvas should never start click triggers,
-    // so we don't care if a drag was actually cleared or not.
+    // so we don't care if a drag was actually terminated or not.
     void this._clearDragging();
   }
 
@@ -291,6 +302,7 @@ export default class Project {
     this._dragOffsetX = 0;
     this._dragOffsetY = 0;
     this._clearIdleDragTimeout();
+    this._dragQualified = false;
     return wasDragging;
   }
 
