@@ -14,7 +14,7 @@ const bubbleStyle = {
 export default class SpeechBubbleSkin extends Skin {
   private _canvas: HTMLCanvasElement;
   private _ctx: CanvasRenderingContext2D;
-  private _texture: WebGLTexture | null;
+  private _texture: WebGLTexture;
   private _bubble: SpeechBubble;
   private _flipped: boolean;
   private _rendered: boolean;
@@ -148,12 +148,7 @@ export default class SpeechBubbleSkin extends Skin {
     this._renderedScale = scale;
   }
 
-  public getTexture(scale: number): WebGLTexture | null {
-    if (isNaN(scale)) {
-      console.warn(`SpeechBubbleSkin.getTexture got unexpected NaN scale`);
-      return null;
-    }
-
+  public getTexture(scale: number): WebGLTexture {
     if (!this._rendered || this._renderedScale !== scale) {
       this._renderBubble(this._bubble, scale);
       const gl = this.gl;
