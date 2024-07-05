@@ -88,9 +88,13 @@ export default class Drawable {
   private _tightBoundingBox: Rectangle;
   private _convexHullMatrixDiff: SpriteTransformDiff;
 
+  private _warnedBadSize: boolean;
+
   public constructor(renderer: Renderer, sprite: Sprite | Stage) {
     this._renderer = renderer;
     this._sprite = sprite;
+
+    this._warnedBadSize = false;
 
     // Transformation matrix for the sprite.
     this._matrix = Matrix.create();
@@ -345,7 +349,7 @@ export default class Drawable {
         }
       }
 
-      const spriteScale = spr.size / 100;
+      const spriteScale = this.getSpriteScale();
       Matrix.scale(m, m, spriteScale, spriteScale);
     }
 
@@ -378,5 +382,30 @@ export default class Drawable {
     }
 
     return this._matrix;
+  }
+
+  public getSpriteScale(): number {
+    if ("size" in this._sprite) {
+      const { size } = this._sprite;
+      if (typeof size !== "number") {
+        this._warnBadSize(typeof size);
+        return 1;
+      } else if (isNaN(size)) {
+        this._warnBadSize("NaN");
+        return 1;
+      } else {
+        return size / 100;
+      }
+    } else {
+      return 1;
+    }
+  }
+
+  private _warnBadSize(description: string): void {
+    if (!this._warnedBadSize) {
+      const { name } = this._sprite.constructor;
+      console.warn(`Expected a number, sprite ${name} size is ${description}. Treating as 100%.`);
+      this._warnedBadSize = true;
+    }
   }
 }

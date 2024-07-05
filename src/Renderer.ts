@@ -59,8 +59,6 @@ export default class Renderer {
   private _drawables: WeakMap<Sprite | Stage, Drawable>;
   private _skins: WeakMap<object, Skin>;
 
-  private _warnedBadSize: WeakSet<Sprite | Stage>;
-
   private _currentShader: Shader | null;
   private _currentFramebuffer: WebGLFramebuffer | null;
   private _screenSpaceScale: number;
@@ -88,8 +86,6 @@ export default class Renderer {
     this._shaderManager = new ShaderManager(this);
     this._drawables = new WeakMap();
     this._skins = new WeakMap();
-
-    this._warnedBadSize = new WeakSet();
 
     this._currentShader = null;
     this._currentFramebuffer = null;
@@ -504,34 +500,6 @@ export default class Renderer {
     this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
   }
 
-  private _getSpriteScale(sprite: Sprite | Stage): number {
-    if ("size" in sprite) {
-      if (typeof sprite.size !== "number") {
-        if (!this._warnedBadSize.has(sprite)) {
-          console.warn(
-            `Expected a number, sprite ${
-              sprite.constructor.name
-            } size is ${typeof sprite.size}. Treating as 100%.`
-          );
-          this._warnedBadSize.add(sprite);
-        }
-        return 1;
-      } else if (isNaN(sprite.size)) {
-        if (!this._warnedBadSize.has(sprite)) {
-          console.warn(
-            `Expected a number, sprite ${sprite.constructor.name} size is NaN. Treating as 100%.`
-          );
-          this._warnedBadSize.add(sprite);
-        }
-        return 1;
-      } else {
-        return sprite.size / 100;
-      }
-    } else {
-      return 1;
-    }
-  }
-
   private renderSprite(
     sprite: Sprite | Stage,
     options: RenderSpriteOptions
@@ -540,7 +508,7 @@ export default class Renderer {
       this._getSkin(sprite.costume),
       options.drawMode,
       this._getDrawable(sprite).getMatrix(),
-      this._getSpriteScale(sprite),
+      this._getDrawable(sprite).getSpriteScale(),
       sprite.effects,
       options.effectMask,
       options.colorMask,
