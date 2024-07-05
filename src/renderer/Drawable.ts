@@ -385,7 +385,9 @@ export default class Drawable {
   }
 
   public getSpriteScale(): number {
-    if ("size" in this._sprite) {
+    if (this._sprite instanceof Stage) {
+      return 1;
+    } else {
       const { size } = this._sprite;
       if (typeof size !== "number") {
         this._warnBadSize(typeof size, "0%");
@@ -402,8 +404,6 @@ export default class Drawable {
       } else {
         return size / 100;
       }
-    } else {
-      return 1;
     }
   }
 
