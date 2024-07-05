@@ -508,13 +508,19 @@ export default class Renderer {
     if ("size" in sprite) {
       if (typeof sprite.size !== "number") {
         if (!this._warnedBadSize.has(sprite)) {
-          console.warn(`Expected a number, sprite ${sprite.constructor.name} size is ${typeof sprite.size}. Treating as 100%.`);
+          console.warn(
+            `Expected a number, sprite ${
+              sprite.constructor.name
+            } size is ${typeof sprite.size}. Treating as 100%.`
+          );
           this._warnedBadSize.add(sprite);
         }
         return 1;
       } else if (isNaN(sprite.size)) {
         if (!this._warnedBadSize.has(sprite)) {
-          console.warn(`Expected a number, sprite ${sprite.constructor.name} size is NaN. Treating as 100%.`);
+          console.warn(
+            `Expected a number, sprite ${sprite.constructor.name} size is NaN. Treating as 100%.`
+          );
           this._warnedBadSize.add(sprite);
         }
         return 1;
