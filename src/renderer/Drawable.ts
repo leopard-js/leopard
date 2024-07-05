@@ -388,11 +388,17 @@ export default class Drawable {
     if ("size" in this._sprite) {
       const { size } = this._sprite;
       if (typeof size !== "number") {
-        this._warnBadSize(typeof size);
-        return 1;
+        this._warnBadSize(typeof size, "0%");
+        return 0;
       } else if (isNaN(size)) {
-        this._warnBadSize("NaN");
-        return 1;
+        this._warnBadSize("NaN", "0%");
+        return 0;
+      } else if (size === -Infinity) {
+        this._warnBadSize("negative Infinity", "0%");
+        return 0;
+      } else if (size < 0) {
+        this._warnBadSize("less than zero", "0%");
+        return 0;
       } else {
         return size / 100;
       }
@@ -401,10 +407,10 @@ export default class Drawable {
     }
   }
 
-  private _warnBadSize(description: string): void {
+  private _warnBadSize(description: string, treating: string): void {
     if (!this._warnedBadSize) {
       const { name } = this._sprite.constructor;
-      console.warn(`Expected a number, sprite ${name} size is ${description}. Treating as 100%.`);
+      console.warn(`Expected a number, sprite ${name} size is ${description}. Treating as ${treating}.`);
       this._warnedBadSize = true;
     }
   }
