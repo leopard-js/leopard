@@ -394,18 +394,35 @@ abstract class SpriteBase {
     return this._project.loudness;
   }
 
-  public toNumber(value: unknown): number {
+  // Strict mode uses essentially the same logic as compare() uses when treating
+  // the sides as numbers. It exists to handle NaN or NaN-casting values inside
+  // a normal "===" comparison, preferring "===" when possible, to writing all
+  // numeric comparisons with this.compare().
+  public toNumber(value: unknown, strict: boolean = false): number {
+    if (Number.isNaN(value)) {
+      return strict ? NaN : 0;
+    }
+
     if (typeof value === "number") {
-      if (isNaN(value)) {
-        return 0;
-      }
       return value;
     }
 
     const n = Number(value);
+
     if (Number.isNaN(n)) {
-      return 0;
+      return strict ? NaN : 0;
     }
+
+    if (strict && n === 0) {
+      if (value === null) {
+        return null;
+      }
+
+      if (typeof value === "string" && value.trim().length === 0) {
+        return NaN;
+      }
+    }
+
     return n;
   }
 
