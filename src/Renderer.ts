@@ -504,11 +504,13 @@ export default class Renderer {
     sprite: Sprite | Stage,
     options: RenderSpriteOptions
   ): void {
+    const drawable = this._getDrawable(sprite);
+
     this._renderSkin(
       this._getSkin(sprite.costume),
       options.drawMode,
-      this._getDrawable(sprite).getMatrix(),
-      this._getDrawable(sprite).getSpriteScale(),
+      drawable.getMatrix(),
+      drawable.getSpriteScale(),
       sprite.effects,
       options.effectMask,
       options.colorMask,

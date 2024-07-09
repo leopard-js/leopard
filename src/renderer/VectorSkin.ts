@@ -112,7 +112,15 @@ export default class VectorSkin extends Skin {
       this._mipmaps.set(mipLevel, this._createMipmap(mipLevel));
     }
 
-    return this._mipmaps.get(mipLevel) ?? null;
+    if (this._mipmaps.has(mipLevel)) {
+      // TODO: Awkward `as` due to microsoft/typescript#13086
+      // See: https://github.com/leopard-js/leopard/pull/199#discussion_r1669416720
+      return this._mipmaps.get(mipLevel) as WebGLTexture | null;
+    } else {
+      const mipmap = this._createMipmap(mipLevel);
+      this._mipmaps.set(mipLevel, mipmap);
+      return mipmap;
+    }
   }
 
   public destroy(): void {
