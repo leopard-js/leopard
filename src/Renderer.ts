@@ -611,6 +611,12 @@ export default class Renderer {
       }
     }
 
+    // Filter out the sprite that is being dragged, if any.
+    // A sprite that is being dragged can detect other sprites, but other sprites can't detect it.
+    if (this.project.draggingSprite) {
+      targets.delete(this.project.draggingSprite);
+    }
+
     const sprBox = Rectangle.copy(
       this.getBoundingBox(spr),
       __collisionBox
@@ -740,10 +746,10 @@ export default class Renderer {
   }
 
   // Pick the topmost sprite at the given point (if one exists).
-  public pick(
-    sprites: (Sprite | Stage)[],
+  public pick<T extends Sprite | Stage>(
+    sprites: T[],
     point: { x: number; y: number }
-  ): Sprite | Stage | null {
+  ): T | null {
     this._setFramebuffer(this._collisionBuffer);
     const gl = this.gl;
     gl.clearColor(0, 0, 0, 0);

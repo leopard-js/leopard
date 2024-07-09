@@ -24,6 +24,13 @@ export default class Project {
   public answer: string | null;
   private timerStart!: Date;
 
+  public draggingSprite: Sprite | null;
+  public dragThreshold: number;
+  private _dragOffsetX: number;
+  private _dragOffsetY: number;
+  private _dragQualified: boolean;
+  private _idleDragTimeout: number | null;
+
   /**
    * Used to keep track of what edge-activated trigger predicates evaluted to
    * on the previous step.
@@ -31,6 +38,8 @@ export default class Project {
   private _prevStepTriggerPredicates: WeakMap<Trigger, boolean>;
 
   public constructor(stage: Stage, sprites = {}, { frameRate = 30 } = {}) {
+    this._bindListenerFunctions();
+
     this.stage = stage;
     this.sprites = sprites;
 
@@ -56,6 +65,14 @@ export default class Project {
     this.restartTimer();
 
     this.answer = null;
+    this.draggingSprite = null;
+    this._dragOffsetX = 0;
+    this._dragOffsetY = 0;
+    this._dragQualified = false;
+    this._idleDragTimeout = null;
+
+    // TODO: Enable customizing, like frameRate
+    this.dragThreshold = 3;
 
     // Run project code at specified framerate
     setInterval(() => {
@@ -66,34 +83,33 @@ export default class Project {
     this._renderLoop();
   }
 
+  private _bindListenerFunctions(): void {
+    this._onStageClick = this._onStageClick.bind(this);
+    this._onStagePointerPress = this._onStagePointerPress.bind(this);
+    this._onStagePointerMove = this._onStagePointerMove.bind(this);
+    this._onStagePointerRelease = this._onStagePointerRelease.bind(this);
+    this._onPagePointerRelease = this._onPagePointerRelease.bind(this);
+  }
+
   public attach(renderTarget: string | HTMLElement): void {
+    /* eslint-disable @typescript-eslint/unbound-method */
+
     this.renderer.setRenderTarget(renderTarget);
-    this.renderer.stage.addEventListener("click", () => {
-      // Chrome requires a user gesture on the page before we can start the
-      // audio context.
-      // When we click the stage, that counts as a user gesture, so try
-      // resuming the audio context.
-      if (Sound.audioContext.state === "suspended") {
-        void Sound.audioContext.resume();
-      }
 
-      let clickedSprite = this.renderer.pick(this.spritesAndClones, {
-        x: this.input.mouse.x,
-        y: this.input.mouse.y,
-      });
-      if (!clickedSprite) {
-        clickedSprite = this.stage;
-      }
+    const { stage } = this.renderer;
+    stage.addEventListener("click", this._onStageClick);
+    stage.addEventListener("mousedown", this._onStagePointerPress);
+    stage.addEventListener("mousemove", this._onStagePointerMove);
+    stage.addEventListener("mouseup", this._onStagePointerRelease);
+    stage.addEventListener("touchstart", this._onStagePointerMove);
+    stage.addEventListener("touchmove", this._onStagePointerMove);
+    stage.addEventListener("touchend", this._onStagePointerRelease);
 
-      const matchingTriggers: TriggerWithTarget[] = [];
-      for (const trigger of clickedSprite.triggers) {
-        if (trigger.matches(Trigger.CLICKED, {}, clickedSprite)) {
-          matchingTriggers.push({ trigger, target: clickedSprite });
-        }
-      }
-
-      void this._startTriggers(matchingTriggers);
-    });
+    const { ownerDocument: stageDocument } = stage;
+    if (stageDocument) {
+      stageDocument.addEventListener("mouseup", this._onPagePointerRelease);
+      stageDocument.addEventListener("touchend", this._onPagePointerRelease);
+    }
   }
 
   public greenFlag(): void {
@@ -153,6 +169,165 @@ export default class Project {
       }
     }
     void this._startTriggers(triggersToStart);
+  }
+
+  private _startClickTriggersFor(target: Sprite | Stage): void {
+    const matchingTriggers: TriggerWithTarget[] = [];
+    for (const trigger of target.triggers) {
+      if (trigger.matches(Trigger.CLICKED, {}, target)) {
+        matchingTriggers.push({ trigger, target });
+      }
+    }
+
+    void this._startTriggers(matchingTriggers);
+  }
+
+  private _onStageClick(): void {
+    // Chrome requires a user gesture on the page before we can start the audio context.
+    // When we click the stage, that counts as a user gesture, so try resuming the audio context.
+    if (Sound.audioContext.state === "suspended") {
+      void Sound.audioContext.resume();
+    }
+  }
+
+  private _onStagePointerPress(event: PointerEvent | TouchEvent): void {
+    if (
+      (event instanceof PointerEvent && event.button === 0) ||
+      (window.TouchEvent && event instanceof TouchEvent)
+    ) {
+      // Qualifying a drag doesn't mean we actually are dragging anything, it just indicates that
+      // the current pointer movement - starting from this mousedown / touchstart event - is suitable
+      // for beginning a drag, provided the conditions line up right.
+      this._dragQualified = true;
+      this._startIdleDragTimeout();
+    }
+
+    const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
+      x: this.input.mouse.x,
+      y: this.input.mouse.y,
+    });
+
+    if (spriteUnderMouse) {
+      // Draggable sprites' click triggers are started when the mouse is released
+      // (provided no drag has started by that point). However, they still occlude
+      // a click on the stage.
+      if (!spriteUnderMouse.draggable) {
+        this._startClickTriggersFor(spriteUnderMouse);
+      }
+    } else {
+      // If there's no sprite under the mouse at all, the stage was clicked.
+      this._startClickTriggersFor(this.stage);
+    }
+  }
+
+  private _onStagePointerMove(): void {
+    if (this.input.mouse.down && this._dragQualified) {
+      if (!this.draggingSprite) {
+        // Consider dragging based on if the mouse has traveled far from where it was pressed down.
+        const distanceX = this.input.mouse.x - this.input.mouse.downAt!.x;
+        const distanceY = this.input.mouse.y - this.input.mouse.downAt!.y;
+        const distanceFromMouseDown = Math.sqrt(
+          distanceX ** 2 + distanceY ** 2
+        );
+        if (distanceFromMouseDown > this.dragThreshold) {
+          // Try starting dragging from where the mouse was pressed down. Yes, this means we're
+          // checking for the presence of a draggable sprite *where the mouse was pressed down,
+          // no matter where it is now.* This makes for subtly predictable and hilarious hijinks:
+          // https://github.com/scratchfoundation/scratch-gui/pull/1434#issuecomment-2207679144
+          this._tryStartingDraggingFrom(
+            this.input.mouse.downAt!.x,
+            this.input.mouse.downAt!.y
+          );
+        }
+      }
+
+      if (this.draggingSprite) {
+        const gotoX = this.input.mouse.x + this._dragOffsetX;
+        const gotoY = this.input.mouse.y + this._dragOffsetY;
+
+        // TODO: This is applied immediately. Do we want to buffer it til the start of the next tick?
+        this.draggingSprite.goto(gotoX, gotoY, true);
+      }
+    }
+  }
+
+  private _onStagePointerRelease(): void {
+    // Releasing the mouse terminates a drag. If one was terminated, don't start click triggers.
+    if (this._clearDragging()) {
+      return;
+    }
+
+    const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
+      x: this.input.mouse.x,
+      y: this.input.mouse.y,
+    });
+
+    // Only draggable sprites start click triggers when the mouse is released.
+    // Non-draggable sprites' click triggers are started when the mouse is pressed.
+    if (spriteUnderMouse && spriteUnderMouse.draggable) {
+      this._startClickTriggersFor(spriteUnderMouse);
+    }
+  }
+
+  private _onPagePointerRelease(): void {
+    // Releasing the mouse outside of the stage canvas should never start click triggers,
+    // so we don't care if a drag was actually terminated or not.
+    void this._clearDragging();
+  }
+
+  private _tryStartingDraggingFrom(x: number, y: number): void {
+    const spriteUnderMouse = this.renderer.pick(this.spritesAndClones, {
+      x,
+      y,
+    });
+
+    if (spriteUnderMouse && spriteUnderMouse.draggable) {
+      this.draggingSprite = spriteUnderMouse;
+      this._clearIdleDragTimeout();
+
+      // Note the drag offset is in terms of where the drag is starting from, not where the mouse is now.
+      // This has the apparent effect of teleporting the sprite a significant distance, if you moved your
+      // mouse far away from where you pressed it down.
+      this._dragOffsetX = this.draggingSprite.x - x;
+      this._dragOffsetY = this.draggingSprite.y - y;
+
+      // TODO: This is applied immediately. Do we want to buffer it til the start of the next tick?
+      this.draggingSprite.moveAhead();
+    }
+  }
+
+  private _clearDragging(): boolean {
+    const wasDragging = !!this.draggingSprite;
+    this.draggingSprite = null;
+    this._dragOffsetX = 0;
+    this._dragOffsetY = 0;
+    this._clearIdleDragTimeout();
+    this._dragQualified = false;
+    return wasDragging;
+  }
+
+  private _startIdleDragTimeout(): void {
+    // We call this the "idle drag timeout" because it's only relevant if you haven't moved the mouse
+    // past the drag threshold, so that you'd just call _tryStartDraggingFrom normally. (Or you *have*
+    // moved it past the threshold, but are not currently moving it on the frame when this timeout
+    // activates.) Note that the bind is to the position of the mouse when the mouse is pressed down,
+    // i.e. it will start dragging regardless where the mouse actually is when this timeout activates -
+    // although usually, it's in the same place, because you just pressed it down and held it still.
+    this._idleDragTimeout = window.setTimeout(
+      this._tryStartingDraggingFrom.bind(
+        this,
+        this.input.mouse.x,
+        this.input.mouse.y
+      ),
+      400
+    );
+  }
+
+  private _clearIdleDragTimeout(): void {
+    if (typeof this._idleDragTimeout === "number") {
+      clearTimeout(this._idleDragTimeout);
+      this._idleDragTimeout = null;
+    }
   }
 
   private step(): void {
