@@ -1,11 +1,11 @@
-import Trigger, { TriggerOptions } from "./Trigger";
+import Trigger, { RunStatus, TriggerOptions } from "./Trigger";
 import Renderer from "./Renderer";
 import Input from "./Input";
 import LoudnessHandler from "./Loudness";
 import Sound from "./Sound";
 import { Stage, Sprite } from "./Sprite";
 
-type TriggerWithTarget = {
+export type TriggerWithTarget = {
   target: Sprite | Stage;
   trigger: Trigger;
 };
@@ -67,7 +67,7 @@ export default class Project {
 
     this.renderer = new Renderer(this, null);
     this.input = new Input(this.stage, this.renderer.stage, (key) => {
-      void this.fireTrigger(Trigger.KEY_PRESSED, { key });
+      this.fireTrigger(Trigger.KEY_PRESSED, { key });
     });
 
     this.loudnessHandler = new LoudnessHandler();
@@ -116,7 +116,7 @@ export default class Project {
         }
       }
 
-      void this._startTriggers(matchingTriggers);
+      this._startTriggers(matchingTriggers);
     });
   }
 
@@ -193,7 +193,7 @@ export default class Project {
 
     // Remove finished triggers
     this.runningTriggers = this.runningTriggers.filter(
-      ({ trigger }) => !trigger.done
+      ({ trigger }) => trigger.status !== RunStatus.DONE
     );
   }
 
@@ -216,7 +216,10 @@ export default class Project {
     this.render();
   }
 
-  public fireTrigger(trigger: symbol, options?: TriggerOptions): Promise<void> {
+  public fireTrigger(
+    trigger: symbol,
+    options?: TriggerOptions
+  ): TriggerWithTarget[] {
     // Special trigger behaviors
     if (trigger === Trigger.GREEN_FLAG) {
       this.restartTimer();
@@ -236,11 +239,12 @@ export default class Project {
       tr.matches(trigger, options, target)
     );
 
-    return this._startTriggers(matchingTriggers);
+    this._startTriggers(matchingTriggers);
+    return matchingTriggers;
   }
 
   // TODO: add a way to start clone triggers from fireTrigger then make this private
-  public async _startTriggers(triggers: TriggerWithTarget[]): Promise<void> {
+  public _startTriggers(triggers: TriggerWithTarget[]): void {
     // Only add these triggers to this.runningTriggers if they're not already there.
     // TODO: if the triggers are already running, they'll be restarted but their execution order is unchanged.
     // Does that match Scratch's behavior?
@@ -254,10 +258,8 @@ export default class Project {
       ) {
         this.runningTriggers.push(trigger);
       }
+      trigger.trigger.start(trigger.target);
     }
-    await Promise.all(
-      triggers.map(({ trigger, target }) => trigger.start(target))
-    );
   }
 
   public addSprite(sprite: Sprite, behind?: Sprite): void {

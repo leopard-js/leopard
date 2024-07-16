@@ -1,5 +1,5 @@
 import Color from "./Color";
-import Trigger from "./Trigger";
+import Trigger, { RunStatus } from "./Trigger";
 import Sound, { EffectChain, AudioEffectMap } from "./Sound";
 import Costume from "./Costume";
 import type { Mouse } from "./Input";
@@ -8,6 +8,7 @@ import type Watcher from "./Watcher";
 import type { Yielding } from "./lib/yielding";
 
 import { effectNames } from "./renderer/effectInfo";
+import { TriggerWithTarget } from "./Project";
 
 type Effects = {
   [x in typeof effectNames[number]]: number;
@@ -374,19 +375,25 @@ abstract class SpriteBase {
     }
   }
 
-  public broadcast(name: string): Promise<void> {
-    return this._project.fireTrigger(Trigger.BROADCAST, { name });
+  public *waitForTriggers(triggers: TriggerWithTarget[]): Yielding<void> {
+    while (true) {
+      for (const trigger of triggers) {
+        if (trigger.trigger.status !== RunStatus.DONE) {
+          yield;
+        }
+      }
+      break;
+    }
+  }
+
+  public broadcast(name: string): Yielding<void> {
+    return this.waitForTriggers(
+      this._project.fireTrigger(Trigger.BROADCAST, { name })
+    );
   }
 
   public *broadcastAndWait(name: string): Yielding<void> {
-    let running = true;
-    void this.broadcast(name).then(() => {
-      running = false;
-    });
-
-    while (running) {
-      yield;
-    }
+    yield* this.broadcast(name);
   }
 
   public clearPen(): void {
@@ -1005,10 +1012,12 @@ export class Stage extends SpriteBase {
     this.__counter = 0;
   }
 
-  public fireBackdropChanged(): Promise<void> {
-    return this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
-      backdrop: this.costume.name,
-    });
+  public fireBackdropChanged(): Yielding<void> {
+    return this.waitForTriggers(
+      this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
+        backdrop: this.costume.name,
+      })
+    );
   }
 
   public get costumeNumber(): number {
@@ -1017,6 +1026,6 @@ export class Stage extends SpriteBase {
 
   public set costumeNumber(number) {
     super.costumeNumber = number;
-    void this.fireBackdropChanged();
+    this.fireBackdropChanged();
   }
 }

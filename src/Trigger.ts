@@ -8,13 +8,24 @@ type TriggerOption =
 
 type TriggerOptions = Partial<Record<string, TriggerOption>>;
 
+export enum RunStatus {
+  /** This script is currently running. */
+  RUNNING,
+  /**
+   * This script is waiting for a promise, or waiting for other scripts.
+   * @todo This requires runtime support.
+   */
+  // PARKED,
+  /** This script is finished running. */
+  DONE,
+}
+
 export default class Trigger {
   public trigger;
   private options: TriggerOptions;
   private _script: GeneratorFunction;
   private _runningScript: Generator | undefined;
-  public done: boolean;
-  private stop: () => void;
+  public status: RunStatus;
 
   public constructor(
     trigger: symbol,
@@ -37,9 +48,7 @@ export default class Trigger {
       this._script = script;
     }
 
-    this.done = false;
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    this.stop = () => {};
+    this.status = RunStatus.DONE;
   }
 
   public get isEdgeActivated(): boolean {
@@ -77,24 +86,16 @@ export default class Trigger {
     return true;
   }
 
-  public start(target: Sprite | Stage): Promise<void> {
-    this.stop();
-
-    this.done = false;
+  public start(target: Sprite | Stage): void {
+    this.status = RunStatus.RUNNING;
     this._runningScript = this._script.call(target);
-
-    return new Promise<void>((resolve) => {
-      this.stop = (): void => {
-        this.done = true;
-        resolve();
-      };
-    });
   }
 
   public step(): void {
     if (!this._runningScript) return;
-    this.done = !!this._runningScript.next().done;
-    if (this.done) this.stop();
+    if (this._runningScript.next().done) {
+      this.status = RunStatus.DONE;
+    }
   }
 
   public clone(): Trigger {
