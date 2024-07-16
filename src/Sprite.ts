@@ -101,7 +101,6 @@ export type SpeechBubbleStyle = "say" | "think";
 export type SpeechBubble = {
   text: string;
   style: SpeechBubbleStyle;
-  timeout: number | null;
 };
 
 type InitialConditions = {
@@ -612,7 +611,6 @@ export class Sprite extends SpriteBase {
     this._speechBubble = {
       text: "",
       style: "say",
-      timeout: null,
     };
   }
 
@@ -648,7 +646,6 @@ export class Sprite extends SpriteBase {
     clone._speechBubble = {
       text: "",
       style: "say",
-      timeout: null,
     };
 
     clone.effects = this.effects._clone(clone);
@@ -982,50 +979,40 @@ export class Sprite extends SpriteBase {
   }
 
   public say(text: string): void {
-    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
-    this._speechBubble = { text: String(text), style: "say", timeout: null };
+    this._speechBubble = { text: String(text), style: "say" };
     this._project.requestRedraw();
   }
 
   public think(text: string): void {
-    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
-    this._speechBubble = { text: String(text), style: "think", timeout: null };
+    this._speechBubble = { text: String(text), style: "think" };
     this._project.requestRedraw();
   }
 
   public *sayAndWait(text: string, seconds: number): Yielding<void> {
-    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
-
-    const speechBubble: SpeechBubble = { text, style: "say", timeout: null };
+    const speechBubble: SpeechBubble = { text, style: "say" };
     let done = false;
-    const timeout = window.setTimeout(() => {
-      speechBubble.text = "";
-      speechBubble.timeout = null;
+    window.setTimeout(() => {
       done = true;
     }, seconds * 1000);
 
-    speechBubble.timeout = timeout;
     this._speechBubble = speechBubble;
     this._project.requestRedraw();
     while (!done) yield;
+    speechBubble.text = "";
     this._project.requestRedraw();
   }
 
   public *thinkAndWait(text: string, seconds: number): Yielding<void> {
-    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
-
-    const speechBubble: SpeechBubble = { text, style: "think", timeout: null };
+    const speechBubble: SpeechBubble = { text, style: "think" };
     let done = false;
-    const timeout = window.setTimeout(() => {
-      speechBubble.text = "";
-      speechBubble.timeout = null;
+    window.setTimeout(() => {
       done = true;
     }, seconds * 1000);
 
-    speechBubble.timeout = timeout;
     this._speechBubble = speechBubble;
     this._project.requestRedraw();
     while (!done) yield;
+    speechBubble.text = "";
     this._project.requestRedraw();
   }
 
