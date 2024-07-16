@@ -97,10 +97,12 @@ type InitialConditions = {
 };
 
 abstract class SpriteBase {
-  protected _project!: Project;
+  // TODO: make this protected and pass it in via the constructor
+  public _project!: Project;
 
   protected _costumeNumber: number;
-  protected _layerOrder: number;
+  // TODO: remove this and just store the sprites in layer order, as Scratch does.
+  public _layerOrder: number;
   public triggers: Trigger[];
   public watchers: Partial<Record<string, Watcher>>;
   protected costumes: Costume[];
@@ -701,7 +703,7 @@ export class Sprite extends SpriteBase {
     } while (t < 1);
   }
 
-  ifOnEdgeBounce() {
+  public ifOnEdgeBounce(): void {
     const nearestEdge = this.nearestEdge();
     if (!nearestEdge) return;
     const rad = this.scratchToRad(this.direction);
@@ -725,7 +727,7 @@ export class Sprite extends SpriteBase {
     this.positionInFence();
   }
 
-  positionInFence() {
+  private positionInFence(): void {
     // https://github.com/LLK/scratch-vm/blob/develop/src/sprites/rendered-target.js#L949
     const fence = this.stage.fence;
     const bounds = this._project.renderer.getTightBoundingBox(this);
@@ -869,7 +871,7 @@ export class Sprite extends SpriteBase {
     }
   }
 
-  nearestEdge() {
+  private nearestEdge(): symbol | null {
     const bounds = this._project.renderer.getTightBoundingBox(this);
     const { width: stageWidth, height: stageHeight } = this.stage;
     const distLeft = Math.max(0, stageWidth / 2 + bounds.left);
@@ -953,7 +955,7 @@ export class Sprite extends SpriteBase {
     BOTTOM: Symbol("BOTTOM"),
     LEFT: Symbol("LEFT"),
     RIGHT: Symbol("RIGHT"),
-    TOP: Symbol("TOP")
+    TOP: Symbol("TOP"),
   });
 }
 
@@ -971,7 +973,7 @@ export class Stage extends SpriteBase {
     right: number;
     top: number;
     bottom: number;
-  }
+  };
 
   public constructor(initialConditions: StageInitialConditions, vars = {}) {
     super(initialConditions, vars);
@@ -993,7 +995,7 @@ export class Stage extends SpriteBase {
       left: -this.width / 2,
       right: this.width / 2,
       top: this.height / 2,
-      bottom: -this.height / 2
+      bottom: -this.height / 2,
     };
 
     // For obsolete counter blocks.
