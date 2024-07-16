@@ -35,7 +35,7 @@ const colorToId = ([r, g, b]: [number, number, number] | Uint8Array): number =>
   ((r << 16) | (g << 8) | b) - 1;
 
 type RenderSpriteOptions = {
-  drawMode: DrawMode;
+  drawMode?: DrawMode;
   effectMask?: number;
   colorMask?: RGBANormalized;
   renderSpeechBubbles?: boolean;
@@ -287,14 +287,9 @@ export default class Renderer {
   // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
   private _renderLayers(
     layers?: Set<Sprite | Stage | PenSkin>,
-    optionsIn: Partial<RenderSpriteOptions> = {},
+    options: RenderSpriteOptions = {},
     filter?: (layer: Sprite | Stage | PenSkin) => boolean
   ): void {
-    const options = {
-      drawMode: ShaderManager.DrawModes.DEFAULT,
-      ...optionsIn,
-    };
-
     // If we're given a list of layers, filter by that.
     // If we're given a filter function in the options, filter by that too.
     // If we're given both, then only include layers which match both.
@@ -323,7 +318,7 @@ export default class Renderer {
 
       this._renderSkin(
         this._penSkin,
-        options.drawMode,
+        options.drawMode ?? ShaderManager.DrawModes.DEFAULT,
         penMatrix,
         1 /* scale */
       );
@@ -508,7 +503,7 @@ export default class Renderer {
 
     this._renderSkin(
       this._getSkin(sprite.costume),
-      options.drawMode,
+      options.drawMode ?? ShaderManager.DrawModes.DEFAULT,
       drawable.getMatrix(),
       drawable.getSpriteScale(),
       sprite.effects,
@@ -530,7 +525,7 @@ export default class Renderer {
 
       this._renderSkin(
         speechBubbleSkin,
-        options.drawMode,
+        options.drawMode ?? ShaderManager.DrawModes.DEFAULT,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
         1 /* spriteScale */
       );
@@ -824,10 +819,7 @@ export default class Renderer {
 
   public stamp(spr: Sprite | Stage): void {
     this._setFramebuffer(this._penSkin._framebufferInfo);
-    this.renderSprite(spr, {
-      drawMode: ShaderManager.DrawModes.DEFAULT,
-      renderSpeechBubbles: false,
-    });
+    this.renderSprite(spr, { renderSpeechBubbles: false });
   }
 
   public displayAskBox(question: string): Promise<string> {
