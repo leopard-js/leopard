@@ -29,7 +29,7 @@ type WatcherOptions = {
 export default class Watcher {
   public value: () => WatcherValue;
   public setValue: (value: number) => void;
-  private _previousValue: unknown | symbol;
+  private _previousValue: unknown;
   private color: Color;
   private _label!: string;
   private _x!: number;
