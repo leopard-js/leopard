@@ -3,7 +3,7 @@ import Renderer from "./Renderer";
 import Input from "./Input";
 import LoudnessHandler from "./Loudness";
 import Sound from "./Sound";
-import type { Stage, Sprite } from "./Sprite";
+import { Stage, Sprite } from "./Sprite";
 
 type TriggerWithTarget = {
   target: Sprite | Stage;
@@ -13,6 +13,13 @@ type TriggerWithTarget = {
 export default class Project {
   public stage: Stage;
   public sprites: Partial<Record<string, Sprite>>;
+  /**
+   * All rendered targets (the stage, sprites, and clones), in layer order.
+   * This is kept private so that nobody can improperly modify it. The only way
+   * to add or remove targets is via the appropriate methods, and iteration can
+   * be done with {@link forEachTarget}.
+   */
+  private targets: (Sprite | Stage)[];
   public renderer: Renderer;
   public input: Input;
 
@@ -34,12 +41,29 @@ export default class Project {
     this.stage = stage;
     this.sprites = sprites;
 
-    Object.freeze(sprites); // Prevent adding/removing sprites while project is running
+    this.targets = [
+      stage,
+      ...Object.values(this.sprites as Record<string, Sprite>),
+    ];
+    this.targets.sort((a, b) => {
+      // There should only ever be one stage, but it's best to maintain a total
+      // ordering to avoid weird sorting-algorithm stuff from happening if
+      // there's more than one
+      if (a instanceof Stage && !(b instanceof Stage)) {
+        return -1;
+      }
+      if (b instanceof Stage && !(a instanceof Stage)) {
+        return 1;
+      }
 
-    for (const sprite of this.spritesAndClones) {
-      sprite._project = this;
+      return a.getInitialLayerOrder() - b.getInitialLayerOrder();
+    });
+    for (const target of this.targets) {
+      target.clearInitialLayerOrder();
+      target._project = this;
     }
-    this.stage._project = this;
+
+    Object.freeze(sprites); // Prevent adding/removing sprites while project is running
 
     this.renderer = new Renderer(this, null);
     this.input = new Input(this.stage, this.renderer.stage, (key) => {
@@ -77,7 +101,7 @@ export default class Project {
         void Sound.audioContext.resume();
       }
 
-      let clickedSprite = this.renderer.pick(this.spritesAndClones, {
+      let clickedSprite = this.renderer.pick(this.targets, {
         x: this.input.mouse.x,
         y: this.input.mouse.y,
       });
@@ -113,8 +137,7 @@ export default class Project {
     triggerMatches: (tr: Trigger, target: Sprite | Stage) => boolean
   ): TriggerWithTarget[] {
     const matchingTriggers: TriggerWithTarget[] = [];
-    const targets = this.spritesAndStage;
-    for (const target of targets) {
+    for (const target of this.targets) {
       const matchingTargetTriggers = target.triggers.filter((tr) =>
         triggerMatches(tr, target)
       );
@@ -198,15 +221,13 @@ export default class Project {
       this.stopAllSounds();
       this.runningTriggers = [];
 
-      for (const spriteName in this.sprites) {
-        const sprite = this.sprites[spriteName]!;
-        sprite.clones = [];
-      }
+      this.filterSprites((sprite) => {
+        if (!sprite.isOriginal) return false;
 
-      for (const sprite of this.spritesAndStage) {
         sprite.effects.clear();
         sprite.audioEffects.clear();
-      }
+        return true;
+      });
     }
 
     const matchingTriggers = this._matchingTriggers((tr, target) =>
@@ -237,14 +258,41 @@ export default class Project {
     );
   }
 
-  public get spritesAndClones(): Sprite[] {
-    return Object.values(this.sprites)
-      .flatMap((sprite) => sprite!.andClones())
-      .sort((a, b) => a._layerOrder - b._layerOrder);
+  public addSprite(sprite: Sprite, behind?: Sprite): void {
+    if (behind) {
+      const currentIndex = this.targets.indexOf(behind);
+      this.targets.splice(currentIndex, 0, sprite);
+    } else {
+      this.targets.push(sprite);
+    }
   }
 
-  public get spritesAndStage(): (Sprite | Stage)[] {
-    return [...this.spritesAndClones, this.stage];
+  public removeSprite(sprite: Sprite): void {
+    const index = this.targets.indexOf(sprite);
+    if (index === -1) return;
+
+    this.targets.splice(index, 1);
+    this.cleanupSprite(sprite);
+  }
+
+  public filterSprites(predicate: (sprite: Sprite) => boolean): void {
+    let nextKeptSpriteIndex = 0;
+    for (let i = 0; i < this.targets.length; i++) {
+      const target = this.targets[i];
+      if (target instanceof Stage || predicate(target)) {
+        this.targets[nextKeptSpriteIndex] = target;
+        nextKeptSpriteIndex++;
+      } else {
+        this.cleanupSprite(target);
+      }
+    }
+    this.targets.length = nextKeptSpriteIndex;
+  }
+
+  private cleanupSprite(sprite: Sprite): void {
+    this.runningTriggers = this.runningTriggers.filter(
+      ({ target }) => target !== sprite
+    );
   }
 
   public changeSpriteLayer(
@@ -252,7 +300,7 @@ export default class Project {
     layerDelta: number,
     relativeToSprite = sprite
   ): void {
-    const spritesArray = this.spritesAndClones;
+    const spritesArray = this.targets;
 
     const originalIndex = spritesArray.indexOf(sprite);
     const relativeToIndex = spritesArray.indexOf(relativeToSprite);
@@ -264,17 +312,16 @@ export default class Project {
     // Remove sprite from originalIndex and insert at newIndex
     spritesArray.splice(originalIndex, 1);
     spritesArray.splice(newIndex, 0, sprite);
+  }
 
-    // spritesArray is sorted correctly, but to influence
-    // the actual order of the sprites we need to update
-    // each one's _layerOrder property.
-    spritesArray.forEach((sprite, index) => {
-      sprite._layerOrder = index + 1;
-    });
+  public forEachTarget(callback: (target: Sprite | Stage) => void): void {
+    for (const target of this.targets) {
+      callback(target);
+    }
   }
 
   public stopAllSounds(): void {
-    for (const target of this.spritesAndStage) {
+    for (const target of this.targets) {
       target.stopAllOfMySounds();
     }
   }

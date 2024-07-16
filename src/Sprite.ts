@@ -102,7 +102,7 @@ abstract class SpriteBase {
 
   protected _costumeNumber: number;
   // TODO: remove this and just store the sprites in layer order, as Scratch does.
-  public _layerOrder: number;
+  private _initialLayerOrder: number | null;
   public triggers: Trigger[];
   public watchers: Partial<Record<string, Watcher>>;
   protected costumes: Costume[];
@@ -118,7 +118,7 @@ abstract class SpriteBase {
     // TODO: pass project in here, ideally
     const { costumeNumber, layerOrder = 0 } = initialConditions;
     this._costumeNumber = costumeNumber;
-    this._layerOrder = layerOrder;
+    this._initialLayerOrder = layerOrder;
 
     this.triggers = [];
     this.watchers = {};
@@ -134,6 +134,20 @@ abstract class SpriteBase {
     this.audioEffects = new AudioEffectMap(this.effectChain);
 
     this._vars = vars;
+  }
+
+  public getInitialLayerOrder(): number {
+    const order = this._initialLayerOrder;
+    if (order === null) {
+      throw new Error(
+        "getInitialLayerOrder should only be called once, when the project is initialized"
+      );
+    }
+    return order;
+  }
+
+  public clearInitialLayerOrder(): void {
+    this._initialLayerOrder = null;
   }
 
   protected getSoundsPlayedByMe(): Sound[] {
@@ -523,8 +537,7 @@ export class Sprite extends SpriteBase {
   public size: number;
   public visible: boolean;
 
-  private parent: this | null;
-  public clones: this[];
+  private original: this;
 
   private _penDown: boolean;
   public penSize: number;
@@ -555,8 +568,7 @@ export class Sprite extends SpriteBase {
     this.size = size;
     this.visible = visible;
 
-    this.parent = null;
-    this.clones = [];
+    this.original = this;
 
     this._penDown = penDown || false;
     this.penSize = penSize || 1;
@@ -567,6 +579,10 @@ export class Sprite extends SpriteBase {
       style: "say",
       timeout: null,
     };
+  }
+
+  public get isOriginal(): boolean {
+    return this.original === this;
   }
 
   public *askAndWait(question: string): Yielding<void> {
@@ -599,21 +615,16 @@ export class Sprite extends SpriteBase {
 
     // Clones inherit audio effects from the original sprite, for some reason.
     // Couldn't explain it, but that's the behavior in Scratch 3.0.
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let original = this;
-    while (original.parent) {
-      original = original.parent;
-    }
-    clone.effectChain = original.effectChain.clone({
+    clone.effectChain = this.original.effectChain.clone({
       getNonPatchSoundList: clone.getSoundsPlayedByMe.bind(clone),
     });
 
     // Make a new audioEffects interface which acts on the cloned effect chain.
     clone.audioEffects = new AudioEffectMap(clone.effectChain);
 
-    clone.clones = [];
-    clone.parent = this;
-    this.clones.push(clone);
+    clone.original = this.original;
+
+    this._project.addSprite(clone, this);
 
     // Trigger CLONE_START:
     const triggers = clone.triggers.filter((tr) =>
@@ -625,17 +636,9 @@ export class Sprite extends SpriteBase {
   }
 
   public deleteThisClone(): void {
-    if (this.parent === null) return;
+    if (this.isOriginal) return;
 
-    this.parent.clones = this.parent.clones.filter((clone) => clone !== this);
-
-    this._project.runningTriggers = this._project.runningTriggers.filter(
-      ({ target }) => target !== this
-    );
-  }
-
-  public andClones(): this[] {
-    return [this, ...this.clones.flatMap((clone) => clone.andClones())];
+    this._project.removeSprite(this);
   }
 
   public get direction(): number {
