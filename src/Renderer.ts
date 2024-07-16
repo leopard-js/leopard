@@ -303,37 +303,33 @@ export default class Renderer {
         (filter && !filter(layer))
       );
 
-    // Stage
-    if (shouldIncludeLayer(this.project.stage)) {
-      this.renderSprite(this.project.stage, options);
-    }
+    this.project.forEachTarget((target) => {
+      // TODO: just make a `visible` getter for Stage to avoid this rigmarole
+      const visible = "visible" in target ? target.visible : true;
 
-    // Pen layer
-    if (shouldIncludeLayer(this._penSkin)) {
-      const penMatrix = Matrix.create();
-      Matrix.scale(
-        penMatrix,
-        penMatrix,
-        this._penSkin.width,
-        -this._penSkin.height
-      );
-      Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
-
-      this._renderSkin(
-        this._penSkin,
-        options.drawMode,
-        penMatrix,
-        1 /* scale */
-      );
-    }
-
-    // Sprites + clones
-    for (const sprite of this.project.spritesAndClones) {
-      // Stage doesn't have "visible" defined, so check if it's strictly false
-      if (shouldIncludeLayer(sprite) && sprite.visible !== false) {
-        this.renderSprite(sprite, options);
+      if (shouldIncludeLayer(target) && visible) {
+        this.renderSprite(target, options);
       }
-    }
+
+      // Draw the pen layer in front of the stage
+      if (target instanceof Stage && shouldIncludeLayer(this._penSkin)) {
+        const penMatrix = Matrix.create();
+        Matrix.scale(
+          penMatrix,
+          penMatrix,
+          this._penSkin.width,
+          -this._penSkin.height
+        );
+        Matrix.translate(penMatrix, penMatrix, -0.5, -0.5);
+
+        this._renderSkin(
+          this._penSkin,
+          options.drawMode,
+          penMatrix,
+          1 /* scale */
+        );
+      }
+    });
   }
 
   private _updateStageSize(): void {
