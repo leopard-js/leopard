@@ -101,6 +101,7 @@ abstract class SpriteBase {
   public _project!: Project;
 
   protected _costumeNumber: number;
+  // TODO: remove this and just store the sprites in layer order, as Scratch does.
   public _layerOrder: number;
   public triggers: Trigger[];
   public watchers: Partial<Record<string, Watcher>>;
