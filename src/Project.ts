@@ -27,6 +27,7 @@ export default class Project {
   private loudnessHandler: LoudnessHandler;
   private _cachedLoudness: number | null;
 
+  private stepTime: number;
   private threads: Thread[];
   private redrawRequested: boolean;
 
@@ -85,9 +86,10 @@ export default class Project {
     this.answer = null;
 
     // Run project code at specified framerate
+    this.stepTime = 1000 / frameRate;
     setInterval(() => {
       this.step();
-    }, 1000 / frameRate);
+    }, this.stepTime);
 
     // Render project as fast as possible
     this._renderLoop();
@@ -188,18 +190,58 @@ export default class Project {
     this._cachedLoudness = null;
     this._stepEdgeActivatedTriggers();
 
-    // Step all threads
-    const threads = this.threads;
-    for (let i = 0; i < threads.length; i++) {
-      threads[i].step();
-    }
+    // We can execute code for 75% of the frametime at most.
+    const WORK_TIME = this.stepTime * 0.75;
 
-    // Remove finished threads
-    this.threads = this.threads.filter(
-      (thread) => thread.status !== ThreadStatus.DONE
-    );
+    const startTime = Date.now();
+    let now = startTime;
+    let anyThreadsActive = true;
 
     this.redrawRequested = false;
+
+    while (
+      // There are active threads
+      this.threads.length > 0 &&
+      anyThreadsActive &&
+      // We have time remaining
+      now - startTime < WORK_TIME &&
+      // Nothing visual has changed on-screen
+      !this.redrawRequested
+    ) {
+      anyThreadsActive = false;
+      let anyThreadsStopped = false;
+
+      const threads = this.threads;
+      for (let i = 0; i < threads.length; i++) {
+        const thread = threads[i];
+        if (thread.status === ThreadStatus.RUNNING) {
+          thread.step();
+        }
+
+        if (thread.status === ThreadStatus.RUNNING) {
+          anyThreadsActive = true;
+        } else if (thread.status === ThreadStatus.DONE) {
+          anyThreadsStopped = true;
+        }
+      }
+
+      // Remove finished threads in-place.
+      if (anyThreadsStopped) {
+        let nextActiveThreadIndex = 0;
+        for (let i = 0; i < threads.length; i++) {
+          const thread = threads[i];
+          if (threads[i].status !== ThreadStatus.DONE) {
+            threads[nextActiveThreadIndex] = thread;
+            nextActiveThreadIndex++;
+          }
+        }
+        threads.length = nextActiveThreadIndex;
+      }
+
+      // We set "now" to startTime at first to ensure we iterate through at
+      // least once in the event of a freak lag spike.
+      now = Date.now();
+    }
   }
 
   private render(): void {
