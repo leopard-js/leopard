@@ -20,6 +20,8 @@ type Effects = {
 export class _EffectMap implements Effects {
   public _bitmask: number;
   private _effectValues: Record<typeof effectNames[number], number>;
+  public _project: Project | null;
+  private _target: SpriteBase;
   // TODO: TypeScript can't automatically infer these
   public color!: number;
   public fisheye!: number;
@@ -29,8 +31,10 @@ export class _EffectMap implements Effects {
   public brightness!: number;
   public ghost!: number;
 
-  public constructor() {
+  public constructor(project: Project | null, target: SpriteBase) {
     this._bitmask = 0;
+    this._project = project;
+    this._target = target;
     this._effectValues = {
       color: 0,
       fisheye: 0,
@@ -59,13 +63,17 @@ export class _EffectMap implements Effects {
             // Otherwise, set its bit to 1.
             this._bitmask = this._bitmask | (1 << i);
           }
+
+          if ("visible" in this._target ? this._target.visible : true) {
+            this._project?.requestRedraw();
+          }
         },
       });
     }
   }
 
-  public _clone(): _EffectMap {
-    const m = new _EffectMap();
+  public _clone(newTarget: Sprite | Stage): _EffectMap {
+    const m = new _EffectMap(this._project, newTarget);
     for (const effectName of Object.keys(
       this._effectValues
     ) as (keyof typeof this._effectValues)[]) {
@@ -81,6 +89,10 @@ export class _EffectMap implements Effects {
       this._effectValues[effectName] = 0;
     }
     this._bitmask = 0;
+
+    if ("visible" in this._target ? this._target.visible : true) {
+      this._project?.requestRedraw();
+    }
   }
 }
 
@@ -99,7 +111,7 @@ type InitialConditions = {
 
 abstract class SpriteBase {
   // TODO: make this protected and pass it in via the constructor
-  public _project!: Project;
+  protected _project!: Project;
 
   protected _costumeNumber: number;
   // TODO: remove this and just store the sprites in layer order, as Scratch does.
@@ -131,10 +143,15 @@ abstract class SpriteBase {
     });
     this.effectChain.connect(Sound.audioContext.destination);
 
-    this.effects = new _EffectMap();
+    this.effects = new _EffectMap(this._project, this);
     this.audioEffects = new AudioEffectMap(this.effectChain);
 
     this._vars = vars;
+  }
+
+  public setProject(project: Project): void {
+    this._project = project;
+    this.effects._project = project;
   }
 
   public getInitialLayerOrder(): number {
@@ -176,6 +193,10 @@ abstract class SpriteBase {
       this._costumeNumber = this.wrapClamp(number, 1, this.costumes.length);
     } else {
       this._costumeNumber = 0;
+    }
+
+    if ("visible" in this ? this.visible : true) {
+      this._project.requestRedraw();
     }
   }
 
@@ -319,6 +340,7 @@ abstract class SpriteBase {
   public *wait(secs: number): Yielding<void> {
     const endTime = new Date();
     endTime.setMilliseconds(endTime.getMilliseconds() + secs * 1000);
+    this._project.requestRedraw();
     while (new Date() < endTime) {
       yield;
     }
@@ -398,6 +420,7 @@ abstract class SpriteBase {
 
   public clearPen(): void {
     this._project.renderer.clearPen();
+    this._project.requestRedraw();
   }
 
   public *askAndWait(question: string): Yielding<void> {
@@ -540,9 +563,9 @@ export class Sprite extends SpriteBase {
   private _x: number;
   private _y: number;
   private _direction: number;
-  public rotationStyle: RotationStyle;
-  public size: number;
-  public visible: boolean;
+  private _rotationStyle: RotationStyle;
+  private _size: number;
+  private _visible: boolean;
 
   private original: this;
 
@@ -570,10 +593,10 @@ export class Sprite extends SpriteBase {
     this._x = x;
     this._y = y;
     this._direction = direction;
-    this.rotationStyle = rotationStyle || Sprite.RotationStyle.ALL_AROUND;
+    this._rotationStyle = rotationStyle || Sprite.RotationStyle.ALL_AROUND;
     this._costumeNumber = costumeNumber;
-    this.size = size;
-    this.visible = visible;
+    this._size = size;
+    this._visible = visible;
 
     this.original = this;
 
@@ -618,7 +641,7 @@ export class Sprite extends SpriteBase {
       timeout: null,
     };
 
-    clone.effects = this.effects._clone();
+    clone.effects = this.effects._clone(clone);
 
     // Clones inherit audio effects from the original sprite, for some reason.
     // Couldn't explain it, but that's the behavior in Scratch 3.0.
@@ -646,6 +669,7 @@ export class Sprite extends SpriteBase {
     if (this.isOriginal) return;
 
     this._project.removeSprite(this);
+    if (this._visible) this._project.requestRedraw();
   }
 
   public get direction(): number {
@@ -654,6 +678,34 @@ export class Sprite extends SpriteBase {
 
   public set direction(dir) {
     this._direction = this.normalizeDeg(dir);
+    if (this._visible) this._project.requestRedraw();
+  }
+
+  public get rotationStyle(): RotationStyle {
+    return this._rotationStyle;
+  }
+
+  public set rotationStyle(style) {
+    this._rotationStyle = style;
+    if (this._visible) this._project.requestRedraw();
+  }
+
+  public get size(): number {
+    return this._size;
+  }
+
+  public set size(size) {
+    this._size = size; // TODO: clamp size like Scratch does
+    if (this._visible) this._project.requestRedraw();
+  }
+
+  public get visible(): boolean {
+    return this._visible;
+  }
+
+  public set visible(visible) {
+    this._visible = visible;
+    if (visible) this._project.requestRedraw();
   }
 
   public goto(x: number, y: number): void {
@@ -670,6 +722,10 @@ export class Sprite extends SpriteBase {
 
     this._x = x;
     this._y = y;
+
+    if (this.penDown || this.visible) {
+      this._project.requestRedraw();
+    }
   }
 
   public get x(): number {
@@ -790,6 +846,7 @@ export class Sprite extends SpriteBase {
       );
     }
     this._penDown = penDown;
+    if (penDown) this._project.requestRedraw();
   }
 
   public get penColor(): Color {
@@ -808,6 +865,7 @@ export class Sprite extends SpriteBase {
 
   public stamp(): void {
     this._project.renderer.stamp(this);
+    this._project.requestRedraw();
   }
 
   public touching(
@@ -916,11 +974,13 @@ export class Sprite extends SpriteBase {
   public say(text: string): void {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "say", timeout: null };
+    this._project.requestRedraw();
   }
 
   public think(text: string): void {
     if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
     this._speechBubble = { text: String(text), style: "think", timeout: null };
+    this._project.requestRedraw();
   }
 
   public *sayAndWait(text: string, seconds: number): Yielding<void> {
@@ -936,7 +996,9 @@ export class Sprite extends SpriteBase {
 
     speechBubble.timeout = timeout;
     this._speechBubble = speechBubble;
+    this._project.requestRedraw();
     while (!done) yield;
+    this._project.requestRedraw();
   }
 
   public *thinkAndWait(text: string, seconds: number): Yielding<void> {
@@ -952,7 +1014,9 @@ export class Sprite extends SpriteBase {
 
     speechBubble.timeout = timeout;
     this._speechBubble = speechBubble;
+    this._project.requestRedraw();
     while (!done) yield;
+    this._project.requestRedraw();
   }
 
   public static RotationStyle = Object.freeze({

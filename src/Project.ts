@@ -27,7 +27,8 @@ export default class Project {
   private loudnessHandler: LoudnessHandler;
   private _cachedLoudness: number | null;
 
-  public threads: Thread[];
+  private threads: Thread[];
+  private redrawRequested: boolean;
 
   public answer: string | null;
   private timerStart!: Date;
@@ -61,7 +62,7 @@ export default class Project {
     });
     for (const target of this.targets) {
       target.clearInitialLayerOrder();
-      target._project = this;
+      target.setProject(this);
     }
 
     Object.freeze(sprites); // Prevent adding/removing sprites while project is running
@@ -76,6 +77,7 @@ export default class Project {
     this._cachedLoudness = null;
 
     this.threads = [];
+    this.redrawRequested = false;
     this._prevStepTriggerPredicates = new WeakMap();
 
     this.restartTimer();
@@ -196,6 +198,8 @@ export default class Project {
     this.threads = this.threads.filter(
       (thread) => thread.status !== ThreadStatus.DONE
     );
+
+    this.redrawRequested = false;
   }
 
   private render(): void {
@@ -320,6 +324,10 @@ export default class Project {
     for (const target of this.targets) {
       callback(target);
     }
+  }
+
+  public requestRedraw(): void {
+    this.redrawRequested = true;
   }
 
   public stopAllSounds(): void {
