@@ -410,7 +410,9 @@ export default class Drawable {
   private _warnBadSize(description: string, treating: string): void {
     if (!this._warnedBadSize) {
       const { name } = this._sprite.constructor;
-      console.warn(`Expected a number, sprite ${name} size is ${description}. Treating as ${treating}.`);
+      console.warn(
+        `Expected a number, sprite ${name} size is ${description}. Treating as ${treating}.`
+      );
       this._warnedBadSize = true;
     }
   }

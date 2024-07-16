@@ -28,9 +28,7 @@ export default abstract class Skin {
   // Helper function to create a texture from an image and handle all the boilerplate.
   protected _makeTexture(
     image: HTMLImageElement | HTMLCanvasElement | null,
-    filtering:
-      | WebGLRenderingContext["NEAREST"]
-      | WebGLRenderingContext["LINEAR"]
+    filtering: number
   ): WebGLTexture {
     const gl = this.gl;
     const glTexture = gl.createTexture();
