@@ -273,8 +273,7 @@ export default class Project {
       this.filterSprites((sprite) => {
         if (!sprite.isOriginal) return false;
 
-        sprite.effects.clear();
-        sprite.audioEffects.clear();
+        sprite.reset();
         return true;
       });
     }

@@ -168,6 +168,11 @@ abstract class SpriteBase {
     this._initialLayerOrder = null;
   }
 
+  public reset(): void {
+    this.effects.clear();
+    this.audioEffects.clear();
+  }
+
   protected getSoundsPlayedByMe(): Sound[] {
     return this.sounds.filter((sound) => this.effectChain.isTargetOf(sound));
   }
@@ -613,6 +618,11 @@ export class Sprite extends SpriteBase {
 
   public get isOriginal(): boolean {
     return this.original === this;
+  }
+
+  public reset(): void {
+    super.reset();
+    this._speechBubble = undefined;
   }
 
   public *askAndWait(question: string): Yielding<void> {
