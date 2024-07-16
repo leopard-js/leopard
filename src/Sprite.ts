@@ -1,14 +1,14 @@
 import Color from "./Color";
-import Trigger, { RunStatus } from "./Trigger";
+import Trigger from "./Trigger";
 import Sound, { EffectChain, AudioEffectMap } from "./Sound";
 import Costume from "./Costume";
 import type { Mouse } from "./Input";
 import type Project from "./Project";
+import Thread, { ThreadStatus } from "./Thread";
 import type Watcher from "./Watcher";
 import type { Yielding } from "./lib/yielding";
 
 import { effectNames } from "./renderer/effectInfo";
-import { TriggerWithTarget } from "./Project";
 
 type Effects = {
   [x in typeof effectNames[number]]: number;
@@ -375,10 +375,10 @@ abstract class SpriteBase {
     }
   }
 
-  public *waitForTriggers(triggers: TriggerWithTarget[]): Yielding<void> {
+  public *waitForThreads(threads: Thread[]): Yielding<void> {
     while (true) {
-      for (const trigger of triggers) {
-        if (trigger.trigger.status !== RunStatus.DONE) {
+      for (const thread of threads) {
+        if (thread.status !== ThreadStatus.DONE) {
           yield;
         }
       }
@@ -387,7 +387,7 @@ abstract class SpriteBase {
   }
 
   public broadcast(name: string): Yielding<void> {
-    return this.waitForTriggers(
+    return this.waitForThreads(
       this._project.fireTrigger(Trigger.BROADCAST, { name })
     );
   }
@@ -637,7 +637,7 @@ export class Sprite extends SpriteBase {
     const triggers = clone.triggers.filter((tr) =>
       tr.matches(Trigger.CLONE_START, {}, clone)
     );
-    void this._project._startTriggers(
+    void this._project._startThreads(
       triggers.map((trigger) => ({ trigger, target: clone }))
     );
   }
@@ -1013,7 +1013,7 @@ export class Stage extends SpriteBase {
   }
 
   public fireBackdropChanged(): Yielding<void> {
-    return this.waitForTriggers(
+    return this.waitForThreads(
       this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
         backdrop: this.costume.name,
       })

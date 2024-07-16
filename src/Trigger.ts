@@ -8,24 +8,10 @@ type TriggerOption =
 
 type TriggerOptions = Partial<Record<string, TriggerOption>>;
 
-export enum RunStatus {
-  /** This script is currently running. */
-  RUNNING,
-  /**
-   * This script is waiting for a promise, or waiting for other scripts.
-   * @todo This requires runtime support.
-   */
-  // PARKED,
-  /** This script is finished running. */
-  DONE,
-}
-
 export default class Trigger {
   public trigger;
   private options: TriggerOptions;
   private _script: GeneratorFunction;
-  private _runningScript: Generator | undefined;
-  public status: RunStatus;
 
   public constructor(
     trigger: symbol,
@@ -47,8 +33,6 @@ export default class Trigger {
       this.options = optionsOrScript as TriggerOptions;
       this._script = script;
     }
-
-    this.status = RunStatus.DONE;
   }
 
   public get isEdgeActivated(): boolean {
@@ -86,16 +70,8 @@ export default class Trigger {
     return true;
   }
 
-  public start(target: Sprite | Stage): void {
-    this.status = RunStatus.RUNNING;
-    this._runningScript = this._script.call(target);
-  }
-
-  public step(): void {
-    if (!this._runningScript) return;
-    if (this._runningScript.next().done) {
-      this.status = RunStatus.DONE;
-    }
+  public startScript(target: Sprite | Stage): Generator {
+    return this._script.call(target);
   }
 
   public clone(): Trigger {

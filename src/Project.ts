@@ -1,11 +1,12 @@
-import Trigger, { RunStatus, TriggerOptions } from "./Trigger";
+import Trigger, { TriggerOptions } from "./Trigger";
 import Renderer from "./Renderer";
 import Input from "./Input";
 import LoudnessHandler from "./Loudness";
 import Sound from "./Sound";
 import { Stage, Sprite } from "./Sprite";
+import Thread, { ThreadStatus } from "./Thread";
 
-export type TriggerWithTarget = {
+type TriggerWithTarget = {
   target: Sprite | Stage;
   trigger: Trigger;
 };
@@ -26,7 +27,7 @@ export default class Project {
   private loudnessHandler: LoudnessHandler;
   private _cachedLoudness: number | null;
 
-  public runningTriggers: TriggerWithTarget[];
+  public threads: Thread[];
 
   public answer: string | null;
   private timerStart!: Date;
@@ -74,7 +75,7 @@ export default class Project {
     // Only update loudness once per step.
     this._cachedLoudness = null;
 
-    this.runningTriggers = [];
+    this.threads = [];
     this._prevStepTriggerPredicates = new WeakMap();
 
     this.restartTimer();
@@ -109,14 +110,14 @@ export default class Project {
         clickedSprite = this.stage;
       }
 
-      const matchingTriggers: TriggerWithTarget[] = [];
+      const matchingTriggers = [];
       for (const trigger of clickedSprite.triggers) {
         if (trigger.matches(Trigger.CLICKED, {}, clickedSprite)) {
           matchingTriggers.push({ trigger, target: clickedSprite });
         }
       }
 
-      this._startTriggers(matchingTriggers);
+      this._startThreads(matchingTriggers);
     });
   }
 
@@ -136,7 +137,7 @@ export default class Project {
   private _matchingTriggers(
     triggerMatches: (tr: Trigger, target: Sprite | Stage) => boolean
   ): TriggerWithTarget[] {
-    const matchingTriggers: TriggerWithTarget[] = [];
+    const matchingTriggers = [];
     // Iterate over targets in top-down order, as Scratch does
     for (let i = this.targets.length - 1; i >= 0; i--) {
       const target = this.targets[i];
@@ -175,25 +176,25 @@ export default class Project {
       // The predicate evaluated to false last time and true this time
       // Activate the trigger
       if (!prevPredicate && predicate) {
-        triggersToStart.push(triggerWithTarget);
+        triggersToStart.push({ trigger, target });
       }
     }
-    void this._startTriggers(triggersToStart);
+    void this._startThreads(triggersToStart);
   }
 
   private step(): void {
     this._cachedLoudness = null;
     this._stepEdgeActivatedTriggers();
 
-    // Step all triggers
-    const alreadyRunningTriggers = this.runningTriggers;
-    for (let i = 0; i < alreadyRunningTriggers.length; i++) {
-      alreadyRunningTriggers[i].trigger.step();
+    // Step all threads
+    const threads = this.threads;
+    for (let i = 0; i < threads.length; i++) {
+      threads[i].step();
     }
 
-    // Remove finished triggers
-    this.runningTriggers = this.runningTriggers.filter(
-      ({ trigger }) => trigger.status !== RunStatus.DONE
+    // Remove finished threads
+    this.threads = this.threads.filter(
+      (thread) => thread.status !== ThreadStatus.DONE
     );
   }
 
@@ -216,15 +217,12 @@ export default class Project {
     this.render();
   }
 
-  public fireTrigger(
-    trigger: symbol,
-    options?: TriggerOptions
-  ): TriggerWithTarget[] {
+  public fireTrigger(trigger: symbol, options?: TriggerOptions): Thread[] {
     // Special trigger behaviors
     if (trigger === Trigger.GREEN_FLAG) {
       this.restartTimer();
       this.stopAllSounds();
-      this.runningTriggers = [];
+      this.threads = [];
 
       this.filterSprites((sprite) => {
         if (!sprite.isOriginal) return false;
@@ -239,27 +237,29 @@ export default class Project {
       tr.matches(trigger, options, target)
     );
 
-    this._startTriggers(matchingTriggers);
-    return matchingTriggers;
+    return this._startThreads(matchingTriggers);
   }
 
   // TODO: add a way to start clone triggers from fireTrigger then make this private
-  public _startTriggers(triggers: TriggerWithTarget[]): void {
-    // Only add these triggers to this.runningTriggers if they're not already there.
-    // TODO: if the triggers are already running, they'll be restarted but their execution order is unchanged.
+  public _startThreads(triggers: TriggerWithTarget[]): Thread[] {
+    const startedThreads = [];
+    // Only add these threads to this.threads if they're not already there.
+    // TODO: if the threads are already running, they'll be restarted but their execution order is unchanged.
     // Does that match Scratch's behavior?
-    for (const trigger of triggers) {
-      if (
-        !this.runningTriggers.find(
-          (runningTrigger) =>
-            trigger.trigger === runningTrigger.trigger &&
-            trigger.target === runningTrigger.target
-        )
-      ) {
-        this.runningTriggers.push(trigger);
+    for (const { trigger, target } of triggers) {
+      const existingThread = this.threads.find(
+        (thread) => thread.trigger === trigger && thread.target === target
+      );
+      if (existingThread) {
+        existingThread.restart();
+        startedThreads.push(existingThread);
+      } else {
+        const thread = new Thread(trigger, target);
+        this.threads.push(thread);
+        startedThreads.push(thread);
       }
-      trigger.trigger.start(trigger.target);
     }
+    return startedThreads;
   }
 
   public addSprite(sprite: Sprite, behind?: Sprite): void {
@@ -294,9 +294,7 @@ export default class Project {
   }
 
   private cleanupSprite(sprite: Sprite): void {
-    this.runningTriggers = this.runningTriggers.filter(
-      ({ target }) => target !== sprite
-    );
+    this.threads = this.threads.filter(({ target }) => target !== sprite);
   }
 
   public changeSpriteLayer(
