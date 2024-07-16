@@ -137,7 +137,9 @@ export default class Project {
     triggerMatches: (tr: Trigger, target: Sprite | Stage) => boolean
   ): TriggerWithTarget[] {
     const matchingTriggers: TriggerWithTarget[] = [];
-    for (const target of this.targets) {
+    // Iterate over targets in top-down order, as Scratch does
+    for (let i = this.targets.length - 1; i >= 0; i--) {
+      const target = this.targets[i];
       const matchingTargetTriggers = target.triggers.filter((tr) =>
         triggerMatches(tr, target)
       );
