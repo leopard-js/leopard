@@ -4,7 +4,7 @@ import Sound, { EffectChain, AudioEffectMap } from "./Sound";
 import Costume from "./Costume";
 import type { Mouse } from "./Input";
 import type Project from "./Project";
-import Thread, { ThreadStatus } from "./Thread";
+import Thread from "./Thread";
 import type Watcher from "./Watcher";
 import type { Yielding } from "./lib/yielding";
 
@@ -345,6 +345,8 @@ abstract class SpriteBase {
     const endTime = new Date();
     endTime.setMilliseconds(endTime.getMilliseconds() + secs * 1000);
     this._project.requestRedraw();
+    // "wait (0) seconds" should yield at least once.
+    yield;
     while (new Date() < endTime) {
       yield;
     }
@@ -401,19 +403,8 @@ abstract class SpriteBase {
     }
   }
 
-  public *waitForThreads(threads: Thread[]): Yielding<void> {
-    while (true) {
-      for (const thread of threads) {
-        if (thread.status !== ThreadStatus.DONE) {
-          yield;
-        }
-      }
-      break;
-    }
-  }
-
   public broadcast(name: string): Yielding<void> {
-    return this.waitForThreads(
+    return Thread.waitForThreads(
       this._project.fireTrigger(Trigger.BROADCAST, { name })
     );
   }
@@ -428,12 +419,7 @@ abstract class SpriteBase {
   }
 
   public *askAndWait(question: string): Yielding<void> {
-    let done = false;
-    void this._project.askAndWait(question).then(() => {
-      done = true;
-    });
-
-    while (!done) yield;
+    yield* Thread.await(this._project.askAndWait(question));
   }
 
   public get answer(): string | null {
@@ -990,28 +976,28 @@ export class Sprite extends SpriteBase {
 
   public *sayAndWait(text: string, seconds: number): Yielding<void> {
     const speechBubble: SpeechBubble = { text, style: "say" };
-    let done = false;
-    window.setTimeout(() => {
-      done = true;
-    }, seconds * 1000);
+
+    const timer = new Promise((resolve) => {
+      window.setTimeout(resolve, seconds * 1000);
+    });
 
     this._speechBubble = speechBubble;
     this._project.requestRedraw();
-    while (!done) yield;
+    yield* Thread.await(timer);
     speechBubble.text = "";
     this._project.requestRedraw();
   }
 
   public *thinkAndWait(text: string, seconds: number): Yielding<void> {
     const speechBubble: SpeechBubble = { text, style: "think" };
-    let done = false;
-    window.setTimeout(() => {
-      done = true;
-    }, seconds * 1000);
+
+    const timer = new Promise((resolve) => {
+      window.setTimeout(resolve, seconds * 1000);
+    });
 
     this._speechBubble = speechBubble;
     this._project.requestRedraw();
-    while (!done) yield;
+    yield* Thread.await(timer);
     speechBubble.text = "";
     this._project.requestRedraw();
   }
@@ -1074,7 +1060,7 @@ export class Stage extends SpriteBase {
   }
 
   public fireBackdropChanged(): Yielding<void> {
-    return this.waitForThreads(
+    return Thread.waitForThreads(
       this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
         backdrop: this.costume.name,
       })

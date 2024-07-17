@@ -28,6 +28,12 @@ export default class Project {
   private _cachedLoudness: number | null;
 
   private stepTime: number;
+  /**
+   * Actively-running scripts. Take care when removing threads--you must always
+   * set their status to ThreadStatus.DONE before doing so, as other threads may
+   * be waiting for them to complete. The {@link filterThreads} method does this
+   * for you.
+   */
   private threads: Thread[];
   private redrawRequested: boolean;
 
@@ -214,9 +220,7 @@ export default class Project {
       const threads = this.threads;
       for (let i = 0; i < threads.length; i++) {
         const thread = threads[i];
-        if (thread.status === ThreadStatus.RUNNING) {
-          thread.step();
-        }
+        thread.step();
 
         if (thread.status === ThreadStatus.RUNNING) {
           anyThreadsActive = true;
@@ -227,21 +231,36 @@ export default class Project {
 
       // Remove finished threads in-place.
       if (anyThreadsStopped) {
-        let nextActiveThreadIndex = 0;
-        for (let i = 0; i < threads.length; i++) {
-          const thread = threads[i];
-          if (threads[i].status !== ThreadStatus.DONE) {
-            threads[nextActiveThreadIndex] = thread;
-            nextActiveThreadIndex++;
-          }
-        }
-        threads.length = nextActiveThreadIndex;
+        this.filterThreads((thread) => thread.status !== ThreadStatus.DONE);
       }
 
       // We set "now" to startTime at first to ensure we iterate through at
-      // least once in the event of a freak lag spike.
+      // least once, no matter how much time occurs between setting startTime
+      // and the beginning of the loop.
       now = Date.now();
     }
+  }
+
+  /**
+   * Filter out threads (running scripts) by a given predicate, properly
+   * handling thread cleanup while doing so.
+   * @param predicate The function used to filter threads. If it returns true,
+   * the thread will be kept. If it returns false, the thread will be removed.
+   */
+  private filterThreads(predicate: (thread: Thread) => boolean): void {
+    let nextActiveThreadIndex = 0;
+    for (let i = 0; i < this.threads.length; i++) {
+      const thread = this.threads[i];
+      if (predicate(thread)) {
+        this.threads[nextActiveThreadIndex] = thread;
+        nextActiveThreadIndex++;
+      } else {
+        // Set the status to DONE to wake up any threads that may be waiting for
+        // this one to finish running.
+        thread.setStatus(ThreadStatus.DONE);
+      }
+    }
+    this.threads.length = nextActiveThreadIndex;
   }
 
   private render(): void {
@@ -339,7 +358,7 @@ export default class Project {
   }
 
   private cleanupSprite(sprite: Sprite): void {
-    this.threads = this.threads.filter(({ target }) => target !== sprite);
+    this.filterThreads((thread) => thread.target !== sprite);
   }
 
   public changeSpriteLayer(
