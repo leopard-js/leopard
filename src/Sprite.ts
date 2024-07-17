@@ -4,6 +4,7 @@ import Sound, { EffectChain, AudioEffectMap } from "./Sound";
 import Costume from "./Costume";
 import type { Mouse } from "./Input";
 import type Project from "./Project";
+import Thread from "./Thread";
 import type Watcher from "./Watcher";
 import type { Yielding } from "./lib/yielding";
 
@@ -19,6 +20,8 @@ type Effects = {
 export class _EffectMap implements Effects {
   public _bitmask: number;
   private _effectValues: Record<typeof effectNames[number], number>;
+  public _project: Project | null;
+  private _target: SpriteBase;
   // TODO: TypeScript can't automatically infer these
   public color!: number;
   public fisheye!: number;
@@ -28,8 +31,10 @@ export class _EffectMap implements Effects {
   public brightness!: number;
   public ghost!: number;
 
-  public constructor() {
+  public constructor(project: Project | null, target: SpriteBase) {
     this._bitmask = 0;
+    this._project = project;
+    this._target = target;
     this._effectValues = {
       color: 0,
       fisheye: 0,
@@ -58,13 +63,17 @@ export class _EffectMap implements Effects {
             // Otherwise, set its bit to 1.
             this._bitmask = this._bitmask | (1 << i);
           }
+
+          if ("visible" in this._target ? this._target.visible : true) {
+            this._project?.requestRedraw();
+          }
         },
       });
     }
   }
 
-  public _clone(): _EffectMap {
-    const m = new _EffectMap();
+  public _clone(newTarget: Sprite | Stage): _EffectMap {
+    const m = new _EffectMap(this._project, newTarget);
     for (const effectName of Object.keys(
       this._effectValues
     ) as (keyof typeof this._effectValues)[]) {
@@ -80,6 +89,10 @@ export class _EffectMap implements Effects {
       this._effectValues[effectName] = 0;
     }
     this._bitmask = 0;
+
+    if ("visible" in this._target ? this._target.visible : true) {
+      this._project?.requestRedraw();
+    }
   }
 }
 
@@ -88,7 +101,6 @@ export type SpeechBubbleStyle = "say" | "think";
 export type SpeechBubble = {
   text: string;
   style: SpeechBubbleStyle;
-  timeout: number | null;
 };
 
 type InitialConditions = {
@@ -97,10 +109,12 @@ type InitialConditions = {
 };
 
 abstract class SpriteBase {
+  // TODO: make this protected and pass it in via the constructor
   protected _project!: Project;
 
   protected _costumeNumber: number;
-  protected _layerOrder: number;
+  // TODO: remove this and just store the sprites in layer order, as Scratch does.
+  private _initialLayerOrder: number | null;
   public triggers: Trigger[];
   public watchers: Partial<Record<string, Watcher>>;
   protected costumes: Costume[];
@@ -116,7 +130,7 @@ abstract class SpriteBase {
     // TODO: pass project in here, ideally
     const { costumeNumber, layerOrder = 0 } = initialConditions;
     this._costumeNumber = costumeNumber;
-    this._layerOrder = layerOrder;
+    this._initialLayerOrder = layerOrder;
 
     this.triggers = [];
     this.watchers = {};
@@ -128,10 +142,34 @@ abstract class SpriteBase {
     });
     this.effectChain.connect(Sound.audioContext.destination);
 
-    this.effects = new _EffectMap();
+    this.effects = new _EffectMap(this._project, this);
     this.audioEffects = new AudioEffectMap(this.effectChain);
 
     this._vars = vars;
+  }
+
+  public setProject(project: Project): void {
+    this._project = project;
+    this.effects._project = project;
+  }
+
+  public getInitialLayerOrder(): number {
+    const order = this._initialLayerOrder;
+    if (order === null) {
+      throw new Error(
+        "getInitialLayerOrder should only be called once, when the project is initialized"
+      );
+    }
+    return order;
+  }
+
+  public clearInitialLayerOrder(): void {
+    this._initialLayerOrder = null;
+  }
+
+  public reset(): void {
+    this.effects.clear();
+    this.audioEffects.clear();
   }
 
   protected getSoundsPlayedByMe(): Sound[] {
@@ -159,6 +197,10 @@ abstract class SpriteBase {
       this._costumeNumber = this.wrapClamp(number, 1, this.costumes.length);
     } else {
       this._costumeNumber = 0;
+    }
+
+    if ("visible" in this ? this.visible : true) {
+      this._project.requestRedraw();
     }
   }
 
@@ -302,6 +344,9 @@ abstract class SpriteBase {
   public *wait(secs: number): Yielding<void> {
     const endTime = new Date();
     endTime.setMilliseconds(endTime.getMilliseconds() + secs * 1000);
+    this._project.requestRedraw();
+    // "wait (0) seconds" should yield at least once.
+    yield;
     while (new Date() < endTime) {
       yield;
     }
@@ -358,32 +403,23 @@ abstract class SpriteBase {
     }
   }
 
-  public broadcast(name: string): Promise<void> {
-    return this._project.fireTrigger(Trigger.BROADCAST, { name });
+  public broadcast(name: string): Yielding<void> {
+    return Thread.waitForThreads(
+      this._project.fireTrigger(Trigger.BROADCAST, { name })
+    );
   }
 
   public *broadcastAndWait(name: string): Yielding<void> {
-    let running = true;
-    void this.broadcast(name).then(() => {
-      running = false;
-    });
-
-    while (running) {
-      yield;
-    }
+    yield* this.broadcast(name);
   }
 
   public clearPen(): void {
     this._project.renderer.clearPen();
+    this._project.requestRedraw();
   }
 
   public *askAndWait(question: string): Yielding<void> {
-    let done = false;
-    void this._project.askAndWait(question).then(() => {
-      done = true;
-    });
-
-    while (!done) yield;
+    yield* Thread.await(this._project.askAndWait(question));
   }
 
   public get answer(): string | null {
@@ -517,12 +553,11 @@ export class Sprite extends SpriteBase {
   private _x: number;
   private _y: number;
   private _direction: number;
-  public rotationStyle: RotationStyle;
-  public size: number;
-  public visible: boolean;
+  private _rotationStyle: RotationStyle;
+  private _size: number;
+  private _visible: boolean;
 
-  private parent: this | null;
-  public clones: this[];
+  private original: this;
 
   private _penDown: boolean;
   public penSize: number;
@@ -548,13 +583,12 @@ export class Sprite extends SpriteBase {
     this._x = x;
     this._y = y;
     this._direction = direction;
-    this.rotationStyle = rotationStyle || Sprite.RotationStyle.ALL_AROUND;
+    this._rotationStyle = rotationStyle || Sprite.RotationStyle.ALL_AROUND;
     this._costumeNumber = costumeNumber;
-    this.size = size;
-    this.visible = visible;
+    this._size = size;
+    this._visible = visible;
 
-    this.parent = null;
-    this.clones = [];
+    this.original = this;
 
     this._penDown = penDown || false;
     this.penSize = penSize || 1;
@@ -563,8 +597,16 @@ export class Sprite extends SpriteBase {
     this._speechBubble = {
       text: "",
       style: "say",
-      timeout: null,
     };
+  }
+
+  public get isOriginal(): boolean {
+    return this.original === this;
+  }
+
+  public reset(): void {
+    super.reset();
+    this._speechBubble = undefined;
   }
 
   public *askAndWait(question: string): Yielding<void> {
@@ -590,50 +632,37 @@ export class Sprite extends SpriteBase {
     clone._speechBubble = {
       text: "",
       style: "say",
-      timeout: null,
     };
 
-    clone.effects = this.effects._clone();
+    clone.effects = this.effects._clone(clone);
 
     // Clones inherit audio effects from the original sprite, for some reason.
     // Couldn't explain it, but that's the behavior in Scratch 3.0.
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let original = this;
-    while (original.parent) {
-      original = original.parent;
-    }
-    clone.effectChain = original.effectChain.clone({
+    clone.effectChain = this.original.effectChain.clone({
       getNonPatchSoundList: clone.getSoundsPlayedByMe.bind(clone),
     });
 
     // Make a new audioEffects interface which acts on the cloned effect chain.
     clone.audioEffects = new AudioEffectMap(clone.effectChain);
 
-    clone.clones = [];
-    clone.parent = this;
-    this.clones.push(clone);
+    clone.original = this.original;
+
+    this._project.addSprite(clone, this);
 
     // Trigger CLONE_START:
     const triggers = clone.triggers.filter((tr) =>
       tr.matches(Trigger.CLONE_START, {}, clone)
     );
-    void this._project._startTriggers(
+    void this._project._startThreads(
       triggers.map((trigger) => ({ trigger, target: clone }))
     );
   }
 
   public deleteThisClone(): void {
-    if (this.parent === null) return;
+    if (this.isOriginal) return;
 
-    this.parent.clones = this.parent.clones.filter((clone) => clone !== this);
-
-    this._project.runningTriggers = this._project.runningTriggers.filter(
-      ({ target }) => target !== this
-    );
-  }
-
-  public andClones(): this[] {
-    return [this, ...this.clones.flatMap((clone) => clone.andClones())];
+    this._project.removeSprite(this);
+    if (this._visible) this._project.requestRedraw();
   }
 
   public get direction(): number {
@@ -642,6 +671,34 @@ export class Sprite extends SpriteBase {
 
   public set direction(dir) {
     this._direction = this.normalizeDeg(dir);
+    if (this._visible) this._project.requestRedraw();
+  }
+
+  public get rotationStyle(): RotationStyle {
+    return this._rotationStyle;
+  }
+
+  public set rotationStyle(style) {
+    this._rotationStyle = style;
+    if (this._visible) this._project.requestRedraw();
+  }
+
+  public get size(): number {
+    return this._size;
+  }
+
+  public set size(size) {
+    this._size = size; // TODO: clamp size like Scratch does
+    if (this._visible) this._project.requestRedraw();
+  }
+
+  public get visible(): boolean {
+    return this._visible;
+  }
+
+  public set visible(visible) {
+    this._visible = visible;
+    if (visible) this._project.requestRedraw();
   }
 
   public goto(x: number, y: number): void {
@@ -658,6 +715,10 @@ export class Sprite extends SpriteBase {
 
     this._x = x;
     this._y = y;
+
+    if (this.penDown || this.visible) {
+      this._project.requestRedraw();
+    }
   }
 
   public get x(): number {
@@ -701,7 +762,7 @@ export class Sprite extends SpriteBase {
     } while (t < 1);
   }
 
-  ifOnEdgeBounce() {
+  public ifOnEdgeBounce(): void {
     const nearestEdge = this.nearestEdge();
     if (!nearestEdge) return;
     const rad = this.scratchToRad(this.direction);
@@ -725,7 +786,7 @@ export class Sprite extends SpriteBase {
     this.positionInFence();
   }
 
-  positionInFence() {
+  private positionInFence(): void {
     // https://github.com/LLK/scratch-vm/blob/develop/src/sprites/rendered-target.js#L949
     const fence = this.stage.fence;
     const bounds = this._project.renderer.getTightBoundingBox(this);
@@ -778,6 +839,7 @@ export class Sprite extends SpriteBase {
       );
     }
     this._penDown = penDown;
+    if (penDown) this._project.requestRedraw();
   }
 
   public get penColor(): Color {
@@ -796,6 +858,7 @@ export class Sprite extends SpriteBase {
 
   public stamp(): void {
     this._project.renderer.stamp(this);
+    this._project.requestRedraw();
   }
 
   public touching(
@@ -869,7 +932,7 @@ export class Sprite extends SpriteBase {
     }
   }
 
-  nearestEdge() {
+  private nearestEdge(): symbol | null {
     const bounds = this._project.renderer.getTightBoundingBox(this);
     const { width: stageWidth, height: stageHeight } = this.stage;
     const distLeft = Math.max(0, stageWidth / 2 + bounds.left);
@@ -902,45 +965,41 @@ export class Sprite extends SpriteBase {
   }
 
   public say(text: string): void {
-    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
-    this._speechBubble = { text: String(text), style: "say", timeout: null };
+    this._speechBubble = { text: String(text), style: "say" };
+    this._project.requestRedraw();
   }
 
   public think(text: string): void {
-    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
-    this._speechBubble = { text: String(text), style: "think", timeout: null };
+    this._speechBubble = { text: String(text), style: "think" };
+    this._project.requestRedraw();
   }
 
   public *sayAndWait(text: string, seconds: number): Yielding<void> {
-    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
+    const speechBubble: SpeechBubble = { text, style: "say" };
 
-    const speechBubble: SpeechBubble = { text, style: "say", timeout: null };
-    let done = false;
-    const timeout = window.setTimeout(() => {
-      speechBubble.text = "";
-      speechBubble.timeout = null;
-      done = true;
-    }, seconds * 1000);
+    const timer = new Promise((resolve) => {
+      window.setTimeout(resolve, seconds * 1000);
+    });
 
-    speechBubble.timeout = timeout;
     this._speechBubble = speechBubble;
-    while (!done) yield;
+    this._project.requestRedraw();
+    yield* Thread.await(timer);
+    speechBubble.text = "";
+    this._project.requestRedraw();
   }
 
   public *thinkAndWait(text: string, seconds: number): Yielding<void> {
-    if (this._speechBubble?.timeout) clearTimeout(this._speechBubble.timeout);
+    const speechBubble: SpeechBubble = { text, style: "think" };
 
-    const speechBubble: SpeechBubble = { text, style: "think", timeout: null };
-    let done = false;
-    const timeout = window.setTimeout(() => {
-      speechBubble.text = "";
-      speechBubble.timeout = null;
-      done = true;
-    }, seconds * 1000);
+    const timer = new Promise((resolve) => {
+      window.setTimeout(resolve, seconds * 1000);
+    });
 
-    speechBubble.timeout = timeout;
     this._speechBubble = speechBubble;
-    while (!done) yield;
+    this._project.requestRedraw();
+    yield* Thread.await(timer);
+    speechBubble.text = "";
+    this._project.requestRedraw();
   }
 
   public static RotationStyle = Object.freeze({
@@ -953,7 +1012,7 @@ export class Sprite extends SpriteBase {
     BOTTOM: Symbol("BOTTOM"),
     LEFT: Symbol("LEFT"),
     RIGHT: Symbol("RIGHT"),
-    TOP: Symbol("TOP")
+    TOP: Symbol("TOP"),
   });
 }
 
@@ -971,7 +1030,7 @@ export class Stage extends SpriteBase {
     right: number;
     top: number;
     bottom: number;
-  }
+  };
 
   public constructor(initialConditions: StageInitialConditions, vars = {}) {
     super(initialConditions, vars);
@@ -993,17 +1052,19 @@ export class Stage extends SpriteBase {
       left: -this.width / 2,
       right: this.width / 2,
       top: this.height / 2,
-      bottom: -this.height / 2
+      bottom: -this.height / 2,
     };
 
     // For obsolete counter blocks.
     this.__counter = 0;
   }
 
-  public fireBackdropChanged(): Promise<void> {
-    return this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
-      backdrop: this.costume.name,
-    });
+  public fireBackdropChanged(): Yielding<void> {
+    return Thread.waitForThreads(
+      this._project.fireTrigger(Trigger.BACKDROP_CHANGED, {
+        backdrop: this.costume.name,
+      })
+    );
   }
 
   public get costumeNumber(): number {
@@ -1012,6 +1073,6 @@ export class Stage extends SpriteBase {
 
   public set costumeNumber(number) {
     super.costumeNumber = number;
-    void this.fireBackdropChanged();
+    this.fireBackdropChanged();
   }
 }

@@ -12,9 +12,6 @@ export default class Trigger {
   public trigger;
   private options: TriggerOptions;
   private _script: GeneratorFunction;
-  private _runningScript: Generator | undefined;
-  public done: boolean;
-  private stop: () => void;
 
   public constructor(
     trigger: symbol,
@@ -36,10 +33,6 @@ export default class Trigger {
       this.options = optionsOrScript as TriggerOptions;
       this._script = script;
     }
-
-    this.done = false;
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    this.stop = () => {};
   }
 
   public get isEdgeActivated(): boolean {
@@ -77,24 +70,8 @@ export default class Trigger {
     return true;
   }
 
-  public start(target: Sprite | Stage): Promise<void> {
-    this.stop();
-
-    this.done = false;
-    this._runningScript = this._script.call(target);
-
-    return new Promise<void>((resolve) => {
-      this.stop = (): void => {
-        this.done = true;
-        resolve();
-      };
-    });
-  }
-
-  public step(): void {
-    if (!this._runningScript) return;
-    this.done = !!this._runningScript.next().done;
-    if (this.done) this.stop();
+  public startScript(target: Sprite | Stage): Generator {
+    return this._script.call(target);
   }
 
   public clone(): Trigger {

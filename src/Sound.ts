@@ -1,5 +1,6 @@
 import decodeADPCMAudio, { isADPCMData } from "./lib/decode-adpcm-audio";
 import type { Yielding } from "./lib/yielding";
+import Thread from "./Thread";
 
 export default class Sound {
   public name: string;
@@ -84,8 +85,6 @@ export default class Sound {
   }
 
   public *playUntilDone(): Yielding<void> {
-    let playing = true;
-
     const isLatestCallToStart = yield* this.start();
 
     // If we failed to download the audio buffer, just stop here - the sound will
@@ -94,28 +93,31 @@ export default class Sound {
       return;
     }
 
-    this.source.addEventListener("ended", () => {
-      playing = false;
-      delete this._markDone;
-    });
+    yield* Thread.await(
+      new Promise((resolve) => {
+        this.source!.addEventListener("ended", () => {
+          resolve();
+          delete this._markDone;
+        });
 
-    // If there was another call to start() since ours, don't wait for the
-    // sound to finish before returning.
-    if (!isLatestCallToStart) {
-      return;
-    }
+        // If there was another call to start() since ours, don't wait for the
+        // sound to finish before returning.
+        if (!isLatestCallToStart) {
+          return;
+        }
 
-    // Set _markDone after calling start(), because start() will call the existing
-    // value of _markDone if it's already set. It does this because playUntilDone()
-    // is meant to be interrupted if another start() is ran while it's playing.
-    // Of course, we don't want *this* playUntilDone() to be treated as though it
-    // were interrupted when we call start(), so setting _markDone comes after.
-    this._markDone = (): void => {
-      playing = false;
-      delete this._markDone;
-    };
-
-    while (playing) yield;
+        // Set _markDone after calling start(), because start() will call the
+        // existing value of _markDone if it's already set. It does this because
+        // playUntilDone() is meant to be interrupted if another start() is ran
+        // while it's playing. Of course, we don't want *this* playUntilDone()
+        // to be treated as though it were interrupted when we call start(), so
+        // setting _markDone comes after.
+        this._markDone = (): void => {
+          resolve();
+          delete this._markDone;
+        };
+      })
+    );
   }
 
   public stop(): void {
