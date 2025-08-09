@@ -4,6 +4,7 @@ import Input from "./Input";
 import LoudnessHandler from "./Loudness";
 import Sound from "./Sound";
 import { Stage, Sprite } from "./Sprite";
+import filterArrayInPlace from "./lib/filter-array-in-place";
 
 type TriggerWithTarget = {
   target: Sprite | Stage;
@@ -192,9 +193,7 @@ export default class Project {
     }
 
     // Remove finished triggers
-    this.runningTriggers = this.runningTriggers.filter(
-      ({ trigger }) => !trigger.done
-    );
+    filterArrayInPlace(this.runningTriggers, ({ trigger }) => !trigger.done);
   }
 
   private render(): void {
@@ -221,15 +220,17 @@ export default class Project {
     if (trigger === Trigger.GREEN_FLAG) {
       this.restartTimer();
       this.stopAllSounds();
-      this.runningTriggers = [];
+      this.runningTriggers.length = 0;
 
-      this.filterSprites((sprite) => {
-        if (!sprite.isOriginal) return false;
+      filterArrayInPlace(
+        this.targets,
+        (item) => item instanceof Stage || item.isOriginal
+      );
 
-        sprite.effects.clear();
-        sprite.audioEffects.clear();
-        return true;
-      });
+      for (const target of this.targets) {
+        target.effects.clear();
+        target.audioEffects.clear();
+      }
     }
 
     const matchingTriggers = this._matchingTriggers((tr, target) =>
@@ -274,27 +275,7 @@ export default class Project {
     if (index === -1) return;
 
     this.targets.splice(index, 1);
-    this.cleanupSprite(sprite);
-  }
-
-  public filterSprites(predicate: (sprite: Sprite) => boolean): void {
-    let nextKeptSpriteIndex = 0;
-    for (let i = 0; i < this.targets.length; i++) {
-      const target = this.targets[i];
-      if (target instanceof Stage || predicate(target)) {
-        this.targets[nextKeptSpriteIndex] = target;
-        nextKeptSpriteIndex++;
-      } else {
-        this.cleanupSprite(target);
-      }
-    }
-    this.targets.length = nextKeptSpriteIndex;
-  }
-
-  private cleanupSprite(sprite: Sprite): void {
-    this.runningTriggers = this.runningTriggers.filter(
-      ({ target }) => target !== sprite
-    );
+    filterArrayInPlace(this.runningTriggers, ({ target }) => target !== sprite);
   }
 
   public changeSpriteLayer(
