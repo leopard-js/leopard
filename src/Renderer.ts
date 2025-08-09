@@ -784,10 +784,7 @@ export default class Renderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    this.renderSprite(spr, {
-      drawMode: ShaderManager.DrawModes.DEFAULT,
-      effectMask: ~effectBitmasks.ghost,
-    });
+    this.renderSprite(spr, { effectMask: ~effectBitmasks.ghost });
 
     const hoveredPixel = new Uint8Array(4);
     const cx = this._collisionBuffer.width / 2;
