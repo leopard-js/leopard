@@ -278,8 +278,12 @@ export default class Project {
     const index = this.targets.indexOf(sprite);
     if (index === -1) return;
 
-    this.targets.splice(index, 1);
-    filterArrayInPlace(this.runningTriggers, ({ target }) => target !== sprite);
+    const instances = new Set<Sprite | Stage>(sprite.andClones());
+    filterArrayInPlace(this.targets, (target) => !instances.has(target));
+    filterArrayInPlace(
+      this.runningTriggers,
+      ({ target }) => !instances.has(target)
+    );
   }
 
   public changeSpriteLayer(
