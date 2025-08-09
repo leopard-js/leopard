@@ -230,6 +230,10 @@ export default class Project {
       for (const target of this.targets) {
         target.effects.clear();
         target.audioEffects.clear();
+        if (target instanceof Sprite) {
+          // The original sprite will always be first in the list. All other clones just got deleted.
+          target.andClones().length = 1;
+        }
       }
     }
 

@@ -537,7 +537,8 @@ export class Sprite extends SpriteBase {
   public size: number;
   public visible: boolean;
 
-  private original: this;
+  private _original: this;
+  private _allInstances: Sprite[];
 
   private _penDown: boolean;
   public penSize: number;
@@ -568,7 +569,8 @@ export class Sprite extends SpriteBase {
     this.size = size;
     this.visible = visible;
 
-    this.original = this;
+    this._original = this;
+    this._allInstances = [this];
 
     this._penDown = penDown || false;
     this.penSize = penSize || 1;
@@ -582,7 +584,7 @@ export class Sprite extends SpriteBase {
   }
 
   public get isOriginal(): boolean {
-    return this.original === this;
+    return this._original === this;
   }
 
   public *askAndWait(question: string): Yielding<void> {
@@ -615,16 +617,18 @@ export class Sprite extends SpriteBase {
 
     // Clones inherit audio effects from the original sprite, for some reason.
     // Couldn't explain it, but that's the behavior in Scratch 3.0.
-    clone.effectChain = this.original.effectChain.clone({
+    clone.effectChain = this._original.effectChain.clone({
       getNonPatchSoundList: clone.getSoundsPlayedByMe.bind(clone),
     });
 
     // Make a new audioEffects interface which acts on the cloned effect chain.
     clone.audioEffects = new AudioEffectMap(clone.effectChain);
 
-    clone.original = this.original;
+    clone._original = this._original;
+    clone._allInstances = this._allInstances;
 
     this._project.addSprite(clone, this);
+    this._allInstances.push(clone);
 
     // Trigger CLONE_START:
     const triggers = clone.triggers.filter((tr) =>
@@ -639,6 +643,12 @@ export class Sprite extends SpriteBase {
     if (this.isOriginal) return;
 
     this._project.removeSprite(this);
+    const cloneIndex = this._allInstances.indexOf(this);
+    if (cloneIndex !== -1) this._allInstances.splice(cloneIndex, 1);
+  }
+
+  public andClones(): Sprite[] {
+    return this._allInstances;
   }
 
   public get direction(): number {
