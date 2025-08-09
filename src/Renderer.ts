@@ -35,7 +35,7 @@ const colorToId = ([r, g, b]: [number, number, number] | Uint8Array): number =>
   ((r << 16) | (g << 8) | b) - 1;
 
 type RenderSpriteOptions = {
-  drawMode: DrawMode;
+  drawMode?: DrawMode;
   effectMask?: number;
   colorMask?: RGBANormalized;
   renderSpeechBubbles?: boolean;
@@ -287,14 +287,9 @@ export default class Renderer {
   // Handles rendering of all layers (including stage, pen layer, sprites, and all clones) in proper order.
   private _renderLayers(
     layers?: Set<Sprite | Stage | PenSkin>,
-    optionsIn: Partial<RenderSpriteOptions> = {},
+    options: RenderSpriteOptions = {},
     filter?: (layer: Sprite | Stage | PenSkin) => boolean
   ): void {
-    const options = {
-      drawMode: ShaderManager.DrawModes.DEFAULT,
-      ...optionsIn,
-    };
-
     // If we're given a list of layers, filter by that.
     // If we're given a filter function in the options, filter by that too.
     // If we're given both, then only include layers which match both.
@@ -323,7 +318,7 @@ export default class Renderer {
 
       this._renderSkin(
         this._penSkin,
-        options.drawMode,
+        options.drawMode ?? ShaderManager.DrawModes.DEFAULT,
         penMatrix,
         1 /* scale */
       );
@@ -508,7 +503,7 @@ export default class Renderer {
 
     this._renderSkin(
       this._getSkin(sprite.costume),
-      options.drawMode,
+      options.drawMode ?? ShaderManager.DrawModes.DEFAULT,
       drawable.getMatrix(),
       drawable.getSpriteScale(),
       sprite.effects,
@@ -530,7 +525,7 @@ export default class Renderer {
 
       this._renderSkin(
         speechBubbleSkin,
-        options.drawMode,
+        options.drawMode ?? ShaderManager.DrawModes.DEFAULT,
         this._calculateSpeechBubbleMatrix(sprite, speechBubbleSkin),
         1 /* spriteScale */
       );
@@ -568,12 +563,7 @@ export default class Renderer {
     // This, along with the above line, has the effect of not drawing anything to the color buffer, but
     // creating a "mask" in the stencil buffer that masks out all pixels where this sprite is transparent.
 
-    const opts: {
-      drawMode: DrawMode;
-      renderSpeechBubbles: boolean;
-      effectMask: number;
-      colorMask?: RGBANormalized;
-    } & RenderSpriteOptions = {
+    const opts: RenderSpriteOptions = {
       drawMode: ShaderManager.DrawModes.SILHOUETTE,
       renderSpeechBubbles: false,
       // Ignore ghost effect
@@ -586,7 +576,7 @@ export default class Renderer {
       opts.colorMask = colorMask.toRGBANormalized();
       opts.drawMode = ShaderManager.DrawModes.COLOR_MASK;
     }
-    this._renderLayers(new Set([spr]), opts);
+    this.renderSprite(spr, opts);
 
     // Pass the stencil test if the stencil buffer value equals 1 (e.g. the pixel got masked in above).
     gl.stencilFunc(gl.EQUAL, 1, 1);
@@ -784,8 +774,6 @@ export default class Renderer {
     point: { x: number; y: number },
     fast?: boolean
   ): boolean {
-    if ("visible" in spr && !spr.visible) return false;
-
     const box = this.getBoundingBox(spr);
     if (!box.containsPoint(point.x, point.y)) return false;
     if (fast) return true;
@@ -796,7 +784,7 @@ export default class Renderer {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    this._renderLayers(new Set([spr]), { effectMask: ~effectBitmasks.ghost });
+    this.renderSprite(spr, { effectMask: ~effectBitmasks.ghost });
 
     const hoveredPixel = new Uint8Array(4);
     const cx = this._collisionBuffer.width / 2;
@@ -828,7 +816,7 @@ export default class Renderer {
 
   public stamp(spr: Sprite | Stage): void {
     this._setFramebuffer(this._penSkin._framebufferInfo);
-    this._renderLayers(new Set([spr]), { renderSpeechBubbles: false });
+    this.renderSprite(spr, { renderSpeechBubbles: false });
   }
 
   public displayAskBox(question: string): Promise<string> {
