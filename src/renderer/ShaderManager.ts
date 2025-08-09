@@ -59,12 +59,7 @@ class ShaderManager {
   }
 
   // Creates and compiles a vertex or fragment shader from the given source code.
-  private _createShader(
-    source: string,
-    type:
-      | WebGLRenderingContext["FRAGMENT_SHADER"]
-      | WebGLRenderingContext["VERTEX_SHADER"]
-  ): WebGLShader {
+  private _createShader(source: string, type: number): WebGLShader {
     const gl = this.gl;
     const shader = gl.createShader(type);
     if (!shader) throw new Error("Could not create shader.");

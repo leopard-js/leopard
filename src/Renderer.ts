@@ -163,9 +163,7 @@ export default class Renderer {
   public _createFramebufferInfo(
     width: number,
     height: number,
-    filtering:
-      | WebGLRenderingContext["NEAREST"]
-      | WebGLRenderingContext["LINEAR"],
+    filtering: number,
     stencil = false
   ): FramebufferInfo {
     // Create an empty texture with this skin's dimensions.

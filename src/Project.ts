@@ -133,10 +133,11 @@ export default class Project {
       let predicate;
       switch (trigger.trigger) {
         case Trigger.TIMER_GREATER_THAN:
-          predicate = this.timer > trigger.option("VALUE", target)!;
+          predicate = this.timer > (trigger.option("VALUE", target) as number);
           break;
         case Trigger.LOUDNESS_GREATER_THAN:
-          predicate = this.loudness > trigger.option("VALUE", target)!;
+          predicate =
+            this.loudness > (trigger.option("VALUE", target) as number);
           break;
         default:
           throw new Error(`Unimplemented trigger ${String(trigger.trigger)}`);
